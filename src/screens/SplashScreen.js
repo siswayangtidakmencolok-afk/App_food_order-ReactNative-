@@ -1,6 +1,7 @@
 // src/screens/SplashScreen.js
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
+import LottieView from 'lottie-react-native';
 
 const SplashScreen = ({ onFinish }) => {
   const fadeAnim = new Animated.Value(0);
@@ -40,7 +41,16 @@ const SplashScreen = ({ onFinish }) => {
           },
         ]}
       >
-        <Text style={styles.logo}>🍔</Text>
+        {Platform.OS !== 'web' ? (
+          <LottieView
+            source={require('../assets/lottie/food-loading.json')}
+            autoPlay
+            loop
+            style={styles.logoAnimation}
+          />
+        ) : (
+          <Text style={{fontSize: 80, marginBottom: 20}}>🍔</Text>
+        )}
         <Text style={styles.title}>FoodApp</Text>
         <Text style={styles.subtitle}>Pesan Makanan Favoritmu</Text>
       </Animated.View>
@@ -63,9 +73,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 50,
   },
-  logo: {
-    fontSize: 100,
-    marginBottom: 20,
+  logoAnimation: {
+    width: 250,
+    height: 250,
+    marginBottom: 0,
   },
   title: {
     fontSize: 42,

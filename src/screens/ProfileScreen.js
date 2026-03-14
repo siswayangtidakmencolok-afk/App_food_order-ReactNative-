@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import {
   Alert,
+  Linking,
   ScrollView,
   StyleSheet,
   Switch,
@@ -311,6 +312,50 @@ const ProfileScreen = () => {
         </TouchableOpacity>
       </View>
 
+      {/* Social Media & Projects */}
+      <View style={[styles.section, { backgroundColor: theme.card, marginBottom: 16 }]}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>
+          🌟 Supported by Me
+        </Text>
+        
+        <View style={styles.linkGroup}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://www.instagram.com/f.zvvn_/')}>
+            <Text style={styles.linkItem}>📸 Instagram</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => Linking.openURL('https://tiktok.com/@www.tiktok.com/eksrovertselalu')}>
+            <Text style={styles.linkItem}>🎵 TikTok</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => Linking.openURL('https://www.youtube.com/@zxyninety293')}>
+            <Text style={styles.linkItem}>▶️ YouTube</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => Linking.openURL('https://discord.com/channels/@zxyninety')}>
+            <Text style={styles.linkItem}>💬 Discord</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => Linking.openURL('https://t.me/Art_zwn')}>
+            <Text style={styles.linkItem}>✈️ Telegram</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={[styles.sectionTitle, { color: theme.text, marginTop: 24 }]}>
+          🚀 Project Lain Fhaz
+        </Text>
+        
+        <View style={styles.linkGroup}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://globe3d-byfhaz.netlify.app/')}>
+            <Text style={styles.linkItem}>🌍 Globe 3D</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => Linking.openURL('https://siswayangtidakmencolok-afk.github.io/website-frieren/')}>
+            <Text style={styles.linkItem}>🧝‍♀️ Website Frieren</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => Linking.openURL('https://worldclockandtimer.netlify.app/')}>
+            <Text style={styles.linkItem}>⏱️ World Clock & Timer</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => Linking.openURL('https://student-registration-sage-delta.vercel.app/')}>
+            <Text style={styles.linkItem}>📝 Register siswa</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {/* App Info */}
       <View style={styles.appInfo}>
         <Text style={[styles.appInfoText, { color: theme.textSecondary }]}>
@@ -517,6 +562,15 @@ const styles = StyleSheet.create({
   },
   bottomSpace: {
     height: 30,
+  },
+  linkGroup: {
+    marginTop: 8,
+  },
+  linkItem: {
+    fontSize: 15,
+    color: '#007AFF', // Tautan warna biru
+    paddingVertical: 10,
+    fontWeight: '500',
   },
 });
 

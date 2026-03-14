@@ -9,9 +9,11 @@ import {
   ScrollView,
   Alert 
 } from 'react-native';
+import { useApp } from '../context/AppContext';
 
 const PaymentScreen = ({ navigation, route }) => {
-  const { cart, total, setCart, orderHistory, setOrderHistory } = route.params;
+  const { total } = route.params;
+  const { cart, setCart, orderHistory, setOrderHistory } = useApp();
   
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [deliveryAddress, setDeliveryAddress] = useState('');

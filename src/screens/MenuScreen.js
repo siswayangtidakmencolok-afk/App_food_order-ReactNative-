@@ -8,8 +8,10 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  Platform
 } from 'react-native';
+import LottieView from 'lottie-react-native';
 import { darkTheme, lightTheme } from '../config/theme';
 import { useApp } from '../context/AppContext';
 import { menuData } from '../data/menuData';
@@ -25,6 +27,15 @@ const MenuScreen = ({ navigation }) => {
   // GANTI JADI INI (tanpa setPriceRange):
 const [priceRange] = useState({ min: 0, max: 100000 });
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
+
+  const handleAddToCart = (item) => {
+    addToCart(item);
+    setShowSuccessAnimation(true);
+    setTimeout(() => {
+      setShowSuccessAnimation(false);
+    }, 1500); // Hide animation after 1.5 seconds
+  };
 
   const categories = ['Semua', 'Makanan Utama', 'Minuman'];
   const sortOptions = [
@@ -129,7 +140,7 @@ const [priceRange] = useState({ min: 0, max: 100000 });
             <Text style={styles.price}>Rp {item.price.toLocaleString('id-ID')}</Text>
             <TouchableOpacity 
               style={[styles.addButton, { backgroundColor: theme.primary }]}
-              onPress={() => addToCart(item)}
+              onPress={() => handleAddToCart(item)}
             >
               <Text style={styles.addButtonText}>+ Tambah</Text>
             </TouchableOpacity>
@@ -270,6 +281,25 @@ const [priceRange] = useState({ min: 0, max: 100000 });
           </View>
         </View>
       </Modal>
+
+      {/* Success Animation Overlay */}
+      {showSuccessAnimation && (
+        <View style={styles.successOverlay}>
+          <View style={styles.successContainer}>
+            {Platform.OS !== 'web' ? (
+              <LottieView
+                source={require('../assets/lottie/success.json')}
+                autoPlay
+                loop={false}
+                style={styles.successLottie}
+              />
+            ) : (
+               <Text style={{fontSize: 50, marginBottom: 10}}>✅</Text>
+            )}
+            <Text style={styles.successText}>Berhasil ditambahkan!</Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -497,6 +527,34 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  successOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  successContainer: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 20,
+    alignItems: 'center',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+  },
+  successLottie: {
+    width: 150,
+    height: 150,
+  },
+  successText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 10,
   },
 });
 

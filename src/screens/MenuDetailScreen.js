@@ -1,5 +1,5 @@
 // src/screens/MenuDetailScreen.js
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -8,11 +8,16 @@ import {
   Image,
   TouchableOpacity,
   TextInput,
-  Alert
+  Alert,
+  Animated
 } from 'react-native';
+import { useApp } from '../context/AppContext';
 
 const MenuDetailScreen = ({ route, navigation }) => {
   const { item } = route.params;
+  const { isDarkMode } = useApp();
+  
+  const scrollY = useRef(new Animated.Value(0)).current;
   
   const [userRating, setUserRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
@@ -64,9 +69,40 @@ const MenuDetailScreen = ({ route, navigation }) => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Food Image */}
-      <Image source={{ uri: item.image }} style={styles.image} />
+    <View style={styles.container}>
+      <Animated.ScrollView
+        style={styles.container}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
+      >
+        {/* Parallax Food Image */}
+        <Animated.Image 
+          source={{ uri: item.image }} 
+          style={[
+            styles.image,
+            {
+              transform: [
+                {
+                  translateY: scrollY.interpolate({
+                    inputRange: [-250, 0, 250],
+                    outputRange: [-125, 0, 125],
+                    extrapolate: 'clamp',
+                  })
+                },
+                {
+                  scale: scrollY.interpolate({
+                    inputRange: [-250, 0],
+                    outputRange: [2, 1],
+                    extrapolate: 'clamp',
+                  })
+                }
+              ]
+            }
+          ]} 
+        />
 
       {/* Food Info */}
       <View style={styles.infoSection}>
@@ -148,7 +184,8 @@ const MenuDetailScreen = ({ route, navigation }) => {
       </View>
 
       <View style={styles.bottomSpace} />
-    </ScrollView>
+      </Animated.ScrollView>
+    </View>
   );
 };
 

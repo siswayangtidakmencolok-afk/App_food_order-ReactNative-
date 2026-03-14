@@ -13,6 +13,7 @@ import HomeScreen from './src/screens/HomeScreen';
 import InvoiceScreen from './src/screens/InvoiceScreen';
 import MenuDetailScreen from './src/screens/MenuDetailScreen';
 import MenuScreen from './src/screens/MenuScreen';
+import OnboardingScreen from './src/screens/OnboardingScreen';
 import OrderHistoryScreen from './src/screens/OrderHistoryScreen';
 import PaymentScreen from './src/screens/PaymentScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
@@ -214,9 +215,14 @@ function MainTabs() {
 // App Content with Splash
 function AppContent() {
   const [showSplash, setShowSplash] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(true); // Should ideally be checked via AsyncStorage
 
   if (showSplash) {
     return <SplashScreen onFinish={() => setShowSplash(false)} />;
+  }
+
+  if (showOnboarding) {
+    return <OnboardingScreen onFinish={() => setShowOnboarding(false)} />;
   }
 
   return (

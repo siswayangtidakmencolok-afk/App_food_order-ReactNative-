@@ -1,13 +1,8 @@
-// src/screens/CartScreen.js - UPDATE DENGAN FITUR PEMBAYARAN
 import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useApp } from '../context/AppContext';
 
-const CartScreen = ({ route, navigation }) => {
-  const { cart, setCart, orderHistory, setOrderHistory } = route.params || { 
-    cart: [], 
-    setCart: () => {},
-    orderHistory: [],
-    setOrderHistory: () => {}
-  };
+const CartScreen = ({ navigation }) => {
+  const { cart, setCart, orderHistory, setOrderHistory } = useApp();
 
   console.log('Cart di CartScreen:', cart);  // ← TAMBAH INI
   console.log('Jumlah item:', cart.length);   // ← TAMBAH INI
@@ -61,11 +56,7 @@ const CartScreen = ({ route, navigation }) => {
 
     // Navigasi ke Payment Screen
     navigation.navigate('Payment', { 
-      cart, 
-      total: calculateTotal(),
-      setCart,
-      orderHistory,
-      setOrderHistory
+      total: calculateTotal()
     });
   };
 
