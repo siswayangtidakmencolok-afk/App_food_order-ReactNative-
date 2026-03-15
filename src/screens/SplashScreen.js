@@ -1,14 +1,12 @@
-// src/screens/SplashScreen.js
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
-import LottieView from 'lottie-react-native';
+import { useEffect } from 'react';
+import { Animated, StyleSheet, Text, View } from 'react-native';
+import OnboardingAnimation from '../components/OnboardingAnimation';
 
 const SplashScreen = ({ onFinish }) => {
   const fadeAnim = new Animated.Value(0);
   const scaleAnim = new Animated.Value(0.3);
 
   useEffect(() => {
-    // Animasi fade in + scale
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -22,13 +20,12 @@ const SplashScreen = ({ onFinish }) => {
       }),
     ]).start();
 
-    // Setelah 2.5 detik, pindah ke app
     const timer = setTimeout(() => {
       onFinish();
     }, 2500);
 
     return () => clearTimeout(timer);
-  }, );
+  }, []);  // ← tambah [] dependency array, ini juga bug minor
 
   return (
     <View style={styles.container}>
@@ -41,20 +38,14 @@ const SplashScreen = ({ onFinish }) => {
           },
         ]}
       >
-        {Platform.OS !== 'web' ? (
-          <LottieView
-            source={require('../assets/lottie/food-loading.json')}
-            autoPlay
-            loop
-            style={styles.logoAnimation}
-          />
-        ) : (
-          <Text style={{fontSize: 80, marginBottom: 20}}>🍔</Text>
-        )}
+        <OnboardingAnimation
+          name="food-loading"
+          style={styles.logoAnimation}
+        />
         <Text style={styles.title}>FoodApp</Text>
         <Text style={styles.subtitle}>Pesan Makanan Favoritmu</Text>
       </Animated.View>
-      
+
       <Animated.View style={{ opacity: fadeAnim }}>
         <Text style={styles.loading}>Loading...</Text>
       </Animated.View>

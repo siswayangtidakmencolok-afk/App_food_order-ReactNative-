@@ -1,17 +1,7 @@
 // src/screens/MenuScreen.js - SUPER ADVANCED VERSION
 import { useMemo, useState } from 'react';
-import {
-  FlatList,
-  Image,
-  Modal,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  Platform
-} from 'react-native';
-import LottieView from 'lottie-react-native';
+import { FlatList, Image, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import SuccessAnimation from '../components/SuccessAnimation';
 import { darkTheme, lightTheme } from '../config/theme';
 import { useApp } from '../context/AppContext';
 import { menuData } from '../data/menuData';
@@ -286,16 +276,7 @@ const [priceRange] = useState({ min: 0, max: 100000 });
       {showSuccessAnimation && (
         <View style={styles.successOverlay}>
           <View style={styles.successContainer}>
-            {Platform.OS !== 'web' ? (
-              <LottieView
-                source={require('../assets/lottie/success.json')}
-                autoPlay
-                loop={false}
-                style={styles.successLottie}
-              />
-            ) : (
-               <Text style={{fontSize: 50, marginBottom: 10}}>✅</Text>
-            )}
+            <SuccessAnimation style={styles.successLottie} />
             <Text style={styles.successText}>Berhasil ditambahkan!</Text>
           </View>
         </View>

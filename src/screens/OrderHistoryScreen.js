@@ -177,7 +177,7 @@ useEffect(() => {
             >
               <Text style={styles.reorderButtonText}>🔄 Pesan Lagi</Text>
             </TouchableOpacity>
-          )}``
+          )}
         </View>
       </TouchableOpacity>
     );
