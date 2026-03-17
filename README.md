@@ -19,7 +19,7 @@
 
 ## 📖 Tentang Aplikasi
 
-Aplikasi pemesanan makanan berbasis **React Native + Expo** yang memungkinkan pelanggan menelusuri menu, menambahkan item ke keranjang, dan melakukan pemesanan langsung dari smartphone dengan antarmuka yang simpel dan intuitif.
+Aplikasi pemesanan makanan berbasis **React Native + Expo** yang memungkinkan pelanggan menelusuri menu, menambahkan item ke keranjang, melakukan pembayaran, dan melacak riwayat pesanan — langsung dari smartphone dengan antarmuka yang simpel dan intuitif.
 
 ---
 
@@ -27,11 +27,15 @@ Aplikasi pemesanan makanan berbasis **React Native + Expo** yang memungkinkan pe
 
 | Fitur | Deskripsi | Status |
 |-------|-----------|--------|
+| 🎬 **Splash Screen** | Layar pembuka saat aplikasi pertama dijalankan | ✅ Tersedia |
+| 🚀 **Onboarding** | Panduan singkat untuk pengguna baru dengan animasi | ✅ Tersedia |
 | 🏠 **Home** | Tampilan utama dengan menu unggulan dan rekomendasi | ✅ Tersedia |
-| 🍽️ **Menu** | Daftar lengkap makanan beserta detail dan harga | ✅ Tersedia |
+| 🍽️ **Menu & Detail** | Daftar lengkap makanan beserta halaman detail per item | ✅ Tersedia |
 | 🛒 **Keranjang** | Kelola item pesanan sebelum checkout | ✅ Tersedia |
-| 👤 **Akun** | Manajemen profil dan riwayat pesanan | ✅ Tersedia |
-| 🔐 **Login / Register** | Autentikasi pengguna | ✅ Tersedia |
+| 💳 **Pembayaran** | Proses pembayaran pesanan | ✅ Tersedia |
+| 🧾 **Invoice** | Struk/bukti transaksi setelah pesanan berhasil | ✅ Tersedia |
+| 📋 **Riwayat Pesanan** | Melihat daftar pesanan yang pernah dilakukan | ✅ Tersedia |
+| 👤 **Profil** | Manajemen data profil pengguna | ✅ Tersedia |
 | 🗂️ **Panel Admin** | Manajemen menu dan pesanan | 🚧 Coming Soon |
 
 ---
@@ -41,6 +45,8 @@ Aplikasi pemesanan makanan berbasis **React Native + Expo** yang memungkinkan pe
 - **[React Native](https://reactnative.dev/)** — Framework utama pengembangan aplikasi mobile
 - **[Expo](https://expo.dev/)** — Toolchain & framework untuk mempercepat development
 - **JavaScript** — Bahasa pemrograman utama
+- **Lottie** — Animasi berbasis JSON (`assets/lottie`)
+- **Context API** — State management global aplikasi
 
 ---
 
@@ -57,10 +63,10 @@ Pastikan sudah terinstal:
 
 ```bash
 # 1. Clone repository ini
-git clone https://github.com/siswayangtidakmencolok-afk/App_food_order-ReactNative-.git
+git clone https://github.com/username/AplikasiPemesananMakanan.git
 
 # 2. Masuk ke direktori proyek
-cd app-pemesanan-makanan
+cd AplikasiPemesananMakanan
 
 # 3. Install dependencies
 npm install
@@ -81,31 +87,55 @@ Setelah `npx expo start` berjalan:
 ## 📁 Struktur Proyek
 
 ```
-app-pemesanan-makanan/
-├── assets/             # Gambar, ikon, dan font
-├── components/         # Komponen UI yang dapat digunakan ulang
-├── screens/            # Halaman-halaman aplikasi
-│   ├── HomeScreen.js
-│   ├── MenuScreen.js
-│   ├── CartScreen.js
-│   └── AccountScreen.js
-├── navigation/         # Konfigurasi navigasi
-├── App.js              # Entry point aplikasi
+AplikasiPemesananMakanan/
+├── scripts/
+│   └── reset-project.js        # Script reset proyek
+├── src/
+│   ├── assets/
+│   │   └── lottie/
+│   │       └── success.json    # Animasi Lottie sukses
+│   ├── components/
+│   │   ├── CartItem.js         # Komponen item keranjang
+│   │   ├── FoodCard.js         # Komponen kartu makanan
+│   │   ├── OnboardingAnimation.js
+│   │   ├── OnboardingAnimation.native.js
+│   │   └── SuccessAnimation.js # Animasi order berhasil
+│   ├── config/
+│   │   └── theme.js            # Konfigurasi warna & tema
+│   ├── context/
+│   │   └── AppContext.js       # Global state management
+│   ├── data/
+│   │   └── menuData.js         # Data menu makanan
+│   └── screens/
+│       ├── SplashScreen.js
+│       ├── OnboardingScreen.js
+│       ├── HomeScreen.js
+│       ├── MenuScreen.js
+│       ├── MenuDetailScreen.js
+│       ├── CartScreen.js
+│       ├── PaymentScreen.js
+│       ├── InvoiceScreen.js
+│       ├── OrderHistoryScreen.js
+│       └── ProfileScreen.js
+├── App.js                      # Entry point aplikasi
+├── .gitignore
 └── package.json
 ```
-
-> ⚠️ Sesuaikan struktur folder di atas dengan struktur aktual proyek kamu.
 
 ---
 
 ## 🗺️ Roadmap
 
+- [x] Splash Screen & Onboarding
 - [x] Halaman Home
-- [x] Halaman Menu
+- [x] Halaman Menu & Detail Menu
 - [x] Keranjang Belanja
-- [x] Halaman Akun
+- [x] Proses Pembayaran
+- [x] Invoice / Struk Pesanan
+- [x] Riwayat Pesanan
+- [x] Halaman Profil
 - [ ] Panel Admin
-- [ ] Integrasi Payment Gateway
+- [ ] Integrasi Backend & Database
 - [ ] Push Notification
 - [ ] Dark Mode
 
