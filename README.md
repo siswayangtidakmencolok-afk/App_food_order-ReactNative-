@@ -23,19 +23,44 @@ Aplikasi pemesanan makanan berbasis **React Native + Expo** yang memungkinkan pe
 
 ---
 
+## 📸 Screenshots
+
+<div align="center">
+
+### 🏠 Beranda & 🍽️ Menu
+| Beranda | Menu |
+|--------|------|
+| <img src="./assets/screenshots/home.jpg" width="250"/> | <img src="./assets/screenshots/menu.jpg" width="250"/> |
+
+### 👤 Profil & ⚙️ Pengaturan
+| Profil | Pengaturan |
+|--------|------------|
+| <img src="./assets/screenshots/profile.jpg" width="250"/> | <img src="./assets/screenshots/settings.jpg" width="250"/> |
+
+</div>
+
+> 📁 Simpan screenshot kamu di folder `assets/screenshots/` dengan nama file sesuai tabel di atas.
+
+---
+
 ## ✨ Fitur
 
 | Fitur | Deskripsi | Status |
 |-------|-----------|--------|
 | 🎬 **Splash Screen** | Layar pembuka saat aplikasi pertama dijalankan | ✅ Tersedia |
 | 🚀 **Onboarding** | Panduan singkat untuk pengguna baru dengan animasi | ✅ Tersedia |
-| 🏠 **Home** | Tampilan utama dengan menu unggulan dan rekomendasi | ✅ Tersedia |
-| 🍽️ **Menu & Detail** | Daftar lengkap makanan beserta halaman detail per item | ✅ Tersedia |
+| 🏠 **Beranda** | Quick action, peta toko terdekat, dan rekomendasi menu | ✅ Tersedia |
+| 🗺️ **Toko Terdekat** | Menampilkan toko di sekitar lokasi pengguna via Maps | ✅ Tersedia |
+| 🍽️ **Menu** | Daftar makanan dengan pencarian, filter, dan kategori | ✅ Tersedia |
+| ❤️ **Favorit** | Tandai dan simpan menu favorit | ✅ Tersedia |
+| ⭐ **Rating Menu** | Menampilkan rating dan jumlah ulasan per menu | ✅ Tersedia |
 | 🛒 **Keranjang** | Kelola item pesanan sebelum checkout | ✅ Tersedia |
 | 💳 **Pembayaran** | Proses pembayaran pesanan | ✅ Tersedia |
 | 🧾 **Invoice** | Struk/bukti transaksi setelah pesanan berhasil | ✅ Tersedia |
 | 📋 **Riwayat Pesanan** | Melihat daftar pesanan yang pernah dilakukan | ✅ Tersedia |
-| 👤 **Profil** | Manajemen data profil pengguna | ✅ Tersedia |
+| 👤 **Profil & Statistik** | Data profil, total pesanan, belanja, dan favorit | ✅ Tersedia |
+| 🌙 **Mode Gelap** | Tampilan dark mode untuk kenyamanan malam hari | ✅ Tersedia |
+| 🔔 **Notifikasi Push** | Update status pesanan secara real-time | ✅ Tersedia |
 | 🗂️ **Panel Admin** | Manajemen menu dan pesanan | 🚧 Coming Soon |
 
 ---
@@ -45,8 +70,9 @@ Aplikasi pemesanan makanan berbasis **React Native + Expo** yang memungkinkan pe
 - **[React Native](https://reactnative.dev/)** — Framework utama pengembangan aplikasi mobile
 - **[Expo](https://expo.dev/)** — Toolchain & framework untuk mempercepat development
 - **JavaScript** — Bahasa pemrograman utama
-- **Lottie** — Animasi berbasis JSON (`assets/lottie`)
+- **Lottie** — Animasi berbasis JSON
 - **Context API** — State management global aplikasi
+- **Maps Integration** — Menampilkan peta dan toko terdekat
 
 ---
 
@@ -63,7 +89,7 @@ Pastikan sudah terinstal:
 
 ```bash
 # 1. Clone repository ini
-git clone https://github.com/username/AplikasiPemesananMakanan.git
+git clone https://github.com/siswayangtidakmencolok-afk/AplikasiPemesananMakanan.git
 
 # 2. Masuk ke direktori proyek
 cd AplikasiPemesananMakanan
@@ -89,23 +115,28 @@ Setelah `npx expo start` berjalan:
 ```
 AplikasiPemesananMakanan/
 ├── scripts/
-│   └── reset-project.js        # Script reset proyek
+│   └── reset-project.js
 ├── src/
 │   ├── assets/
-│   │   └── lottie/
-│   │       └── success.json    # Animasi Lottie sukses
+│   │   ├── lottie/
+│   │   │   └── success.json
+│   │   └── screenshots/          ← Simpan screenshot app di sini
+│   │       ├── home.jpg
+│   │       ├── menu.jpg
+│   │       ├── profile.jpg
+│   │       └── settings.jpg
 │   ├── components/
-│   │   ├── CartItem.js         # Komponen item keranjang
-│   │   ├── FoodCard.js         # Komponen kartu makanan
+│   │   ├── CartItem.js
+│   │   ├── FoodCard.js
 │   │   ├── OnboardingAnimation.js
 │   │   ├── OnboardingAnimation.native.js
-│   │   └── SuccessAnimation.js # Animasi order berhasil
+│   │   └── SuccessAnimation.js
 │   ├── config/
-│   │   └── theme.js            # Konfigurasi warna & tema
+│   │   └── theme.js
 │   ├── context/
-│   │   └── AppContext.js       # Global state management
+│   │   └── AppContext.js
 │   ├── data/
-│   │   └── menuData.js         # Data menu makanan
+│   │   └── menuData.js
 │   └── screens/
 │       ├── SplashScreen.js
 │       ├── OnboardingScreen.js
@@ -117,7 +148,7 @@ AplikasiPemesananMakanan/
 │       ├── InvoiceScreen.js
 │       ├── OrderHistoryScreen.js
 │       └── ProfileScreen.js
-├── App.js                      # Entry point aplikasi
+├── App.js
 ├── .gitignore
 └── package.json
 ```
@@ -127,17 +158,19 @@ AplikasiPemesananMakanan/
 ## 🗺️ Roadmap
 
 - [x] Splash Screen & Onboarding
-- [x] Halaman Home
-- [x] Halaman Menu & Detail Menu
+- [x] Beranda dengan Maps & Toko Terdekat
+- [x] Menu dengan Pencarian, Filter & Favorit
+- [x] Detail Menu & Rating
 - [x] Keranjang Belanja
 - [x] Proses Pembayaran
 - [x] Invoice / Struk Pesanan
 - [x] Riwayat Pesanan
-- [x] Halaman Profil
+- [x] Profil & Statistik Pesanan
+- [x] Mode Gelap
+- [x] Notifikasi Push
 - [ ] Panel Admin
 - [ ] Integrasi Backend & Database
-- [ ] Push Notification
-- [ ] Dark Mode
+- [ ] Autentikasi Login / Register
 
 ---
 
