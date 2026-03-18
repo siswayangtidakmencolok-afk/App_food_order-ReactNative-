@@ -1,13 +1,18 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity,
-  TextInput, ScrollView, Alert, Animated
+  Alert, Animated,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { useApp } from '../context/AppContext';
 
 const PaymentScreen = ({ navigation, route }) => {
   const { total } = route.params;
-  const { cart, setCart, orderHistory, setOrderHistory } = useApp();
+  const { cart, saveOrder } = useApp();
 
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [deliveryAddress, setDeliveryAddress]   = useState('');
@@ -68,7 +73,7 @@ const PaymentScreen = ({ navigation, route }) => {
     { id: 'qris',     name: 'QRIS',                    icon: '📲', description: 'Scan QR untuk bayar' },
   ];
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     if (!customerName.trim())    { Alert.alert('Error', 'Nama harus diisi!'); return; }
     if (!phoneNumber.trim())     { Alert.alert('Error', 'Nomor telepon harus diisi!'); return; }
     if (!deliveryAddress.trim()) { Alert.alert('Error', 'Alamat pengiriman harus diisi!'); return; }
@@ -91,9 +96,12 @@ const PaymentScreen = ({ navigation, route }) => {
       }),
     };
 
-    setOrderHistory([newOrder, ...orderHistory]);
-    setCart([]);
-    setPendingOrder(newOrder);
+    const { data: savedOrder, error } = await saveOrder(newOrder);
+if (error) {
+  Alert.alert('Error', 'Gagal menyimpan pesanan. Coba lagi.');
+  return;
+}
+setPendingOrder(savedOrder);
 
     // Mulai countdown
     setCountdownNum(3);

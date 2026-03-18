@@ -15,17 +15,24 @@ import { darkTheme, lightTheme } from '../config/theme';
 import { useApp } from '../context/AppContext';
 
 const ProfileScreen = () => {
-  const { 
-    userProfile, 
-    setUserProfile, 
-    isDarkMode, 
-    toggleDarkMode,
-    orderHistory,
-    favorites,
-    clearCart
+  const {
+    userProfile, setUserProfile, isDarkMode, toggleDarkMode,
+    orderHistory, favorites, clearCart, signOut
   } = useApp();
-  
+
   const theme = isDarkMode ? darkTheme : lightTheme;
+
+  // ← TAMBAH INI: guard kalau userProfile belum loaded
+  if (!userProfile) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }}>
+        <Text style={{ fontSize: 48 }}>🍔</Text>
+        <Text style={{ color: theme.textSecondary, marginTop: 12 }}>Memuat profil...</Text>
+      </View>
+    );
+  }
+  // ... sisa kode ProfileScreen tidak berubah
+
   const [isEditing, setIsEditing] = useState(false);
   const [tempProfile, setTempProfile] = useState(userProfile);
 

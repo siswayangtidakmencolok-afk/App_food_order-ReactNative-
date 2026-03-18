@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { supabase } from '../config/supabase';
 
-const AuthScreen = ({ onAuthSuccess }) => {
+const AuthScreen = () => {
   const [mode, setMode]         = useState('login');
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
@@ -23,8 +23,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) Alert.alert('Login Gagal', error.message);
-    else onAuthSuccess();
+    if (error) Alert.alert('Login Gagal', error.message);    
   };
 
   const handleRegister = async () => {
@@ -44,9 +43,11 @@ const AuthScreen = ({ onAuthSuccess }) => {
     });
     setLoading(false);
     if (error) Alert.alert('Register Gagal', error.message);
-    else Alert.alert('Berhasil!', 'Akun dibuat! Langsung bisa login.', [
-      { text: 'OK', onPress: () => setMode('login') }
-    ]);
+    // Ganti jadi:
+else {
+  Alert.alert('Berhasil!', 'Akun dibuat! Silakan login.');
+  setMode('login');
+  }
   };
 
   return (

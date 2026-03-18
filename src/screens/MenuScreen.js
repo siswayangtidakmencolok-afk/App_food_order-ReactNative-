@@ -8,13 +8,13 @@ import {
 import SuccessAnimation from '../components/SuccessAnimation';
 import { darkTheme, lightTheme } from '../config/theme';
 import { useApp } from '../context/AppContext';
-import { menuData } from '../data/menuData';
 
 // ─── Float Particle (fly to cart effect) ───────────────────────────────────
 const FloatParticle = ({ emoji, onDone }) => {
   const translateY = useRef(new Animated.Value(0)).current;
   const opacity    = useRef(new Animated.Value(1)).current;
   const scale      = useRef(new Animated.Value(1)).current;
+  const { menuItems } = useApp();
 
   useState(() => {
     Animated.parallel([
@@ -99,7 +99,7 @@ const AddButton = ({ onPress, color }) => {
 
 // ─── Main Screen ────────────────────────────────────────────────────────────
 const MenuScreen = ({ navigation }) => {
-  const { addToCart, favorites, toggleFavorite, isDarkMode } = useApp();
+  const { addToCart, favorites, toggleFavorite, isDarkMode, menuItems } = useApp();
   const theme = isDarkMode ? darkTheme : lightTheme;
 
   const [selectedCategory, setSelectedCategory]   = useState('Semua');
@@ -156,7 +156,7 @@ const MenuScreen = ({ navigation }) => {
   ];
 
   const filteredMenu = useMemo(() => {
-    let result = [...menuData];
+    let result = [...menuItems];
     if (selectedCategory !== 'Semua')
       result = result.filter(i => i.category === selectedCategory);
     if (searchQuery.trim())
@@ -175,7 +175,7 @@ const MenuScreen = ({ navigation }) => {
       case 'rating-desc': result.sort((a, b) => b.rating - a.rating); break;
     }
     return result;
-  }, [selectedCategory, searchQuery, sortBy, showFavoritesOnly, priceRange, favorites]);
+  }, [selectedCategory, searchQuery, sortBy, showFavoritesOnly, priceRange, favorites, menuItems]);
 
   const renderStars = (rating) => '⭐'.repeat(Math.floor(rating));
 
