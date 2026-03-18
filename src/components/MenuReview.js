@@ -15,16 +15,17 @@ export default function MenuReview({ menu_item_id, user_id, user_name }) {
     }
     fetchReviews();
   }, [menu_item_id]);
-
   const handleSubmit = async () => {
     if (rating < 1 || rating > 5) return alert('Rating harus 1-5');
     const { data, error } = await addReview(menu_item_id, user_id, rating, text, user_name);
-    if (error) alert(error.message);
-    else {
-      setText('');
-      setRating(5);
-      setReviews([data, ...reviews]);
-    }
+    if (error) return alert(error.message);
+
+    // Fetch ulang semua review agar user lain/multi user langsung kelihatan
+    const { data: allReviews, error: fetchError } = await getMenuReviews(menu_item_id);
+    setText('');
+    setRating(5);
+    if (fetchError) alert(fetchError.message)
+    else setReviews(allReviews || []);
   };
 
   return (
