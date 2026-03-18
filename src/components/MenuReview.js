@@ -16,13 +16,35 @@ export default function MenuReview({ menu_item_id, user_id, user_name }) {
     fetchReviews();
   }, [menu_item_id]);
   const handleSubmit = async () => {
-  console.log({
-    menu_item_id, user_id, rating, text, user_name
-  }); // Log semua input sebelum insert
-  if (rating < 1 || rating > 5) return alert('Rating harus 1-5');
+  // Cek apakah sudah ada review
+  const { data: existingReview, error: reviewError } = await getUserReviewForMenu(menu_item_id, user_id);
+  if (existingReview) {
+    alert("Kamu sudah pernah memberikan review untuk menu ini.");
+    return;
+  }
+  
+  if (rating < 1 || rating > 5) {
+    alert('Rating harus 1-5');
+    return;
+  }
+  
+  // lanjut insert seperti biasa
   const { data, error } = await addReview(menu_item_id, user_id, rating, text, user_name);
-  if (error) return; // Error sudah muncul log dan alert dari addReview
-  // dst...
+  if (error) {
+    if (error.code === '23505') { // kode error PostgreSQL untuk UNIQUE violation
+      alert("Kamu sudah pernah review menu ini!");
+    } else {
+      alert(error.message);
+    }
+    return;
+  }
+
+  // Fetch ulang review jika perlu
+  const { data: allReviews, error: fetchError } = await getMenuReviews(menu_item_id);
+  setText('');
+  setRating(5);
+  if (fetchError) alert(fetchError.message)
+  else setReviews(allReviews || []);
 };
 
   return (
