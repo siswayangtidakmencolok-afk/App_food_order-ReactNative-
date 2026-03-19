@@ -1,5 +1,5 @@
 // src/screens/MenuDetailScreen.js
-// Screen detail menu: tampilkan info makanan, rating, dan sistem review realtime dari Supabase
+// Screen detail menu dengan sistem review + reply realtime dari Supabase
 
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -10,162 +10,377 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { supabase } from '../config/supabase'; // koneksi Supabase langsung untuk fetch & realtime
+import { supabase } from '../config/supabase';
 import { useApp } from '../context/AppContext';
 
-const MenuDetailScreen = ({ route, navigation }) => {
-  const { item } = route.params; // data menu yang dikirim dari MenuScreen
-  
-  // Ambil fungsi & state yang dibutuhkan dari context
-  const { isDarkMode, saveReview, session, userProfile } = useApp();
+// ─── Komponen Reply Item ──────────────────────────────────────
+// Menampilkan satu reply dari user
+const ReplyItem = ({ reply, currentUserId, onDelete, textCol, subText, bg }) => (
+  <View style={[styles.replyCard, { backgroundColor: bg }]}>
+    <View style={styles.replyHeader}>
+      {/* Avatar huruf pertama */}
+      <View style={[styles.replyAvatar, { backgroundColor: '#2196F3' }]}>
+        <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 12 }}>
+          {(reply.user_name || 'U').charAt(0).toUpperCase()}
+        </Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Text style={[styles.replyUser, { color: textCol }]}>
+            {reply.user_name || 'User'}
+          </Text>
+          {/* Badge "Kamu" kalau reply milik user yang login */}
+          {reply.user_id === currentUserId && (
+            <Text style={styles.myBadge}> • Kamu</Text>
+          )}
+        </View>
+        <Text style={{ color: subText, fontSize: 10 }}>
+          {new Date(reply.created_at).toLocaleDateString('id-ID', {
+            day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+          })}
+        </Text>
+      </View>
+      {/* Tombol hapus — hanya muncul untuk reply milik user sendiri */}
+      {reply.user_id === currentUserId && (
+        <TouchableOpacity onPress={() => onDelete(reply.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Text style={{ color: '#ff4444', fontSize: 16 }}>🗑️</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+    <Text style={[styles.replyText, { color: subText }]}>{reply.text}</Text>
+  </View>
+);
 
-  // Animasi parallax gambar saat scroll
+// ─── Komponen Review Item + Reply ────────────────────────────
+// Menampilkan satu review beserta semua reply-nya
+const ReviewItem = ({ review, currentUserId, session, userProfile, textCol, subText, bg, card }) => {
+  const [replies, setReplies]           = useState([]);
+  const [loadingReplies, setLoadingReplies] = useState(false);
+  const [showReplies, setShowReplies]   = useState(false);
+  const [showReplyForm, setShowReplyForm] = useState(false);
+  const [replyText, setReplyText]       = useState('');
+  const [submittingReply, setSubmittingReply] = useState(false);
+
+  // ── Fetch replies untuk review ini ────────────────────
+  const fetchReplies = async () => {
+    setLoadingReplies(true);
+    const { data, error } = await supabase
+      .from('review_replies')
+      .select('*')
+      .eq('review_id', review.id)
+      .order('created_at', { ascending: true }); // reply lama di atas
+
+    if (!error && data) setReplies(data);
+    setLoadingReplies(false);
+  };
+
+  // ── Realtime listener untuk reply ─────────────────────
+  useEffect(() => {
+    if (!showReplies) return;
+    fetchReplies();
+
+    const channel = supabase
+      .channel(`replies-${review.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'review_replies',
+        filter: `review_id=eq.${review.id}`,
+      }, () => fetchReplies())
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [showReplies, review.id]);
+
+  // ── Toggle tampilan replies ────────────────────────────
+  const handleToggleReplies = () => {
+    setShowReplies(prev => !prev);
+  };
+
+  // ── Submit reply baru ──────────────────────────────────
+  const handleSubmitReply = async () => {
+    if (!session?.user) {
+      Alert.alert('Login Dulu', 'Kamu harus login untuk membalas.');
+      return;
+    }
+    if (replyText.trim() === '') {
+      Alert.alert('Error', 'Balasan tidak boleh kosong!');
+      return;
+    }
+
+    setSubmittingReply(true);
+
+    const { error } = await supabase
+      .from('review_replies')
+      .insert({
+        review_id: review.id,
+        user_id:   session.user.id,
+        user_name: userProfile?.name || session.user.email?.split('@')[0] || 'User',
+        text:      replyText.trim(),
+      });
+
+    if (error) {
+      Alert.alert('Error', 'Gagal mengirim balasan: ' + error.message);
+    } else {
+      setReplyText('');
+      setShowReplyForm(false);
+      setShowReplies(true); // otomatis buka list reply
+      fetchReplies();
+    }
+
+    setSubmittingReply(false);
+  };
+
+  // ── Hapus reply ────────────────────────────────────────
+  const handleDeleteReply = async (replyId) => {
+    Alert.alert('Hapus Balasan', 'Yakin ingin menghapus balasan ini?', [
+      { text: 'Batal', style: 'cancel' },
+      {
+        text: 'Hapus',
+        style: 'destructive',
+        onPress: async () => {
+          const { error } = await supabase
+            .from('review_replies')
+            .delete()
+            .eq('id', replyId);
+          if (!error) fetchReplies();
+        }
+      }
+    ]);
+  };
+
+  // ── Render bintang read-only ───────────────────────────
+  const renderStars = (rating) => (
+    <View style={{ flexDirection: 'row' }}>
+      {[1, 2, 3, 4, 5].map(star => (
+        <Text key={star} style={{ fontSize: 12 }}>
+          {star <= rating ? '⭐' : '☆'}
+        </Text>
+      ))}
+    </View>
+  );
+
+  return (
+    <View style={[styles.reviewCard, { backgroundColor: card }]}>
+      {/* ── Header Review ── */}
+      <View style={styles.reviewHeader}>
+        <View style={styles.reviewAvatar}>
+          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>
+            {(review.user_name || 'U').charAt(0).toUpperCase()}
+          </Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={[styles.reviewUser, { color: textCol }]}>
+              {review.user_name || 'User'}
+            </Text>
+            {review.user_id === currentUserId && (
+              <Text style={styles.myBadge}> • Kamu</Text>
+            )}
+          </View>
+          <Text style={{ color: subText, fontSize: 11 }}>
+            {new Date(review.created_at).toLocaleDateString('id-ID', {
+              day: 'numeric', month: 'long', year: 'numeric'
+            })}
+          </Text>
+        </View>
+        {renderStars(review.rating)}
+      </View>
+
+      {/* ── Teks Review ── */}
+      <Text style={[styles.reviewText, { color: subText }]}>{review.text}</Text>
+
+      {/* ── Action Bar ── */}
+      <View style={styles.replyActionBar}>
+        {/* Tombol lihat/sembunyikan reply */}
+        <TouchableOpacity
+          style={styles.replyToggleBtn}
+          onPress={handleToggleReplies}
+        >
+          <Text style={[styles.replyToggleTxt, { color: '#2196F3' }]}>
+            {showReplies
+              ? '🔼 Sembunyikan balasan'
+              : `💬 ${replies.length > 0 ? `${replies.length} balasan` : 'Balas'}`}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Tombol tulis reply */}
+        {session?.user && (
+          <TouchableOpacity
+            style={styles.replyToggleBtn}
+            onPress={() => setShowReplyForm(prev => !prev)}
+          >
+            <Text style={[styles.replyToggleTxt, { color: '#FF6347' }]}>
+              {showReplyForm ? '✕ Batal' : '↩️ Balas'}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* ── Form Reply ── */}
+      {showReplyForm && (
+        <View style={[styles.replyForm, { backgroundColor: bg }]}>
+          <TextInput
+            style={[styles.replyInput, { color: textCol, borderColor: '#e0e0e0' }]}
+            placeholder={`Balas ${review.user_name || 'user'}...`}
+            placeholderTextColor={subText}
+            value={replyText}
+            onChangeText={setReplyText}
+            multiline
+            autoFocus
+          />
+          <TouchableOpacity
+            style={[styles.replySendBtn, { opacity: submittingReply ? 0.7 : 1 }]}
+            onPress={handleSubmitReply}
+            disabled={submittingReply}
+          >
+            <Text style={styles.replySendTxt}>
+              {submittingReply ? 'Mengirim...' : 'Kirim Balasan'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* ── List Reply ── */}
+      {showReplies && (
+        <View style={styles.repliesList}>
+          {loadingReplies ? (
+            <Text style={{ color: subText, fontSize: 12, fontStyle: 'italic' }}>
+              Memuat balasan...
+            </Text>
+          ) : replies.length === 0 ? (
+            <Text style={{ color: subText, fontSize: 12, fontStyle: 'italic' }}>
+              Belum ada balasan
+            </Text>
+          ) : (
+            replies.map(reply => (
+              <ReplyItem
+                key={reply.id}
+                reply={reply}
+                currentUserId={currentUserId}
+                onDelete={handleDeleteReply}
+                textCol={textCol}
+                subText={subText}
+                bg={bg}
+              />
+            ))
+          )}
+        </View>
+      )}
+    </View>
+  );
+};
+
+// ─── Main Screen ──────────────────────────────────────────────
+const MenuDetailScreen = ({ route }) => {
+  const { item } = route.params;
+  const { isDarkMode, saveReview, session, userProfile } = useApp();
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  // State untuk form review
   const [userRating, setUserRating]         = useState(0);
   const [reviewText, setReviewText]         = useState('');
   const [submitting, setSubmitting]         = useState(false);
-
-  // State untuk daftar review dari Supabase
   const [reviews, setReviews]               = useState([]);
   const [loadingReviews, setLoadingReviews] = useState(true);
-
-  // Kalau user sudah pernah review menu ini, simpan datanya
-  // supaya bisa ditampilkan mode "Edit" bukan "Tambah"
   const [existingReview, setExistingReview] = useState(null);
 
-  // Warna theme — dark/light mode
+  // Theme colors
   const bg      = isDarkMode ? '#1a1a1a' : '#f5f5f5';
   const card    = isDarkMode ? '#2a2a2a' : '#ffffff';
   const textCol = isDarkMode ? '#ffffff' : '#333333';
   const subText = isDarkMode ? '#aaaaaa' : '#666666';
 
-  // ── Fetch semua review untuk menu ini dari Supabase ──────
+  // ── Fetch reviews ──────────────────────────────────────
   const fetchReviews = async () => {
     setLoadingReviews(true);
-
     const { data, error } = await supabase
       .from('reviews')
       .select('*')
-      .eq('menu_item_id', item.id)   // filter hanya review untuk menu ini
-      .order('created_at', { ascending: false }); // review terbaru di atas
+      .eq('menu_item_id', item.id)
+      .order('created_at', { ascending: false });
 
     if (!error && data) {
       setReviews(data);
-
-      // Cek apakah user yang sedang login sudah pernah review menu ini
       if (session?.user) {
         const myReview = data.find(r => r.user_id === session.user.id);
         if (myReview) {
-          // Kalau sudah pernah, isi form dengan data review lama
           setExistingReview(myReview);
           setUserRating(myReview.rating);
           setReviewText(myReview.text || '');
         }
       }
     }
-
     setLoadingReviews(false);
   };
 
-  // ── Setup realtime listener ───────────────────────────────
-  // Setiap ada review baru/update dari user lain, langsung refresh
+  // ── Realtime untuk review ──────────────────────────────
   useEffect(() => {
     fetchReviews();
 
-    // Subscribe ke perubahan tabel reviews untuk menu_item_id ini
     const channel = supabase
       .channel(`reviews-menu-${item.id}`)
       .on('postgres_changes', {
-        event: '*',            // INSERT, UPDATE, DELETE
+        event: '*',
         schema: 'public',
         table: 'reviews',
         filter: `menu_item_id=eq.${item.id}`,
-      }, () => {
-        fetchReviews(); // refresh otomatis saat ada perubahan
-      })
+      }, () => fetchReviews())
       .subscribe();
 
-    // Cleanup: unsubscribe saat keluar dari screen
     return () => supabase.removeChannel(channel);
   }, [item.id]);
 
-  // ── Submit atau update review ─────────────────────────────
+  // ── Submit review ──────────────────────────────────────
   const handleSubmitReview = async () => {
-    // Validasi: harus login dulu
     if (!session?.user) {
       Alert.alert('Login Dulu', 'Kamu harus login untuk memberikan review.');
       return;
     }
-    if (userRating === 0) {
-      Alert.alert('Error', 'Pilih rating terlebih dahulu!');
-      return;
-    }
-    if (reviewText.trim() === '') {
-      Alert.alert('Error', 'Tulis review kamu!');
-      return;
-    }
+    if (userRating === 0) { Alert.alert('Error', 'Pilih rating!'); return; }
+    if (!reviewText.trim()) { Alert.alert('Error', 'Tulis review dulu!'); return; }
 
     setSubmitting(true);
 
     if (existingReview) {
-      // ── Mode Edit: update review yang sudah ada ──
       const { error } = await supabase
         .from('reviews')
         .update({ rating: userRating, text: reviewText })
         .eq('id', existingReview.id);
-
-      if (error) Alert.alert('Error', 'Gagal update review: ' + error.message);
-      else {
-        Alert.alert('Berhasil!', 'Review kamu diperbarui');
-        fetchReviews(); // refresh list
-      }
-
+      if (error) Alert.alert('Error', error.message);
+      else { Alert.alert('Berhasil!', 'Review diperbarui'); fetchReviews(); }
     } else {
-      // ── Mode Tambah: insert review baru via AppContext ──
-      // saveReview sudah handle user_id & user_name dari session
       const { error } = await saveReview({
         menuItemId: item.id,
         rating: userRating,
         text: reviewText,
       });
-
-      if (error) {
-        Alert.alert('Error', 'Gagal mengirim review: ' + error.message);
-      } else {
-        Alert.alert('Berhasil!', 'Review kamu berhasil ditambahkan! 🎉');
+      if (error) Alert.alert('Error', error.message);
+      else {
+        Alert.alert('Berhasil!', 'Review terkirim! 🎉');
         setUserRating(0);
         setReviewText('');
-        fetchReviews(); // refresh list
+        fetchReviews();
       }
     }
 
     setSubmitting(false);
   };
 
-  // ── Render bintang rating ─────────────────────────────────
-  // onPress = null berarti bintang tidak bisa diklik (read-only)
-  const renderStars = (rating, onPress = null) => (
-    <View style={styles.starsContainer}>
+  // ── Stars interaktif ───────────────────────────────────
+  const renderInteractiveStars = () => (
+    <View style={{ flexDirection: 'row', marginBottom: 12 }}>
       {[1, 2, 3, 4, 5].map(star => (
-        <TouchableOpacity
-          key={star}
-          onPress={() => onPress && onPress(star)}
-          disabled={!onPress}
-        >
-          <Text style={{ fontSize: onPress ? 32 : 14, marginRight: 2 }}>
-            {star <= rating ? '⭐' : '☆'}
+        <TouchableOpacity key={star} onPress={() => setUserRating(star)}>
+          <Text style={{ fontSize: 32, marginRight: 4 }}>
+            {star <= userRating ? '⭐' : '☆'}
           </Text>
         </TouchableOpacity>
       ))}
     </View>
   );
 
-  // ── Hitung rata-rata rating dari Supabase ─────────────────
-  // Kalau belum ada review, fallback ke rating awal dari menu_items
   const avgRating = reviews.length > 0
-    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+    ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
     : (item.rating || 0);
 
   return (
@@ -173,11 +388,11 @@ const MenuDetailScreen = ({ route, navigation }) => {
       <Animated.ScrollView
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false } // false karena web tidak support native driver
+          { useNativeDriver: false }
         )}
         scrollEventThrottle={16}
       >
-        {/* ── Gambar Parallax ── */}
+        {/* Gambar parallax */}
         <Animated.Image
           source={{ uri: item.image }}
           style={[styles.image, {
@@ -191,7 +406,7 @@ const MenuDetailScreen = ({ route, navigation }) => {
           }]}
         />
 
-        {/* ── Info Makanan ── */}
+        {/* Info makanan */}
         <View style={[styles.section, { backgroundColor: card }]}>
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
@@ -204,25 +419,32 @@ const MenuDetailScreen = ({ route, navigation }) => {
               Rp {(item.price || 0).toLocaleString('id-ID')}
             </Text>
           </View>
-          <Text style={[styles.description, { color: subText }]}>{item.description}</Text>
+          <Text style={[styles.description, { color: subText }]}>
+            {item.description}
+          </Text>
 
-          {/* Rating summary — dihitung dari review Supabase */}
+          {/* Rating summary */}
           <View style={[styles.ratingBox, { backgroundColor: bg }]}>
             <Text style={[styles.ratingNum, { color: textCol }]}>{avgRating}</Text>
-            {renderStars(Math.floor(avgRating))}
+            <View style={{ flexDirection: 'row', marginBottom: 4 }}>
+              {[1,2,3,4,5].map(s => (
+                <Text key={s} style={{ fontSize: 16 }}>
+                  {s <= Math.floor(avgRating) ? '⭐' : '☆'}
+                </Text>
+              ))}
+            </View>
             <Text style={[styles.ratingCount, { color: subText }]}>
               {reviews.length} ulasan
             </Text>
           </View>
         </View>
 
-        {/* ── Form Review ── */}
+        {/* Form review */}
         <View style={[styles.section, { backgroundColor: card, marginTop: 12 }]}>
           <Text style={[styles.sectionTitle, { color: textCol }]}>
             {existingReview ? '✏️ Edit Review Kamu' : '📝 Tulis Review'}
           </Text>
 
-          {/* Kalau belum login, tampilkan pesan */}
           {!session?.user ? (
             <Text style={{ color: subText, fontStyle: 'italic' }}>
               Login untuk memberikan review
@@ -230,9 +452,7 @@ const MenuDetailScreen = ({ route, navigation }) => {
           ) : (
             <>
               <Text style={[styles.label, { color: subText }]}>Rating:</Text>
-              {/* Bintang bisa diklik — onPress = setUserRating */}
-              {renderStars(userRating, setUserRating)}
-
+              {renderInteractiveStars()}
               <Text style={[styles.label, { color: subText }]}>Review:</Text>
               <TextInput
                 style={[styles.textArea, { color: textCol }]}
@@ -243,36 +463,27 @@ const MenuDetailScreen = ({ route, navigation }) => {
                 multiline
                 numberOfLines={4}
               />
-
               <TouchableOpacity
                 style={[styles.submitBtn, { opacity: submitting ? 0.7 : 1 }]}
                 onPress={handleSubmitReview}
                 disabled={submitting}
               >
                 <Text style={styles.submitBtnText}>
-                  {submitting
-                    ? 'Mengirim...'
-                    : existingReview
-                      ? 'Update Review'
-                      : 'Kirim Review'}
+                  {submitting ? 'Mengirim...' : existingReview ? 'Update Review' : 'Kirim Review'}
                 </Text>
               </TouchableOpacity>
             </>
           )}
         </View>
 
-        {/* ── Daftar Review dari Supabase ── */}
+        {/* Daftar review + reply */}
         <View style={[styles.section, { backgroundColor: card, marginTop: 12 }]}>
           <Text style={[styles.sectionTitle, { color: textCol }]}>
             💬 Semua Review ({reviews.length})
           </Text>
 
-          {/* Loading state */}
           {loadingReviews ? (
-            <Text style={{ color: subText, fontStyle: 'italic' }}>
-              Memuat review...
-            </Text>
-
+            <Text style={{ color: subText, fontStyle: 'italic' }}>Memuat review...</Text>
           ) : reviews.length === 0 ? (
             <View style={styles.emptyReviews}>
               <Text style={{ fontSize: 40 }}>💬</Text>
@@ -280,45 +491,20 @@ const MenuDetailScreen = ({ route, navigation }) => {
                 Belum ada review. Jadilah yang pertama!
               </Text>
             </View>
-
           ) : (
-            // Map semua review — termasuk dari user lain
+            // Setiap ReviewItem sudah termasuk reply system di dalamnya
             reviews.map(review => (
-              <View key={review.id} style={[styles.reviewCard, { backgroundColor: bg }]}>
-                <View style={styles.reviewHeader}>
-
-                  {/* Avatar huruf pertama nama user */}
-                  <View style={styles.reviewAvatar}>
-                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>
-                      {(review.user_name || 'U').charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-
-                  <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Text style={[styles.reviewUser, { color: textCol }]}>
-                        {review.user_name || 'User'}
-                      </Text>
-                      {/* Tandai review milik user yang sedang login */}
-                      {review.user_id === session?.user?.id && (
-                        <Text style={styles.myBadge}> • Kamu</Text>
-                      )}
-                    </View>
-                    <Text style={{ color: subText, fontSize: 11 }}>
-                      {new Date(review.created_at).toLocaleDateString('id-ID', {
-                        day: 'numeric', month: 'long', year: 'numeric'
-                      })}
-                    </Text>
-                  </View>
-
-                  {/* Bintang read-only */}
-                  {renderStars(review.rating)}
-                </View>
-
-                <Text style={[styles.reviewText, { color: subText }]}>
-                  {review.text}
-                </Text>
-              </View>
+              <ReviewItem
+                key={review.id}
+                review={review}
+                currentUserId={session?.user?.id}
+                session={session}
+                userProfile={userProfile}
+                textCol={textCol}
+                subText={subText}
+                bg={bg}
+                card={card}
+              />
             ))
           )}
         </View>
@@ -330,31 +516,51 @@ const MenuDetailScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container:      { flex: 1 },
-  image:          { width: '100%', height: 280, resizeMode: 'cover' },
-  section:        { padding: 16 },
-  headerRow:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  name:           { fontSize: 22, fontWeight: 'bold', marginBottom: 8 },
-  categoryBadge:  { backgroundColor: '#e3f2fd', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, alignSelf: 'flex-start' },
-  categoryText:   { fontSize: 12, color: '#1976d2', fontWeight: '600' },
-  price:          { fontSize: 24, fontWeight: 'bold', color: '#FF6347' },
-  description:    { fontSize: 15, lineHeight: 22, marginBottom: 16 },
-  ratingBox:      { padding: 16, borderRadius: 12, alignItems: 'center' },
-  ratingNum:      { fontSize: 48, fontWeight: 'bold', marginBottom: 4 },
-  ratingCount:    { fontSize: 14, marginTop: 4 },
-  starsContainer: { flexDirection: 'row', marginBottom: 8 },
-  sectionTitle:   { fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
-  label:          { fontSize: 14, fontWeight: '600', marginBottom: 8, marginTop: 8 },
-  textArea:       { backgroundColor: '#f5f5f5', borderRadius: 8, padding: 12, fontSize: 15, borderWidth: 1, borderColor: '#e0e0e0', height: 100, textAlignVertical: 'top', marginBottom: 12 },
-  submitBtn:      { backgroundColor: '#FF6347', padding: 14, borderRadius: 10, alignItems: 'center' },
-  submitBtnText:  { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  emptyReviews:   { padding: 30, alignItems: 'center' },
-  reviewCard:     { padding: 14, borderRadius: 12, marginBottom: 12 },
-  reviewHeader:   { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  reviewAvatar:   { width: 38, height: 38, borderRadius: 19, backgroundColor: '#FF6347', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
-  reviewUser:     { fontSize: 14, fontWeight: 'bold' },
-  myBadge:        { fontSize: 11, color: '#FF6347', fontWeight: 'bold' },
-  reviewText:     { fontSize: 14, lineHeight: 20 },
+  container:        { flex: 1 },
+  image:            { width: '100%', height: 280, resizeMode: 'cover' },
+  section:          { padding: 16 },
+  headerRow:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
+  name:             { fontSize: 22, fontWeight: 'bold', marginBottom: 8 },
+  categoryBadge:    { backgroundColor: '#e3f2fd', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, alignSelf: 'flex-start' },
+  categoryText:     { fontSize: 12, color: '#1976d2', fontWeight: '600' },
+  price:            { fontSize: 24, fontWeight: 'bold', color: '#FF6347' },
+  description:      { fontSize: 15, lineHeight: 22, marginBottom: 16 },
+  ratingBox:        { padding: 16, borderRadius: 12, alignItems: 'center' },
+  ratingNum:        { fontSize: 48, fontWeight: 'bold', marginBottom: 4 },
+  ratingCount:      { fontSize: 14, marginTop: 4 },
+  sectionTitle:     { fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
+  label:            { fontSize: 14, fontWeight: '600', marginBottom: 8, marginTop: 8 },
+  textArea:         { backgroundColor: '#f5f5f5', borderRadius: 8, padding: 12, fontSize: 15, borderWidth: 1, borderColor: '#e0e0e0', height: 100, textAlignVertical: 'top', marginBottom: 12 },
+  submitBtn:        { backgroundColor: '#FF6347', padding: 14, borderRadius: 10, alignItems: 'center' },
+  submitBtnText:    { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  emptyReviews:     { padding: 30, alignItems: 'center' },
+
+  // Review card
+  reviewCard:       { borderRadius: 12, padding: 14, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  reviewHeader:     { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  reviewAvatar:     { width: 38, height: 38, borderRadius: 19, backgroundColor: '#FF6347', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
+  reviewUser:       { fontSize: 14, fontWeight: 'bold' },
+  myBadge:          { fontSize: 11, color: '#FF6347', fontWeight: 'bold' },
+  reviewText:       { fontSize: 14, lineHeight: 20, marginBottom: 10 },
+
+  // Reply action bar
+  replyActionBar:   { flexDirection: 'row', gap: 12, marginTop: 4 },
+  replyToggleBtn:   { paddingVertical: 4 },
+  replyToggleTxt:   { fontSize: 13, fontWeight: '600' },
+
+  // Reply form
+  replyForm:        { marginTop: 10, padding: 12, borderRadius: 10 },
+  replyInput:       { borderWidth: 1, borderRadius: 8, padding: 10, fontSize: 14, minHeight: 60, textAlignVertical: 'top', marginBottom: 8 },
+  replySendBtn:     { backgroundColor: '#2196F3', padding: 10, borderRadius: 8, alignItems: 'center' },
+  replySendTxt:     { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+
+  // Reply list
+  repliesList:      { marginTop: 8, paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: '#e0e0e0' },
+  replyCard:        { padding: 10, borderRadius: 8, marginBottom: 8 },
+  replyHeader:      { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  replyAvatar:      { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 8 },
+  replyUser:        { fontSize: 13, fontWeight: 'bold' },
+  replyText:        { fontSize: 13, lineHeight: 18 },
 });
 
 export default MenuDetailScreen;
