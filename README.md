@@ -199,6 +199,6 @@ Proyek ini menggunakan lisensi **MIT** — lihat file [LICENSE](LICENSE) untuk d
 
 <div align="center">
 
-Dibuat dengan ❤️ menggunakan React Native & Expo
+Dibuat oleh fhazwan menggunakan React Native & Expo
 
 </div>
