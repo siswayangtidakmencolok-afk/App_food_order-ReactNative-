@@ -102,61 +102,131 @@ const TypewriterText = ({ text, style, delay = 0 }) => {
 
 // ─── CTA Card (Menu & Cart) ────────────────────────────────────
 // ─── CTA Card — slide masuk dari kiri ke kanan ───────────────
-const CTACard = ({ icon, title, subtitle, color, accentColor, onPress, delay = 0 }) => {
-  const translateX = useRef(new Animated.Value(-width)).current; // mulai dari luar kiri
-  const opacity    = useRef(new Animated.Value(0)).current;
-  const pressScale = useRef(new Animated.Value(1)).current;
+// ─── CTA Card — Cinematic dust dari kiri ke kanan ─────────────
+const CTACard = ({ icon, title, subtitle, color, accentColor, dustColor, onPress, delay = 0 }) => {
+  const translateX   = useRef(new Animated.Value(-width * 1.2)).current;
+  const opacity      = useRef(new Animated.Value(0)).current;
+  const pressScale   = useRef(new Animated.Value(1)).current;
+  const glowOpacity  = useRef(new Animated.Value(0)).current;
+  const scaleY       = useRef(new Animated.Value(0.85)).current;
+
+  // Partikel debu — 12 partikel per card
+  const PARTICLE_COUNT = 12;
+  const particles = Array.from({ length: PARTICLE_COUNT });
 
   useEffect(() => {
-    // Slide dari kiri + fade in bersamaan
-    Animated.parallel([
-      Animated.spring(translateX, {
-        toValue: 0,
-        friction: 7,
-        tension: 50,
-        delay,
+    Animated.sequence([
+      Animated.delay(delay),
+      Animated.parallel([
+        // Slide dari kiri dengan spring — berasa berat lalu settle
+        Animated.spring(translateX, {
+          toValue: 0,
+          friction: 8,
+          tension: 60,
+          useNativeDriver: false,
+        }),
+        // Fade in
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: false,
+        }),
+        // Scale Y — seperti melar dari gepeng jadi penuh
+        Animated.spring(scaleY, {
+          toValue: 1,
+          friction: 5,
+          tension: 70,
+          useNativeDriver: false,
+        }),
+      ]),
+    ]).start();
+
+    // Glow flash saat card settle
+    Animated.sequence([
+      Animated.delay(delay + 300),
+      Animated.timing(glowOpacity, {
+        toValue: 0.4,
+        duration: 200,
         useNativeDriver: false,
       }),
-      Animated.timing(opacity, {
-        toValue: 1,
+      Animated.timing(glowOpacity, {
+        toValue: 0,
         duration: 400,
-        delay,
         useNativeDriver: false,
       }),
     ]).start();
   }, []);
 
-  const handlePressIn  = () => Animated.spring(pressScale, { toValue: 0.95, friction: 5, useNativeDriver: false }).start();
-  const handlePressOut = () => Animated.spring(pressScale, { toValue: 1,    friction: 3, useNativeDriver: false }).start();
+  const handlePressIn = () => {
+    Animated.spring(pressScale, {
+      toValue: 0.96,
+      friction: 5,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(pressScale, {
+      toValue: 1,
+      friction: 3,
+      useNativeDriver: false,
+    }).start();
+  };
 
   return (
-    <Animated.View style={[styles.ctaWrap, {
-      opacity,
-      transform: [
-        { translateX },
-        { scale: pressScale },
-      ]
-    }]}>
-      <TouchableOpacity
-        onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        activeOpacity={1}
-        style={[styles.ctaCard, { backgroundColor: color }]}
-      >
-        <View style={[styles.ctaAccent, { backgroundColor: accentColor }]} />
-        <View style={styles.ctaContent}>
-          <Text style={styles.ctaIcon}>{icon}</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.ctaTitle}>{title}</Text>
-            <Text style={styles.ctaSub}>{subtitle}</Text>
+    <View style={styles.ctaWrap}>
+      {/* ── Partikel debu — render di luar card ── */}
+      {particles.map((_, i) => (
+        <DustParticle
+          key={i}
+          delay={delay + 100 + i * 30}
+          color={dustColor || accentColor}
+        />
+      ))}
+
+      {/* ── Card utama ── */}
+      <Animated.View style={{
+        opacity,
+        transform: [
+          { translateX },
+          { scale: pressScale },
+          { scaleY },
+        ],
+      }}>
+        <TouchableOpacity
+          onPress={onPress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          activeOpacity={1}
+          style={[styles.ctaCard, { backgroundColor: color }]}
+        >
+          {/* Accent circle pojok */}
+          <View style={[styles.ctaAccent, { backgroundColor: accentColor }]} />
+
+          {/* Glow flash overlay saat settle */}
+          <Animated.View style={[
+            StyleSheet.absoluteFillObject,
+            {
+              backgroundColor: '#fff',
+              opacity: glowOpacity,
+              borderRadius: 20,
+            }
+          ]} />
+
+          {/* Konten */}
+          <View style={styles.ctaContent}>
+            <Text style={styles.ctaIcon}>{icon}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.ctaTitle}>{title}</Text>
+              <Text style={styles.ctaSub}>{subtitle}</Text>
+            </View>
+            <View style={[styles.ctaArrow, { backgroundColor: accentColor }]}>
+              <Text style={styles.ctaArrowTxt}>→</Text>
+            </View>
           </View>
-          <View style={[styles.ctaArrow, { backgroundColor: accentColor }]}>
-            <Text style={styles.ctaArrowTxt}>→</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
   );
 };
 
@@ -188,6 +258,74 @@ const StoreCard = ({ store }) => {
         </View>
       </TouchableOpacity>
     </Animated.View>
+  );
+};
+
+// ─── Dust Particle ────────────────────────────────────────────
+// Satu partikel debu kecil yang terbang saat card masuk
+const DustParticle = ({ delay, color }) => {
+  const x       = useRef(new Animated.Value(0)).current;
+  const y       = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+  const scale   = useRef(new Animated.Value(0)).current;
+
+  // Posisi random untuk tiap partikel
+  const targetX = (Math.random() - 0.5) * 120;
+  const targetY = (Math.random() - 0.5) * 80;
+  const size    = Math.random() * 6 + 2;
+
+  useEffect(() => {
+    const startDelay = delay + Math.random() * 200;
+
+    Animated.sequence([
+      Animated.delay(startDelay),
+      Animated.parallel([
+        // Muncul
+        Animated.timing(opacity, {
+          toValue: 0.8,
+          duration: 150,
+          useNativeDriver: false,
+        }),
+        Animated.spring(scale, {
+          toValue: 1,
+          friction: 4,
+          useNativeDriver: false,
+        }),
+        // Terbang ke posisi random
+        Animated.timing(x, {
+          toValue: targetX,
+          duration: 600,
+          useNativeDriver: false,
+        }),
+        Animated.timing(y, {
+          toValue: targetY,
+          duration: 600,
+          useNativeDriver: false,
+        }),
+      ]),
+      // Menghilang
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={{
+      position: 'absolute',
+      left: '10%',
+      top: '50%',
+      width: size,
+      height: size,
+      borderRadius: size / 2,
+      backgroundColor: color,
+      opacity,
+      transform: [{ translateX: x }, { translateY: y }, { scale }],
+      pointerEvents: 'none',
+      zIndex: 20,
+    }} />
   );
 };
 
@@ -302,36 +440,39 @@ const HomeScreen = ({ navigation }) => {
 
         {/* Lihat Menu */}
         <CTACard
-          icon="🍔"
-          title="Jelajahi Menu"
-          subtitle={`${menuItems?.length || 0} pilihan makanan & minuman`}
-          color="#FF6347"
-          accentColor="#e0432a"
-          onPress={() => navigation.navigate('Menu')}
-          delay={300}
-        />
+  icon="🍔"
+  title="Jelajahi Menu"
+  subtitle={`${menuItems?.length || 0} pilihan makanan & minuman`}
+  color="#FF6347"
+  accentColor="#e0432a"
+  dustColor="#FFB347"
+  onPress={() => navigation.navigate('Menu')}
+  delay={300}
+/>
 
-        {/* Keranjang */}
-        <CTACard
-          icon="🛒"
-          title="Keranjang Saya"
-          subtitle={cart.length > 0 ? `${cart.length} item menunggu checkout` : 'Belum ada item — yuk tambah!'}
-          color="#1a1a2e"
-          accentColor="#FF6347"
-          onPress={() => navigation.navigate('Cart')}
-          delay={450}
-        />
+{/* Lihat Keranjang */}
+<CTACard
+  icon="🛒"
+  title="Keranjang Saya"
+  subtitle={cart.length > 0 ? `${cart.length} item menunggu checkout` : 'Belum ada item — yuk tambah!'}
+  color="#1a1a2e"
+  accentColor="#FF6347"
+  dustColor="#FF6347"
+  onPress={() => navigation.navigate('Cart')}
+  delay={550}
+/>
 
-        {/* Riwayat */}
-        <CTACard
-          icon="📋"
-          title="Riwayat Pesanan"
-          subtitle="Cek status & pesan ulang favoritmu"
-          color="#0f3460"
-          accentColor="#4CAF50"
-          onPress={() => navigation.navigate('History')}
-          delay={600}
-        />
+{/* Riwayat Pesanan */}
+<CTACard
+  icon="📋"
+  title="Riwayat Pesanan"
+  subtitle="Cek status & pesan ulang favoritmu"
+  color="#0f3460"
+  accentColor="#4CAF50"
+  dustColor="#4CAF50"
+  onPress={() => navigation.navigate('History')}
+  delay={800}
+/>
       </View>
 
       {/* ════════════════════════════════════════
