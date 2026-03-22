@@ -3,7 +3,6 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
-import NavBar from './src/components/NavBar';
 
 import { supabase } from './src/config/supabase';
 import { darkTheme, lightTheme } from './src/config/theme';
@@ -20,10 +19,10 @@ import OrderHistoryScreen from './src/screens/OrderHistoryScreen';
 import PaymentScreen from './src/screens/PaymentScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import SplashScreen from './src/screens/SplashScreen';
+import AnimatedDock from './src/components/AnimatedDock';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
-
 
 
 const slideFromRight = {
@@ -90,28 +89,39 @@ function CartStack() {
   );
 }
 
+// Ganti seluruh function MainTabs():
 function MainTabs() {
   const { cart, orderHistory, favorites, isDarkMode, notifications } = useApp();
   const theme = isDarkMode ? darkTheme : lightTheme;
+
   const unreadNotifications = notifications?.filter(n => !n.read).length || 0;
-  const pendingOrders = orderHistory.filter(o => o.status !== 'Delivered').length;
+  const pendingOrders       = orderHistory.filter(o => o.status !== 'Delivered').length;
+
+  // Badge per tab
+  const badges = {
+    Menu:    favorites.length,
+    Cart:    cart.length,
+    History: pendingOrders,
+    Profile: unreadNotifications,
+  };
 
   return (
     <Tab.Navigator
+      // ← Custom dock menggantikan tab bar bawaan
+      tabBar={props => <AnimatedDock {...props} badges={badges} />}
       screenOptions={{
-        tabBarActiveTintColor: theme.primary,
-        tabBarInactiveTintColor: theme.textSecondary,
-        tabBarStyle: { height: 60, paddingBottom: 8, paddingTop: 8, backgroundColor: theme.card, borderTopColor: theme.border },
-        headerStyle: { backgroundColor: theme.primary },
-        headerTintColor: '#fff',
+        headerStyle:      { backgroundColor: theme.primary },
+        headerTintColor:  '#fff',
         headerTitleStyle: { fontWeight: 'bold' },
+        // Padding bawah untuk konten tidak tertutup dock
+        contentStyle:     { paddingBottom: 90 },
       }}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Beranda', tabBarIcon: ({ focused }) => <TabIcon icon="🏠" focused={focused} /> }} />
-      <Tab.Screen name="Menu" component={MenuStack} options={{ headerShown: false, tabBarIcon: ({ focused }) => <TabIcon icon="🍔" focused={focused} />, tabBarBadge: favorites.length > 0 ? favorites.length : null, tabBarBadgeStyle: { backgroundColor: '#4CAF50', fontSize: 10, minWidth: 20, height: 20, borderRadius: 10 } }} />
-      <Tab.Screen name="Cart" component={CartStack} options={{ title: 'Keranjang', headerShown: false, tabBarIcon: ({ focused }) => <TabIcon icon="🛒" focused={focused} />, tabBarBadge: cart.length > 0 ? cart.length : null, tabBarBadgeStyle: { backgroundColor: theme.primary, fontSize: 10, minWidth: 20, height: 20, borderRadius: 10 } }} />
-      <Tab.Screen name="History" component={OrderHistoryScreen} options={{ title: 'Riwayat', tabBarIcon: ({ focused }) => <TabIcon icon="📋" focused={focused} />, tabBarBadge: pendingOrders > 0 ? pendingOrders : null, tabBarBadgeStyle: { backgroundColor: '#2196F3', fontSize: 10, minWidth: 20, height: 20, borderRadius: 10 } }} />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profil', tabBarIcon: ({ focused }) => <TabIcon icon="👤" focused={focused} />, tabBarBadge: unreadNotifications > 0 ? unreadNotifications : null, tabBarBadgeStyle: { backgroundColor: '#f44336', fontSize: 10, minWidth: 20, height: 20, borderRadius: 10 } }} />
+      <Tab.Screen name="Home"    component={HomeScreen}         options={{ title: 'Beranda' }} />
+      <Tab.Screen name="Menu"    component={MenuStack}          options={{ headerShown: false }} />
+      <Tab.Screen name="Cart"    component={CartStack}          options={{ headerShown: false }} />
+      <Tab.Screen name="History" component={OrderHistoryScreen} options={{ title: 'Riwayat' }} />
+      <Tab.Screen name="Profile" component={ProfileScreen}      options={{ title: 'Profil' }} />
     </Tab.Navigator>
   );
 }
