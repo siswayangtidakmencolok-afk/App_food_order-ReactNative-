@@ -4,31 +4,37 @@ import { supabase } from '../config/supabase';
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
-  // Auth
-  const [session, setSession]       = useState(null);
+  // ── Auth ──────────────────────────────────────────────
+  const [session, setSession]         = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  // App state
-  const [cart, setCart]             = useState([]);
-  const [menuItems, setMenuItems]   = useState([]);
-  const [menuLoading, setMenuLoading] = useState(true);
-  const [orderHistory, setOrderHistory] = useState([]);
-  const [favorites, setFavorites]   = useState([]); // array of menu_item_id
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [userProfile, setUserProfile] = useState(null);
+  // ── App state ─────────────────────────────────────────
+  const [cart, setCart]                   = useState([]);
+  const [menuItems, setMenuItems]         = useState([]);
+  const [menuLoading, setMenuLoading]     = useState(true);
+  const [orderHistory, setOrderHistory]   = useState([]);
+  const [favorites, setFavorites]         = useState([]);
+  const [isDarkMode, setIsDarkMode]       = useState(false);
+  const [userProfile, setUserProfile]     = useState(null);
   const [notifications, setNotifications] = useState([]);
 
-  // ── AUTH LISTENER ──────────────────────────────────────
-  useEffect(() => {
-  // Langsung set authLoading false — tidak cek session tersimpan
-  setAuthLoading(false);
-
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-    setSession(session);
+  // ── Settings state ────────────────────────────────────
+  const [accentColor, setAccentColor] = useState('#FF6347');
+  const [textSize, setTextSize]       = useState('normal');
+  const [notifSettings, setNotifSettings] = useState({
+    orderUpdate: true,
+    promo:       true,
+    reviewReply: true,
   });
 
-  return () => subscription.unsubscribe();
-}, []);
+  // ── AUTH LISTENER ─────────────────────────────────────
+  useEffect(() => {
+    setAuthLoading(false);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   // ── FETCH DATA SAAT SESSION BERUBAH ───────────────────
   useEffect(() => {
@@ -38,7 +44,6 @@ export const AppProvider = ({ children }) => {
       fetchOrders();
       fetchFavorites();
     } else {
-      // Reset state saat logout
       setOrderHistory([]);
       setFavorites([]);
       setUserProfile(null);
@@ -70,7 +75,7 @@ export const AppProvider = ({ children }) => {
         ...data,
         memberSince: data.created_at,
         totalOrders: 0,
-        totalSpent: 0,
+        totalSpent:  0,
       });
     }
   };
@@ -96,20 +101,20 @@ export const AppProvider = ({ children }) => {
       .order('created_at', { ascending: false });
     if (!error && data) {
       const formatted = data.map(o => ({
-  ...o,
-  orderNumber: o.order_number,
-  customerName: o.customer_name,
-  phoneNumber: o.phone_number,
-  deliveryAddress: o.delivery_address,
-  orderNotes: o.order_notes,
-  paymentMethod: o.payment_method,
-  estimatedDelivery: o.estimated_delivery,
-  items: (o.order_items || []).map(item => ({  // ← map tiap item
-    ...item,
-    id: item.menu_item_id,
-  })),
-  createdAt: o.created_at,
-}));
+        ...o,
+        orderNumber:       o.order_number,
+        customerName:      o.customer_name,
+        phoneNumber:       o.phone_number,
+        deliveryAddress:   o.delivery_address,
+        orderNotes:        o.order_notes,
+        paymentMethod:     o.payment_method,
+        estimatedDelivery: o.estimated_delivery,
+        items: (o.order_items || []).map(item => ({
+          ...item,
+          id: item.menu_item_id,
+        })),
+        createdAt: o.created_at,
+      }));
       setOrderHistory(formatted);
     }
   };
@@ -117,19 +122,18 @@ export const AppProvider = ({ children }) => {
   const saveOrder = async (orderData) => {
     if (!session?.user) return { error: 'Not logged in' };
 
-    // Insert order
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
-        user_id: session.user.id,
-        order_number: orderData.orderNumber,
-        status: 'Pending',
-        total: orderData.total,
-        customer_name: orderData.customerName,
-        phone_number: orderData.phoneNumber,
-        delivery_address: orderData.deliveryAddress,
-        order_notes: orderData.orderNotes,
-        payment_method: orderData.paymentMethod,
+        user_id:           session.user.id,
+        order_number:      orderData.orderNumber,
+        status:            'Pending',
+        total:             orderData.total,
+        customer_name:     orderData.customerName,
+        phone_number:      orderData.phoneNumber,
+        delivery_address:  orderData.deliveryAddress,
+        order_notes:       orderData.orderNotes,
+        payment_method:    orderData.paymentMethod,
         estimated_delivery: orderData.estimatedDelivery,
       })
       .select()
@@ -137,14 +141,13 @@ export const AppProvider = ({ children }) => {
 
     if (orderError) return { error: orderError };
 
-    // Insert order items
     const items = orderData.items.map(item => ({
-      order_id: order.id,
+      order_id:     order.id,
       menu_item_id: item.id,
-      name: item.name,
-      price: item.price,
-      quantity: item.quantity,
-      image: item.image,
+      name:         item.name,
+      price:        item.price,
+      quantity:     item.quantity,
+      image:        item.image,
     }));
 
     const { error: itemsError } = await supabase
@@ -153,17 +156,16 @@ export const AppProvider = ({ children }) => {
 
     if (itemsError) return { error: itemsError };
 
-    // Update local state
     const newOrder = {
       ...order,
-      orderNumber: order.order_number,
-      customerName: order.customer_name,
-      phoneNumber: order.phone_number,
-      deliveryAddress: order.delivery_address,
-      orderNotes: order.order_notes,
-      paymentMethod: order.payment_method,
+      orderNumber:       order.order_number,
+      customerName:      order.customer_name,
+      phoneNumber:       order.phone_number,
+      deliveryAddress:   order.delivery_address,
+      orderNotes:        order.order_notes,
+      paymentMethod:     order.payment_method,
       estimatedDelivery: order.estimated_delivery,
-      items: orderData.items,
+      items:     orderData.items,
       createdAt: order.created_at,
     };
     setOrderHistory(prev => [newOrder, ...prev]);
@@ -182,8 +184,10 @@ export const AppProvider = ({ children }) => {
   };
 
   const toggleFavorite = async (menuItemId) => {
-    if (!session?.user) { addNotification('Login dulu untuk menyimpan favorit', 'warning'); return; }
-
+    if (!session?.user) {
+      addNotification('Login dulu untuk menyimpan favorit', 'warning');
+      return;
+    }
     const isFav = favorites.includes(menuItemId);
     if (isFav) {
       await supabase.from('favorites').delete()
@@ -193,7 +197,7 @@ export const AppProvider = ({ children }) => {
       addNotification('Dihapus dari favorit', 'info');
     } else {
       await supabase.from('favorites').insert({
-        user_id: session.user.id,
+        user_id:      session.user.id,
         menu_item_id: menuItemId,
       });
       setFavorites(prev => [...prev, menuItemId]);
@@ -205,7 +209,9 @@ export const AppProvider = ({ children }) => {
   const addToCart = (item) => {
     setCart(prev => {
       const existing = prev.find(c => c.id === item.id);
-      if (existing) return prev.map(c => c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c);
+      if (existing) return prev.map(c =>
+        c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c
+      );
       return [...prev, { ...item, quantity: 1 }];
     });
     addNotification(`${item.name} ditambahkan ke keranjang`, 'success');
@@ -226,7 +232,7 @@ export const AppProvider = ({ children }) => {
   const saveReview = async ({ menuItemId, rating, text }) => {
     if (!session?.user) return { error: 'Not logged in' };
     const { error } = await supabase.from('reviews').insert({
-      user_id: session.user.id,
+      user_id:      session.user.id,
       menu_item_id: menuItemId,
       rating,
       text,
@@ -242,7 +248,13 @@ export const AppProvider = ({ children }) => {
 
   // ── NOTIFICATIONS ─────────────────────────────────────
   const addNotification = (message, type = 'info') => {
-    const n = { id: Date.now(), message, type, timestamp: new Date().toISOString(), read: false };
+    const n = {
+      id:        Date.now(),
+      message,
+      type,
+      timestamp: new Date().toISOString(),
+      read:      false,
+    };
     setNotifications(prev => [n, ...prev]);
   };
 
@@ -250,34 +262,75 @@ export const AppProvider = ({ children }) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
+  // ── UI ────────────────────────────────────────────────
   const toggleDarkMode = () => setIsDarkMode(prev => !prev);
 
+  // ── SETTINGS ACTIONS ──────────────────────────────────
+  // Ganti warna aksen tema
+  const changeAccentColor = (color) => {
+    setAccentColor(color);
+    addNotification('Tema warna diperbarui ✨', 'success');
+  };
+
+  // Ganti ukuran teks
+  const changeTextSize = (size) => {
+    setTextSize(size);
+    addNotification('Ukuran teks diperbarui', 'success');
+  };
+
+  // Toggle notif tertentu
+  const toggleNotifSetting = (key) => {
+    setNotifSettings(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // Hapus riwayat pesanan lokal
+  const clearOrderHistory = () => {
+    setOrderHistory([]);
+    addNotification('Riwayat pesanan dihapus', 'info');
+  };
+
   // ── COMPUTED ──────────────────────────────────────────
+  // Scale teks berdasarkan setting ukuran
+  const textSizeMap  = { small: 0.85, normal: 1, large: 1.2 };
+  const textScale    = textSizeMap[textSize] || 1;
+
   const profileWithStats = userProfile ? {
     ...userProfile,
     totalOrders: orderHistory.length,
-    totalSpent: orderHistory.reduce((s, o) => s + o.total, 0),
+    totalSpent:  orderHistory.reduce((s, o) => s + o.total, 0),
   } : null;
 
   return (
     <AppContext.Provider value={{
       // Auth
       session, authLoading, signOut,
+
       // Menu
       menuItems, menuLoading, fetchMenu,
+
       // Cart
       cart, setCart, addToCart, removeFromCart, clearCart, reorder,
+
       // Orders
-      orderHistory, setOrderHistory, saveOrder, fetchOrders,
+      orderHistory, setOrderHistory, saveOrder, fetchOrders, clearOrderHistory,
+
       // Favorites
       favorites, toggleFavorite,
+
       // Profile
       userProfile: profileWithStats, updateProfile, setUserProfile,
+
       // Reviews
       saveReview,
+
       // UI
       isDarkMode, toggleDarkMode,
       notifications, addNotification, clearNotification,
+
+      // Settings
+      accentColor, changeAccentColor,
+      textSize, textScale, changeTextSize,
+      notifSettings, toggleNotifSetting,
     }}>
       {children}
     </AppContext.Provider>
