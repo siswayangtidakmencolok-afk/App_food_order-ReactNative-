@@ -1,4 +1,5 @@
 import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 
 const CartScreen = ({ navigation }) => {
@@ -119,12 +120,18 @@ const CartScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={cart}
-        keyExtractor={item => item.id.toString()}
-        renderItem={({ item }) => <CartItem item={item} />}
-        contentContainerStyle={styles.listContainer}
-      />
+  {/* Header UI with icons */}
+  <View style={styles.header}>
+    <MaterialCommunityIcons name="truck-delivery" size={32} color="#fff" />
+    <Text style={styles.headerTitle}>Keranjang Belanja</Text>
+    <MaterialCommunityIcons name="receipt" size={32} color="#fff" />
+  </View>
+  <FlatList
+    data={cart}
+    keyExtractor={item => item.id.toString()}
+    renderItem={({ item }) => <CartItem item={item} />}
+    contentContainerStyle={styles.listContainer}
+  />
 
       <View style={styles.footer}>
         <View style={styles.totalContainer}>
@@ -148,6 +155,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    height: 60,
+    paddingHorizontal: 20,
+    backgroundColor: '#FF6347',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
   },
   listContainer: {
     paddingVertical: 8,

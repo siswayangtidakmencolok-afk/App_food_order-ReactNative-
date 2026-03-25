@@ -385,13 +385,11 @@ const MenuDetailScreen = ({ route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
-      <Animated.ScrollView
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+      <Animated.ScrollView style={{ flex: 1 }} onScroll={Animated.event([
+          { nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: false }
         )}
-        scrollEventThrottle={16}
-      >
+        scrollEventThrottle={16}>
         {/* Gambar parallax */}
         <Animated.Image
           source={{ uri: item.image }}

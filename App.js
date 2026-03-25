@@ -19,7 +19,7 @@ import OnboardingScreen from './src/screens/OnboardingScreen';
 import OrderHistoryScreen from './src/screens/OrderHistoryScreen';
 import PaymentScreen from './src/screens/PaymentScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
-import SettingsScreen from './src/screens/SettingScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 import SplashScreen from './src/screens/SplashScreen';
 
 // ── Animated Dock ──

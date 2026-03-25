@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   Animated,
   Dimensions,
@@ -208,7 +209,12 @@ const MenuScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <ScrollView showsVerticalScrollIndicator={false} stickyHeaderIndices={[0]}>
+      {/* Logo Header */}
+      <View style={styles.menuHeader}>
+        <MaterialCommunityIcons name="food" size={32} color={theme.primary} />
+        <Text style={styles.menuHeaderTitle}>Aplikasi Pemesanan Makanan</Text>
+      </View>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }} showsVerticalScrollIndicator={false} stickyHeaderIndices={[0]}>
 
         {/* ── Sticky Header ── */}
         <View style={[styles.header, { backgroundColor: theme.background }]}>
@@ -333,7 +339,24 @@ const styles = StyleSheet.create({
   container:      { flex: 1 },
 
   // Header
-  header:         { paddingTop: 8, paddingBottom: 4, paddingHorizontal: PADDING, zIndex: 10 },
+  header: {
+    paddingVertical: 8,
+    paddingHorizontal: PADDING,
+    zIndex: 10
+  },
+  menuHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    backgroundColor: '#FF6347',
+  },
+  menuHeaderTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginLeft: 8,
+  },
   searchBar:      { flexDirection: 'row', alignItems: 'center', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10, marginBottom: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 6, elevation: 3 },
   searchInput:    { flex: 1, fontSize: 14 },
   chipRow:        { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
