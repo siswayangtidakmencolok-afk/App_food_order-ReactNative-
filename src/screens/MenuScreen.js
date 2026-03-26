@@ -12,10 +12,8 @@ import SuccessAnimation from '../components/SuccessAnimation';
 import { darkTheme, lightTheme } from '../config/theme';
 import { useApp } from '../context/AppContext';
 
-const { width } = Dimensions.get('window');
 const COL_GAP   = 10;
 const PADDING    = 14;
-const COL_WIDTH  = (width - PADDING * 2 - COL_GAP) / 2;
 
 // ─── Float Particle ──────────────────────────────────────────
 const FloatParticle = ({ onDone }) => {
@@ -336,7 +334,7 @@ const MenuScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container:      { flex: 1 },
+  container:      { flex: 1, alignSelf: 'center', width: '100%', maxWidth: 800 },
 
   // Header
   header: {
@@ -366,8 +364,8 @@ const styles = StyleSheet.create({
   countTxt:       { fontSize: 12, fontStyle: 'italic', marginBottom: 8, marginLeft: 2 },
 
   // Masonry
-  grid:           { flexDirection: 'row', paddingHorizontal: PADDING, gap: COL_GAP },
-  col:            { width: COL_WIDTH },
+  grid:           { flexDirection: 'row', paddingHorizontal: PADDING, justifyContent: 'space-between' },
+  col:            { width: '48%' },
 
   // Pin card
   pin:            { borderRadius: 18, marginBottom: COL_GAP, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 8, elevation: 4 },

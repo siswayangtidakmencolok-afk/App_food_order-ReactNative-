@@ -8,7 +8,14 @@ const { width } = Dimensions.get('window');
 const DeliveryTrackerScreen = ({ route, navigation }) => {
   const { order } = route.params;
   const { isDarkMode } = useApp();
-  const [activeTab, setActiveTab] = useState('Untuk dikirim');
+  const getInitialTab = () => {
+    if (order.status === 'Delivered') return 'Selesai';
+    if (order.status === 'Delivering') return 'Akan diterima';
+    if (order.status === 'Processing') return 'Untuk dikirim';
+    if (order.paymentMethod === 'Cash on Delivery (COD)' && order.status === 'Pending') return 'Untuk dikirim';
+    return 'Perlu dibayar';
+  };
+  const [activeTab, setActiveTab] = useState(getInitialTab());
 
   // Tampilan warna
   const bg = isDarkMode ? '#121212' : '#f5f5f5';
@@ -18,12 +25,11 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
 
   const TABS = ['Perlu dibayar', 'Untuk dikirim', 'Akan diterima', 'Selesai'];
 
-  // Rekomendasi Dummy
   const recommendations = [
-    { id: '1', name: 'Paket Nasi Ayam Geprek Spesial', price: 25000, img: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=500&q=80' },
-    { id: '2', name: 'Burger Beef Double Cheese', price: 35000, img: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&q=80' },
-    { id: '3', name: 'Es Teh Manis Jumbo', price: 5000, img: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80' },
-    { id: '4', name: 'French Fries Saus Keju', price: 15000, img: 'https://images.unsplash.com/photo-1576107232684-1279f390859f?w=500&q=80' },
+    { id: '991', name: 'Paket Nasi Ayam Geprek Spesial', price: 25000, image: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=500&q=80', description: 'Nasi hangat dengan ayam geprek pedas.', rating: 4.8, category: 'Makanan Utama' },
+    { id: '992', name: 'Burger Beef Double Cheese', price: 35000, image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&q=80', description: 'Burger lezat dengan keju lumer renyah.', rating: 4.9, category: 'Makanan Utama' },
+    { id: '993', name: 'Es Teh Manis Jumbo', price: 5000, image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80', description: 'Teh manis dingin menyegarkan.', rating: 4.7, category: 'Minuman' },
+    { id: '994', name: 'French Fries Saus Keju', price: 15000, image: 'https://images.unsplash.com/photo-1576107232684-1279f390859f?w=500&q=80', description: 'Kentang goreng renyah saus keju spesial.', rating: 4.5, category: 'Cemilan' },
   ];
 
   return (
@@ -114,9 +120,13 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
           <Text style={[styles.recomTitle, { color: textPrimary }]}>Anda mungkin juga menyukai</Text>
           <View style={styles.recomGrid}>
             {recommendations.map(item => (
-              <TouchableOpacity key={item.id} style={[styles.recomCard, { backgroundColor: cardBg }]}>
+              <TouchableOpacity 
+                key={item.id} 
+                style={[styles.recomCard, { backgroundColor: cardBg }]}
+                onPress={() => navigation.navigate('MenuDetail', { item })}
+              >
                 <View style={styles.discountBadge}><Text style={styles.discountText}>-50%</Text></View>
-                <Image source={{ uri: item.img }} style={styles.recomImage} />
+                <Image source={{ uri: item.image }} style={styles.recomImage} />
                 <View style={{ padding: 8 }}>
                   <Text style={[styles.recomName, { color: textPrimary }]} numberOfLines={2}>
                     <Text style={styles.tagCod}>[BISA COD]</Text> {item.name}
