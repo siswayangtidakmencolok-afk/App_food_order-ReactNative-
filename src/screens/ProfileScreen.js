@@ -13,11 +13,32 @@ const { width } = Dimensions.get('window');
 // ─── Stat Card Keren ────────────────────────────────────────────────
 const StatCard = ({ icon, value, label, isDark }) => (
   <View style={[styles.statCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#fff' }]}>
-    <MaterialCommunityIcons name={icon} size={26} color={isDark ? '#ddd' : '#EE4D2D'} style={{ marginBottom: 6 }} />
-    <Text style={[styles.statValue, { color: isDark ? '#fff' : '#333' }]}>{value}</Text>
-    <Text style={[styles.statLabel, { color: isDark ? '#aaa' : '#888' }]}>{label}</Text>
+    <MaterialCommunityIcons name={icon} size={28} color={isDark ? '#ddd' : '#EE4D2D'} style={{ marginBottom: 6 }} />
+    <Text style={[styles.statValue, { color: isDark ? '#fff' : '#333' }]} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+    <Text style={[styles.statLabel, { color: isDark ? '#aaa' : '#888' }]} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>
   </View>
 );
+
+const AnimatedSection = ({ children, delay = 0 }) => {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: 600,
+      delay,
+      useNativeDriver: true,
+    }).start();
+  }, [anim, delay]);
+
+  return (
+    <Animated.View style={{ 
+      opacity: anim, 
+      transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }] 
+    }}>
+      {children}
+    </Animated.View>
+  );
+};
 
 const Section = ({ title, icon, children, cardCol, textCol }) => (
   <View style={[styles.section, { backgroundColor: cardCol }]}>
@@ -141,10 +162,11 @@ const ProfileScreen = () => {
       </LinearGradient>
 
       {/* SPACE UNTUK STATS OVERLAP */}
-      <View style={{ height: 40 }} />
+      <View style={{ height: 50 }} />
 
       {/* ── INFORMASI PROFIL ── */}
-      <Section icon="account" title="Informasi Profil" cardCol={card} textCol={textCol}>
+      <AnimatedSection delay={150}>
+        <Section icon="account" title="Informasi Profil" cardCol={card} textCol={textCol}>
         <View style={styles.sectionHeaderBtn}>
           <TouchableOpacity onPress={handleEditToggle} style={[styles.editBtn, { backgroundColor: isEditing ? border : theme.primary + '20' }]}>
             <Text style={[styles.editBtnTxt, { color: isEditing ? subText : theme.primary }]}>{isEditing ? 'Batal' : 'Edit Profil'}</Text>
@@ -193,10 +215,12 @@ const ProfileScreen = () => {
             <Text style={styles.saveBtnTxt}>Simpan Perubahan</Text>
           </TouchableOpacity>
         )}
-      </Section>
+        </Section>
+      </AnimatedSection>
 
       {/* ── PENGATURAN ── */}
-      <Section icon="cog" title="Pengaturan Aplikasi" cardCol={card} textCol={textCol}>
+      <AnimatedSection delay={300}>
+        <Section icon="cog" title="Pengaturan Aplikasi" cardCol={card} textCol={textCol}>
         <View style={styles.settingRow}>
           <View style={styles.settingLeft}>
             <View style={[styles.settingIconBox, { backgroundColor: isDarkMode ? '#3a3a3a' : '#ffe4e1' }]}>
@@ -224,10 +248,12 @@ const ProfileScreen = () => {
           </View>
           <MaterialCommunityIcons name="chevron-right" size={20} color={subText} />
         </TouchableOpacity>
-      </Section>
+        </Section>
+      </AnimatedSection>
 
       {/* ── ZONA BAHAYA ── */}
-      <View style={[styles.section, { backgroundColor: card }]}>
+      <AnimatedSection delay={450}>
+        <View style={[styles.section, { backgroundColor: card }]}>
         <TouchableOpacity style={styles.dangerRow} onPress={() => {
           Alert.alert('Kosongkan Keranjang', 'Hapus semua item?', [
             { text: 'Batal', style: 'cancel' },
@@ -242,7 +268,8 @@ const ProfileScreen = () => {
           <MaterialCommunityIcons name="logout" size={20} color="#ff4444" style={{ marginRight: 12 }} />
           <Text style={styles.dangerTxt}>Keluar dari Akun</Text>
         </TouchableOpacity>
-      </View>
+        </View>
+      </AnimatedSection>
 
       <Text style={[styles.appVer, { color: subText }]}>FoodApp v1.0.0 (Premium OS)</Text>
       <View style={{ height: 40 }} />
@@ -253,7 +280,7 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  hero: { paddingTop: 40, paddingBottom: 60, alignItems: 'center', borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
+  hero: { paddingTop: 40, paddingBottom: 80, alignItems: 'center', borderBottomLeftRadius: 35, borderBottomRightRadius: 35 },
   avatarContainer: { width: 90, height: 90, borderRadius: 45, backgroundColor: 'rgba(255,255,255,0.3)', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
   avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
   avatarText: { fontSize: 32, fontWeight: 'bold', color: '#EE4D2D' },
@@ -262,10 +289,10 @@ const styles = StyleSheet.create({
   badgesRow: { flexDirection: 'row', gap: 8 },
   badge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, gap: 4 },
   badgeTxt: { fontSize: 11, color: '#fff' },
-  statsRow: { flexDirection: 'row', gap: 12, position: 'absolute', bottom: -35, paddingHorizontal: 20 },
-  statCard: { flex: 1, borderRadius: 12, paddingVertical: 14, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 4 },
+  statsRow: { flexDirection: 'row', gap: 12, position: 'absolute', bottom: -50, width: '100%', paddingHorizontal: 20 },
+  statCard: { flex: 1, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 6, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 4 },
   statValue: { fontSize: 18, fontWeight: 'bold' },
-  statLabel: { fontSize: 11, marginTop: 4 },
+  statLabel: { fontSize: 11, marginTop: 4, textAlign: 'center' },
   section: { marginHorizontal: 16, marginTop: 16, borderRadius: 16, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, borderBottomWidth: 1, borderBottomColor: 'transparent' },
   sectionTitle: { fontSize: 16, fontWeight: 'bold' },
