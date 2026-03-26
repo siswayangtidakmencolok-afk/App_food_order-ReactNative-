@@ -1,38 +1,50 @@
 // src/screens/InvoiceScreen.js
 import {
   Alert,
+  Animated,
+  Dimensions,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const InvoiceScreen = ({ navigation, route }) => {
   const { order } = route.params;
 
+  const slideAnim = useRef(new Animated.Value(-Dimensions.get('window').width)).current;
+
+  useEffect(() => {
+    Animated.spring(slideAnim, {
+      toValue: 0,
+      friction: 5,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
+  }, [slideAnim]);
+
   const handleDone = () => {
-    Alert.alert(
-      'Terima Kasih! 🎉',
-      'Pesanan Anda sedang diproses.\nCek tab Riwayat untuk tracking pesanan.',
-      [
-        {
-          text: 'Lihat Riwayat',
-          onPress: () => navigation.navigate('Order')
-        },
-        {
-          text: 'Kembali ke Home',
-          onPress: () => navigation.navigate('Home')
-        }
-      ]
-    );
+    navigation.navigate('DeliveryTracker', { order });
   };
 
   return (
     <ScrollView style={styles.container}>
-      {/* Success Header */}
+      {/* Success Header with Animated Logo */}
       <View style={styles.successHeader}>
-        <Text style={styles.successIcon}>✅</Text>
+        <Animated.View style={[styles.logoContainer, { transform: [{ translateX: slideAnim }] }]}>
+          <View style={styles.logoRow}>
+            <MaterialCommunityIcons name="weather-windy" size={28} color="#FFF" style={styles.windIcon} />
+            <MaterialCommunityIcons name="moped" size={70} color="#FFF" />
+            <View style={styles.foodDome}>
+              <MaterialCommunityIcons name="silverware-fork-knife" size={16} color="#4CAF50" />
+            </View>
+          </View>
+          <Text style={styles.logoText}>FOOD DELIVERY</Text>
+        </Animated.View>
+
         <Text style={styles.successTitle}>Pesanan Berhasil!</Text>
         <Text style={styles.successSubtitle}>
           Pesanan Anda telah diterima dan sedang diproses
@@ -182,7 +194,7 @@ const InvoiceScreen = ({ navigation, route }) => {
 
       <TouchableOpacity 
         style={styles.trackButton}
-        onPress={() => navigation.navigate('History')}
+        onPress={handleDone}
       >
         <Text style={styles.trackButtonText}>Track Pesanan</Text>
       </TouchableOpacity>
@@ -202,9 +214,35 @@ const styles = StyleSheet.create({
     padding: 30,
     alignItems: 'center',
   },
-  successIcon: {
-    fontSize: 60,
-    marginBottom: 16,
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  windIcon: {
+    marginRight: -10,
+    marginTop: 15,
+  },
+  foodDome: {
+    position: 'absolute',
+    right: 10,
+    top: 10,
+    backgroundColor: '#FFF',
+    borderRadius: 15,
+    width: 25,
+    height: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoText: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#FFF',
+    letterSpacing: 2,
   },
   successTitle: {
     fontSize: 24,
