@@ -113,7 +113,10 @@ setPendingOrder(savedOrder);
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView style={styles.container}>
+            <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 120 }}>
+        <TouchableOpacity style={styles.payButton} onPress={handlePayment}>
+          <Text style={styles.payButtonText}>Konfirmasi & Bayar</Text>
+        </TouchableOpacity>
         {/* ── Form section — sama persis seperti sebelumnya ── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>📋 Informasi Pemesan</Text>
@@ -160,9 +163,9 @@ setPendingOrder(savedOrder);
           <View style={styles.summaryRow}><Text style={styles.totalLabel}>Total Bayar:</Text><Text style={styles.totalValue}>Rp {total.toLocaleString('id-ID')}</Text></View>
         </View>
 
-        <TouchableOpacity style={styles.payButton} onPress={handlePayment}>
-          <Text style={styles.payButtonText}>Konfirmasi & Bayar</Text>
-        </TouchableOpacity>
+        
+          
+        
 
         <View style={styles.bottomSpace} />
       </ScrollView>
