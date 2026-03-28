@@ -13,8 +13,9 @@ import { darkTheme, lightTheme } from '../config/theme';
 import { useApp } from '../context/AppContext';
 
 const OrderHistoryScreen = ({ navigation }) => {
-  const { orderHistory, setOrderHistory, reorder, isDarkMode } = useApp();
+  const { orderHistory, setOrderHistory, reorder, isDarkMode, clearHistory } = useApp();
   const theme = isDarkMode ? darkTheme : lightTheme;
+  const [activeTab, setActiveTab] = useState('Sedang Berjalan');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -310,6 +311,11 @@ useEffect(() => {
     </View>
   );
 
+  const filteredData = orderHistory.filter(order => {
+    if (activeTab === 'Sedang Berjalan') return order.status !== 'Delivered';
+    return order.status === 'Delivered';
+  });
+
   if (orderHistory.length === 0) {
     return (
       <View style={[styles.emptyContainer, { backgroundColor: theme.background }]}>
@@ -318,7 +324,7 @@ useEffect(() => {
           Belum Ada Riwayat
         </Text>
         <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>
-          Pesanan yang sudah selesai akan muncul di sini
+          Pesanan yang dibuat akan muncul di sini
         </Text>
         <TouchableOpacity 
           style={[styles.menuButton, { backgroundColor: theme.primary }]}
@@ -332,11 +338,32 @@ useEffect(() => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* ── TABS ── */}
+      <View style={{ flexDirection: 'row', backgroundColor: theme.card, elevation: 2 }}>
+        {['Sedang Berjalan', 'Selesai'].map(tab => (
+          <TouchableOpacity 
+            key={tab} 
+            style={[styles.tabBtn, activeTab === tab && { borderBottomColor: theme.primary }]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text style={[styles.tabTxt, { color: activeTab === tab ? theme.primary : theme.textSecondary, fontWeight: activeTab === tab ? 'bold' : 'normal' }]}>
+              {tab}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       <FlatList
-        data={orderHistory}
+        data={filteredData}
         keyExtractor={item => item.id.toString()}
         renderItem={({ item }) => <OrderCard order={item} />}
         contentContainerStyle={styles.listContainer}
+        ListEmptyComponent={
+          <View style={{ padding: 40, alignItems: 'center' }}>
+            <Text style={{ fontSize: 40, color: theme.textSecondary }}>📭</Text>
+            <Text style={{ color: theme.text, marginTop: 10 }}>Tidak ada pesanan di kategori ini.</Text>
+          </View>
+        }
       />
       <OrderDetailModal />
     </View>
@@ -346,6 +373,16 @@ useEffect(() => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
+    alignItems: 'center',
+  },
+  tabTxt: {
+    fontSize: 14,
   },
   listContainer: {
     padding: 16,

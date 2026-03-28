@@ -1,10 +1,10 @@
-import React, { useRef, useState, useEffect } from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useRef, useState } from 'react';
 import {
   Alert, Animated, Dimensions, Linking, ScrollView, StyleSheet,
   Switch, Text, TextInput, TouchableOpacity, View
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { darkTheme, lightTheme } from '../config/theme';
 import { useApp } from '../context/AppContext';
 
@@ -251,8 +251,63 @@ const ProfileScreen = () => {
         </Section>
       </AnimatedSection>
 
-      {/* ── ZONA BAHAYA ── */}
+      {/* ── KONTAK & SOSIAL MEDIA ── */}
       <AnimatedSection delay={450}>
+        <Section icon="card-account-phone-outline" title="Contact Me" cardCol={card} textCol={textCol}>
+          {[
+            { label: 'GitHub', url: 'https://github.com/siswayangtidakmencolok-afk', icon: 'github', color: '#000000' },
+            { label: 'GitLab', url: 'https://gitlab.com/siswayangtidakmencolok', icon: 'gitlab', color: '#FCA121' },
+            { label: 'PayPal', url: 'https://paypal.me/FhazwanAthar?locale.x=id_ID&country.x=ID', icon: 'paypal', color: '#003087' },
+            { label: 'WhatsApp', url: 'https://wa.me/qr/RKCJNQUSIH6VF1', icon: 'whatsapp', color: '#25D366' },
+            { label: 'Instagram', url: 'https://www.instagram.com/f.zvvn_/', icon: 'instagram', color: '#E1306C' },
+            { label: 'Facebook', url: 'https://www.facebook.com/share/1QzXJnQtXt/', icon: 'facebook', color: '#1877F2' },
+            { label: 'TikTok', url: 'https://www.tiktok.com/@ekstrovertselalu', icon: 'music-note', color: isDarkMode ? '#fff' : '#000' },
+            { label: 'Discord', url: 'https://discord.com/channels/@zxyninety', icon: 'discord', color: '#5865F2' },
+            { label: 'Telegram', url: 'https://t.me/Art_zwn', icon: 'telegram', color: '#229ED9' },
+            { label: 'X', url: 'https://x.com/www.x.com/zxyninety1', icon: 'twitter', color: '#000000' },
+          ].map((social, index) => (
+            <View key={social.label}>
+              <TouchableOpacity style={styles.socialRow} onPress={() => Linking.openURL(social.url)}>
+                <View style={styles.socialLeft}>
+                  <View style={[styles.socialIconBox, { backgroundColor: social.color + '15' }]}>
+                    <MaterialCommunityIcons name={social.icon} size={20} color={social.color} />
+                  </View>
+                  <Text style={[styles.socialName, { color: textCol }]}>{social.label}</Text>
+                </View>
+                <MaterialCommunityIcons name="arrow-top-right" size={18} color={subText} />
+              </TouchableOpacity>
+              {index < 4 && <View style={[styles.divider, { backgroundColor: border }]} />}
+            </View>
+          ))}
+        </Section>
+      </AnimatedSection>
+
+      {/* ── PROJECT LAINNYA ── */}
+      <AnimatedSection delay={600}>
+        <Section icon="rocket-launch-outline" title="Project Lainnya" cardCol={card} textCol={textCol}>
+          {[
+            { label: 'Globe 3D', url: 'https://globe3d-byfhaz.netlify.app/', icon: 'earth' },
+            { label: 'World Clock & Timer', url: 'https://worldclockandtimer.netlify.app/', icon: 'clock-outline' },
+            { label: 'Teacher Absence', url: 'https://teacher-absence-byfhaz.up.railway.app/', icon: 'account-clock-outline' },
+            { label: 'Student Registration', url: 'https://student-registration-sage-delta.vercel.app/', icon: 'account-plus-outline' },
+            { label: 'Frieren Website', url: 'https://siswayangtidakmencolok-afk.github.io/website-frieren/', icon: 'cards-heart-outline' },
+          ].map((project, index) => (
+            <View key={project.label}>
+              <TouchableOpacity style={styles.projectRow} onPress={() => Linking.openURL(project.url)}>
+                <View style={styles.projectLeft}>
+                  <MaterialCommunityIcons name={project.icon} size={20} color={theme.primary} style={{ marginRight: 12 }} />
+                  <Text style={[styles.projectName, { color: textCol }]}>{project.label}</Text>
+                </View>
+                <MaterialCommunityIcons name="arrow-top-right" size={18} color={subText} />
+              </TouchableOpacity>
+              {index < 1 && <View style={[styles.divider, { backgroundColor: border }]} />}
+            </View>
+          ))}
+        </Section>
+      </AnimatedSection>
+
+      {/* ── ZONA BAHAYA ── */}
+      <AnimatedSection delay={750}>
         <View style={[styles.section, { backgroundColor: card }]}>
         <TouchableOpacity style={styles.dangerRow} onPress={() => {
           Alert.alert('Kosongkan Keranjang', 'Hapus semua item?', [
@@ -313,6 +368,13 @@ const styles = StyleSheet.create({
   settingName: { fontSize: 14, fontWeight: '600', marginBottom: 4 },
   settingDesc: { fontSize: 11 },
   divider: { height: 1, marginVertical: 4 },
+  socialRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
+  socialLeft: { flexDirection: 'row', alignItems: 'center' },
+  socialIconBox: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  socialName: { fontSize: 14, fontWeight: '500' },
+  projectRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
+  projectLeft: { flexDirection: 'row', alignItems: 'center' },
+  projectName: { fontSize: 14, fontWeight: '500' },
   dangerRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
   dangerTxt: { fontSize: 14, fontWeight: 'bold', color: '#ff4444' },
   appVer: { textAlign: 'center', marginTop: 20, fontSize: 12 }
