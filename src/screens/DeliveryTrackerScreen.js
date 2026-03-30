@@ -48,6 +48,52 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
       </View>
 
       <ScrollView style={{ flex: 1 }}>
+        {/* Konten hanya tampil jika tab sesuai status order */}
+{(() => {
+  const tabStatusMap = {
+    'Perlu dibayar': ['Pending'],
+    'Untuk dikirim': ['Processing', 'Pending'],
+    'Akan diterima': ['Delivering'],
+    'Selesai': ['Delivered'],
+  };
+  const validStatuses = tabStatusMap[activeTab] || [];
+  if (!validStatuses.includes(order.status)) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', paddingTop: 80 }}>
+        <Text style={{ fontSize: 48 }}>📭</Text>
+        <Text style={{ color: textSecondary, marginTop: 12, fontSize: 15 }}>
+          Tidak ada pesanan di tab ini
+        </Text>
+      </View>
+    );
+  }
+  return null;
+})()}
+
+{/* Guard: sembunyikan order card jika tab tidak sesuai status */}
+{(() => {
+  const tabMatch = {
+    'Perlu dibayar': ['Pending'],
+    'Untuk dikirim': ['Processing'],
+    'Akan diterima': ['Delivering'],
+    'Selesai':       ['Delivered'],
+  };
+  if (!tabMatch[activeTab]?.includes(order.status)) {
+    return (
+      <View style={{ alignItems: 'center', paddingTop: 60, paddingBottom: 20 }}>
+        <Text style={{ fontSize: 50 }}>📭</Text>
+        <Text style={{ color: textSecondary, marginTop: 12, fontSize: 14, textAlign: 'center' }}>
+          Tidak ada pesanan di tab ini
+        </Text>
+        <Text style={{ color: textSecondary, fontSize: 12, marginTop: 4 }}>
+          Status pesanan kamu: {order.status}
+        </Text>
+      </View>
+    );
+  }
+  return null;
+})()}
+
         {/* Banner Pengembalian */}
         <View style={styles.banner}>
           <MaterialCommunityIcons name="shield-check-outline" size={16} color="#EE4D2D" />
