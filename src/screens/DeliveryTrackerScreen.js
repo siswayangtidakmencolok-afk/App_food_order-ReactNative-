@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useMemo, useState } from 'react';
+import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useApp } from '../context/AppContext';
 
 const { width } = Dimensions.get('window');
 
 const DeliveryTrackerScreen = ({ route, navigation }) => {
   const { order } = route.params;
-  const { isDarkMode } = useApp();
+  const { isDarkMode, menuItems } = useApp();
+
   const getInitialTab = () => {
     if (order.status === 'Delivered') return 'Selesai';
     if (order.status === 'Delivering') return 'Akan diterima';
@@ -25,12 +26,13 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
 
   const TABS = ['Perlu dibayar', 'Untuk dikirim', 'Akan diterima', 'Selesai'];
 
-  const recommendations = [
-    { id: '991', name: 'Paket Nasi Ayam Geprek Spesial', price: 25000, image: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=500&q=80', description: 'Nasi hangat dengan ayam geprek pedas.', rating: 4.8, category: 'Makanan Utama' },
-    { id: '992', name: 'Burger Beef Double Cheese', price: 35000, image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&q=80', description: 'Burger lezat dengan keju lumer renyah.', rating: 4.9, category: 'Makanan Utama' },
-    { id: '993', name: 'Es Teh Manis Jumbo', price: 5000, image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80', description: 'Teh manis dingin menyegarkan.', rating: 4.7, category: 'Minuman' },
-    { id: '994', name: 'French Fries Saus Keju', price: 15000, image: 'https://images.unsplash.com/photo-1576107232684-1279f390859f?w=500&q=80', description: 'Kentang goreng renyah saus keju spesial.', rating: 4.5, category: 'Cemilan' },
-  ];
+  // Ambil rekomendasi dari menu Supabase — kecuali item yang sedang dipesan
+  const orderedIds = new Set((order.items || []).map(i => i.id || i.menu_item_id));
+  const recommendations = useMemo(() => {
+    const pool = (menuItems || []).filter(m => !orderedIds.has(m.id));
+    // Shuffle dan ambil maksimal 4
+    return pool.sort(() => Math.random() - 0.5).slice(0, 4);
+  }, [menuItems]);
 
   return (
     <View style={{ flex: 1, backgroundColor: bg }}>
@@ -46,6 +48,52 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
       </View>
 
       <ScrollView style={{ flex: 1 }}>
+        {/* Konten hanya tampil jika tab sesuai status order */}
+{(() => {
+  const tabStatusMap = {
+    'Perlu dibayar': ['Pending'],
+    'Untuk dikirim': ['Processing', 'Pending'],
+    'Akan diterima': ['Delivering'],
+    'Selesai': ['Delivered'],
+  };
+  const validStatuses = tabStatusMap[activeTab] || [];
+  if (!validStatuses.includes(order.status)) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', paddingTop: 80 }}>
+        <Text style={{ fontSize: 48 }}>📭</Text>
+        <Text style={{ color: textSecondary, marginTop: 12, fontSize: 15 }}>
+          Tidak ada pesanan di tab ini
+        </Text>
+      </View>
+    );
+  }
+  return null;
+})()}
+
+{/* Guard: sembunyikan order card jika tab tidak sesuai status */}
+{(() => {
+  const tabMatch = {
+    'Perlu dibayar': ['Pending'],
+    'Untuk dikirim': ['Processing'],
+    'Akan diterima': ['Delivering'],
+    'Selesai':       ['Delivered'],
+  };
+  if (!tabMatch[activeTab]?.includes(order.status)) {
+    return (
+      <View style={{ alignItems: 'center', paddingTop: 60, paddingBottom: 20 }}>
+        <Text style={{ fontSize: 50 }}>📭</Text>
+        <Text style={{ color: textSecondary, marginTop: 12, fontSize: 14, textAlign: 'center' }}>
+          Tidak ada pesanan di tab ini
+        </Text>
+        <Text style={{ color: textSecondary, fontSize: 12, marginTop: 4 }}>
+          Status pesanan kamu: {order.status}
+        </Text>
+      </View>
+    );
+  }
+  return null;
+})()}
+
         {/* Banner Pengembalian */}
         <View style={styles.banner}>
           <MaterialCommunityIcons name="shield-check-outline" size={16} color="#EE4D2D" />
@@ -132,9 +180,13 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
                     <Text style={styles.tagCod}>[BISA COD]</Text> {item.name}
                   </Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={styles.recomPrice}>Rp {item.price.toLocaleString('id-ID')}</Text>
-                    <Text style={styles.recomPriceStrikethrough}>Rp {(item.price * 2).toLocaleString('id-ID')}</Text>
-                  </View>
+                    <Text style={styles.recomPrice}>
+                      Rp {Math.round(item.price * 0.5).toLocaleString('id-ID')}
+                    </Text>
+                    <Text style={styles.recomPriceStrikethrough}>
+                      Rp {item.price.toLocaleString('id-ID')}
+                    </Text>
+</View>
                   <Text style={styles.recomSold}>Terjual 10RB+</Text>
                 </View>
               </TouchableOpacity>

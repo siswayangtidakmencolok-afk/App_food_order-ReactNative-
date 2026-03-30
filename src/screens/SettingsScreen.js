@@ -236,7 +236,7 @@ export default function SettingsScreen() {
 
       <View style={styles.appInfo}>
         <Text style={[styles.appVer, { color: subText }]}>FoodsStreets v1.0.0</Text>
-        <Text style={[styles.appVer, { color: subText }]}>by fhaz • Made with ❤️</Text>
+        <Text style={[styles.appVer, { color: subText }]}>by fhaz • dibuat Untuk tugas sekolah</Text>
       </View>
 
       <View style={{ height: 100 }} />

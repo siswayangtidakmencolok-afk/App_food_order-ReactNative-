@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert, Animated, Dimensions, Linking, ScrollView, StyleSheet,
   Switch, Text, TextInput, TouchableOpacity, View
@@ -11,13 +12,29 @@ import { useApp } from '../context/AppContext';
 const { width } = Dimensions.get('window');
 
 // ─── Stat Card Keren ────────────────────────────────────────────────
-const StatCard = ({ icon, value, label, isDark }) => (
-  <View style={[styles.statCard, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#fff' }]}>
-    <MaterialCommunityIcons name={icon} size={28} color={isDark ? '#ddd' : '#EE4D2D'} style={{ marginBottom: 6 }} />
-    <Text style={[styles.statValue, { color: isDark ? '#fff' : '#333' }]} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
-    <Text style={[styles.statLabel, { color: isDark ? '#aaa' : '#888' }]} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>
-  </View>
-);
+const StatCard = ({ icon, value, label, isDark, delay = 0 }) => {
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scaleAnim, { toValue: 1, friction: 5, tension: 60, delay, useNativeDriver: true }),
+      Animated.timing(opacityAnim, { toValue: 1, duration: 400, delay, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={[
+      styles.statCard,
+      { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#fff' },
+      { transform: [{ scale: scaleAnim }], opacity: opacityAnim }
+    ]}>
+      <MaterialCommunityIcons name={icon} size={28} color={isDark ? '#ddd' : '#EE4D2D'} style={{ marginBottom: 6 }} />
+      <Text style={[styles.statValue, { color: isDark ? '#fff' : '#333' }]} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
+      <Text style={[styles.statLabel, { color: isDark ? '#aaa' : '#888' }]} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>
+    </Animated.View>
+  );
+};
 
 const AnimatedSection = ({ children, delay = 0 }) => {
   const anim = useRef(new Animated.Value(0)).current;
@@ -73,6 +90,41 @@ const ProfileScreen = () => {
 
   const editAnim = useRef(new Animated.Value(0)).current;
 
+  // ── 4 animasi section — TIDAK boleh di dalam loop ──
+  const anim0 = useRef(new Animated.Value(0)).current;
+  const anim1 = useRef(new Animated.Value(0)).current;
+  const anim2 = useRef(new Animated.Value(0)).current;
+  const anim3 = useRef(new Animated.Value(0)).current;
+
+  const runSectionAnims = () => {
+    // Reset semua dulu
+    anim0.setValue(0); anim1.setValue(0); anim2.setValue(0); anim3.setValue(0);
+
+    // Jalankan satu per satu dengan delay
+    [anim0, anim1, anim2, anim3].forEach((anim, i) => {
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 500,
+        delay: i * 120,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
+
+  // Trigger animasi tiap kali tab Profil dibuka
+  useFocusEffect(
+    useCallback(() => {
+      runSectionAnims();
+    }, [])
+  );
+
+  const animStyle = (anim) => ({
+    opacity: anim,
+    transform: [{
+      translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] })
+    }]
+  });
+
   const handleEditToggle = () => {
     if (!isEditing) {
       setTempProfile({
@@ -109,16 +161,19 @@ const ProfileScreen = () => {
     ]);
   };
 
-  if (!userProfile) return <View style={[styles.loadingContainer, { backgroundColor: bg }]}><Text style={{ color: subText }}>Memuat profil...</Text></View>;
+  if (!userProfile) return (
+    <View style={[styles.loadingContainer, { backgroundColor: bg }]}>
+      <Text style={{ color: subText }}>Memuat profil...</Text>
+    </View>
+  );
 
   const totalOrders = orderHistory.length;
   const totalSpent  = orderHistory.reduce((s, o) => s + (o.total || 0), 0);
-  
-  // Loyalty Tier System
+
   const getLoyaltyTier = () => {
-    if (totalSpent > 1000000) return { title: 'Gold Member', color: '#FFD700', icon: 'crown' };
-    if (totalSpent > 300000) return { title: 'Silver Member', color: '#C0C0C0', icon: 'medal' };
-    return { title: 'Bronze Member', color: '#cd7f32', icon: 'star' };
+    if (totalSpent > 1000000) return { title: 'Gold Member',   color: '#FFD700', icon: 'crown' };
+    if (totalSpent > 300000)  return { title: 'Silver Member', color: '#C0C0C0', icon: 'medal' };
+    return                           { title: 'Bronze Member', color: '#cd7f32', icon: 'star'  };
   };
   const tier = getLoyaltyTier();
 
@@ -126,10 +181,10 @@ const ProfileScreen = () => {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: bg }]} showsVerticalScrollIndicator={false}>
-      
-      {/* ── HERO GRADIENT ── */}
-      <LinearGradient 
-        colors={isDarkMode ? ['#2D1A1A', '#121212'] : ['#FF6347', '#FF8C00']} 
+
+      {/* ══ HERO GRADIENT ══ */}
+      <LinearGradient
+        colors={isDarkMode ? ['#2D1A1A', '#121212'] : ['#FF6347', '#FF8C00']}
         style={styles.hero}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
       >
@@ -153,118 +208,135 @@ const ProfileScreen = () => {
           </View>
         </View>
 
-        {/* STATS FLOATING */}
+        {/* STATS — 3 kolom animasi muncul satu per satu */}
         <View style={styles.statsRow}>
-          <StatCard icon="shopping" value={totalOrders} label="Pesanan" isDark={isDarkMode} />
-          <StatCard icon="wallet" value={`${(totalSpent / 1000).toFixed(0)}k`} label="Total Belanja" isDark={isDarkMode} />
-          <StatCard icon="heart" value={favorites.length} label="Favorit" isDark={isDarkMode} />
+          <StatCard icon="shopping" value={totalOrders}                       label="Pesanan"       isDark={isDarkMode} delay={0}   />
+          <StatCard icon="wallet"   value={`${(totalSpent/1000).toFixed(0)}k`} label="Total Belanja" isDark={isDarkMode} delay={150} />
+          <StatCard icon="heart"    value={favorites.length}                   label="Favorit"       isDark={isDarkMode} delay={300} />
         </View>
       </LinearGradient>
 
-      {/* SPACE UNTUK STATS OVERLAP */}
+      {/* Space untuk stats overlap */}
       <View style={{ height: 50 }} />
 
-      {/* ── INFORMASI PROFIL ── */}
-      <AnimatedSection delay={150}>
+      {/* ══ SECTION 0 — Informasi Profil ══ */}
+      <Animated.View style={animStyle(anim0)}>
         <Section icon="account" title="Informasi Profil" cardCol={card} textCol={textCol}>
-        <View style={styles.sectionHeaderBtn}>
-          <TouchableOpacity onPress={handleEditToggle} style={[styles.editBtn, { backgroundColor: isEditing ? border : theme.primary + '20' }]}>
-            <Text style={[styles.editBtnTxt, { color: isEditing ? subText : theme.primary }]}>{isEditing ? 'Batal' : 'Edit Profil'}</Text>
-          </TouchableOpacity>
-        </View>
+          <View style={styles.sectionHeaderBtn}>
+            <TouchableOpacity
+              onPress={handleEditToggle}
+              style={[styles.editBtn, { backgroundColor: isEditing ? border : theme.primary + '20' }]}
+            >
+              <Text style={[styles.editBtnTxt, { color: isEditing ? subText : theme.primary }]}>
+                {isEditing ? 'Batal' : 'Edit Profil'}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-        {[
-          { label: 'Nama Lengkap', key: 'name', icon: 'account-outline' },
-          { label: 'Nomor Telepon', key: 'phone', icon: 'phone-outline' },
-        ].map(field => (
-          <View key={field.key} style={styles.infoRow}>
+          {[
+            { label: 'Nama Lengkap', key: 'name',  icon: 'account-outline' },
+            { label: 'Nomor Telepon', key: 'phone', icon: 'phone-outline' },
+          ].map(field => (
+            <View key={field.key} style={styles.infoRow}>
+              <View style={styles.infoLeft}>
+                <View style={[styles.infoIconBox, { backgroundColor: isDarkMode ? '#2c2c2c' : '#f0f0f0' }]}>
+                  <MaterialCommunityIcons name={field.icon} size={18} color={subText} />
+                </View>
+                <View>
+                  <Text style={[styles.infoLabel, { color: subText }]}>{field.label}</Text>
+                  {isEditing ? (
+                    <TextInput
+                      style={[styles.inputField, { color: textCol, borderColor: border }]}
+                      value={tempProfile[field.key]}
+                      onChangeText={v => setTempProfile(p => ({ ...p, [field.key]: v }))}
+                    />
+                  ) : (
+                    <Text style={[styles.infoValue, { color: textCol }]}>{userProfile[field.key] || '—'}</Text>
+                  )}
+                </View>
+              </View>
+            </View>
+          ))}
+
+          <View style={styles.infoRow}>
             <View style={styles.infoLeft}>
               <View style={[styles.infoIconBox, { backgroundColor: isDarkMode ? '#2c2c2c' : '#f0f0f0' }]}>
-                <MaterialCommunityIcons name={field.icon} size={18} color={subText} />
+                <MaterialCommunityIcons name="email-outline" size={18} color={subText} />
               </View>
               <View>
-                <Text style={[styles.infoLabel, { color: subText }]}>{field.label}</Text>
-                {isEditing ? (
-                  <TextInput
-                    style={[styles.inputField, { color: textCol, borderColor: border }]}
-                    value={tempProfile[field.key]}
-                    onChangeText={v => setTempProfile(p => ({ ...p, [field.key]: v }))}
-                  />
-                ) : (
-                  <Text style={[styles.infoValue, { color: textCol }]}>{userProfile[field.key] || '—'}</Text>
-                )}
+                <Text style={[styles.infoLabel, { color: subText }]}>Email</Text>
+                <Text style={[styles.infoValue, { color: subText, fontStyle: 'italic' }]}>{userProfile.email || '—'}</Text>
               </View>
             </View>
           </View>
-        ))}
 
-        <View style={styles.infoRow}>
-          <View style={styles.infoLeft}>
-            <View style={[styles.infoIconBox, { backgroundColor: isDarkMode ? '#2c2c2c' : '#f0f0f0' }]}>
-              <MaterialCommunityIcons name="email-outline" size={18} color={subText} />
-            </View>
-            <View>
-              <Text style={[styles.infoLabel, { color: subText }]}>Email</Text>
-              <Text style={[styles.infoValue, { color: subText, fontStyle: 'italic' }]}>{userProfile.email || '—'}</Text>
-            </View>
-          </View>
-        </View>
-
-        {isEditing && (
-          <TouchableOpacity style={[styles.saveBtn, { backgroundColor: theme.primary }]} onPress={handleSave}>
-            <Text style={styles.saveBtnTxt}>Simpan Perubahan</Text>
-          </TouchableOpacity>
-        )}
+          {isEditing && (
+            <TouchableOpacity style={[styles.saveBtn, { backgroundColor: theme.primary }]} onPress={handleSave}>
+              <Text style={styles.saveBtnTxt}>Simpan Perubahan</Text>
+            </TouchableOpacity>
+          )}
         </Section>
-      </AnimatedSection>
+      </Animated.View>
 
-      {/* ── PENGATURAN ── */}
-      <AnimatedSection delay={300}>
+      {/* ══ SECTION 1 — Pengaturan ══ */}
+      <Animated.View style={animStyle(anim1)}>
         <Section icon="cog" title="Pengaturan Aplikasi" cardCol={card} textCol={textCol}>
-        <View style={styles.settingRow}>
-          <View style={styles.settingLeft}>
-            <View style={[styles.settingIconBox, { backgroundColor: isDarkMode ? '#3a3a3a' : '#ffe4e1' }]}>
-              <MaterialCommunityIcons name={isDarkMode ? "weather-night" : "weather-sunny"} size={20} color={isDarkMode ? "#fff" : "#EE4D2D"} />
+          <View style={styles.settingRow}>
+            <View style={styles.settingLeft}>
+              <View style={[styles.settingIconBox, { backgroundColor: isDarkMode ? '#3a3a3a' : '#ffe4e1' }]}>
+                <MaterialCommunityIcons
+                  name={isDarkMode ? 'weather-night' : 'weather-sunny'}
+                  size={20}
+                  color={isDarkMode ? '#fff' : '#EE4D2D'}
+                />
+              </View>
+              <View>
+                <Text style={[styles.settingName, { color: textCol }]}>Mode Gelap (Dark Mode)</Text>
+                <Text style={[styles.settingDesc, { color: subText }]}>Beralih ke tampilan gelap yang elegan</Text>
+              </View>
             </View>
-            <View>
-              <Text style={[styles.settingName, { color: textCol }]}>Mode Gelap (Dark Mode)</Text>
-              <Text style={[styles.settingDesc, { color: subText }]}>Beralih ke tampilan gelap yang elegan</Text>
-            </View>
+            <Switch
+              value={isDarkMode}
+              onValueChange={toggleDarkMode}
+              trackColor={{ false: '#ddd', true: '#EE4D2D' }}
+              thumbColor={'#fff'}
+            />
           </View>
-          <Switch value={isDarkMode} onValueChange={toggleDarkMode} trackColor={{ false: '#ddd', true: '#EE4D2D' }} thumbColor={'#fff'} />
-        </View>
-        
-        <View style={[styles.divider, { backgroundColor: border }]} />
 
-        <TouchableOpacity style={styles.settingRow} onPress={() => Alert.alert('Info', 'Notifikasi akan segera hadir!')}>
-          <View style={styles.settingLeft}>
-            <View style={[styles.settingIconBox, { backgroundColor: isDarkMode ? '#3a3a3a' : '#e0f7fa' }]}>
-              <MaterialCommunityIcons name="bell-outline" size={20} color={isDarkMode ? "#fff" : "#00acc1"} />
+          <View style={[styles.divider, { backgroundColor: border }]} />
+ 
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => Alert.alert('Info', 'Notifikasi akan segera hadir!')}
+          >
+            <View style={styles.settingLeft}>
+              <View style={[styles.settingIconBox, { backgroundColor: isDarkMode ? '#3a3a3a' : '#e0f7fa' }]}>
+                <MaterialCommunityIcons name="bell-outline" size={20} color={isDarkMode ? '#fff' : '#00acc1'} />
+              </View>
+              <View>
+                <Text style={[styles.settingName, { color: textCol }]}>Pemberitahuan</Text>
+                <Text style={[styles.settingDesc, { color: subText }]}>Kelola notifikasi pesanan dan promosi</Text>
+              </View>
             </View>
-            <View>
-              <Text style={[styles.settingName, { color: textCol }]}>Pemberitahuan</Text>
-              <Text style={[styles.settingDesc, { color: subText }]}>Kelola notifikasi pesanan dan promosi</Text>
-            </View>
-          </View>
-          <MaterialCommunityIcons name="chevron-right" size={20} color={subText} />
-        </TouchableOpacity>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={subText} />
+          </TouchableOpacity>
         </Section>
-      </AnimatedSection>
+      </Animated.View>
 
-      {/* ── KONTAK & SOSIAL MEDIA ── */}
-      <AnimatedSection delay={450}>
+      {/* ══ SECTION 2 — Kontak & Sosial ══ */}
+      <Animated.View style={animStyle(anim2)}>
         <Section icon="card-account-phone-outline" title="Contact Me" cardCol={card} textCol={textCol}>
           {[
-            { label: 'GitHub', url: 'https://github.com/siswayangtidakmencolok-afk', icon: 'github', color: '#000000' },
-            { label: 'GitLab', url: 'https://gitlab.com/siswayangtidakmencolok', icon: 'gitlab', color: '#FCA121' },
-            { label: 'PayPal', url: 'https://paypal.me/FhazwanAthar?locale.x=id_ID&country.x=ID', icon: 'paypal', color: '#003087' },
-            { label: 'WhatsApp', url: 'https://wa.me/qr/RKCJNQUSIH6VF1', icon: 'whatsapp', color: '#25D366' },
-            { label: 'Instagram', url: 'https://www.instagram.com/f.zvvn_/', icon: 'instagram', color: '#E1306C' },
-            { label: 'Facebook', url: 'https://www.facebook.com/share/1QzXJnQtXt/', icon: 'facebook', color: '#1877F2' },
-            { label: 'TikTok', url: 'https://www.tiktok.com/@ekstrovertselalu', icon: 'music-note', color: isDarkMode ? '#fff' : '#000' },
-            { label: 'Discord', url: 'https://discord.com/channels/@zxyninety', icon: 'discord', color: '#5865F2' },
-            { label: 'Telegram', url: 'https://t.me/Art_zwn', icon: 'telegram', color: '#229ED9' },
-            { label: 'X', url: 'https://x.com/www.x.com/zxyninety1', icon: 'twitter', color: '#000000' },
+            { label: 'GitHub',    url: 'https://github.com/siswayangtidakmencolok-afk',             icon: 'github',       color: '#000000' },
+            { label: 'GitLab',    url: 'https://gitlab.com/siswayangtidakmencolok',                 icon: 'gitlab',       color: '#FCA121' },
+            { label: 'PayPal',    url: 'https://paypal.me/FhazwanAthar?locale.x=id_ID&country.x=ID', icon: 'paypal',     color: '#003087' },
+            { label: 'WhatsApp',  url: 'https://wa.me/qr/RKCJNQUSIH6VF1',                          icon: 'whatsapp',     color: '#25D366' },
+            { label: 'Instagram', url: 'https://www.instagram.com/f.zvvn_/',                        icon: 'instagram',    color: '#E1306C' },
+            { label: 'Facebook',  url: 'https://www.facebook.com/share/1QzXJnQtXt/',               icon: 'facebook',     color: '#1877F2' },
+            { label: 'TikTok',    url: 'https://www.tiktok.com/@ekstrovertselalu',                  icon: 'music-note',   color: isDarkMode ? '#fff' : '#000' },
+            { label: 'Discord',   url: 'https://discord.com/channels/@zxyninety',                  icon: 'discord',      color: '#5865F2' },
+            { label: 'Telegram',  url: 'https://t.me/Art_zwn',                                     icon: 'telegram',     color: '#229ED9' },
+            { label: 'X',         url: 'https://x.com/www.x.com/zxyninety1',                       icon: 'twitter',      color: '#000000' },
           ].map((social, index) => (
             <View key={social.label}>
               <TouchableOpacity style={styles.socialRow} onPress={() => Linking.openURL(social.url)}>
@@ -276,21 +348,21 @@ const ProfileScreen = () => {
                 </View>
                 <MaterialCommunityIcons name="arrow-top-right" size={18} color={subText} />
               </TouchableOpacity>
-              {index < 4 && <View style={[styles.divider, { backgroundColor: border }]} />}
+              {index < 9 && <View style={[styles.divider, { backgroundColor: border }]} />}
             </View>
           ))}
         </Section>
-      </AnimatedSection>
-
-      {/* ── PROJECT LAINNYA ── */}
-      <AnimatedSection delay={600}>
+      </Animated.View>
+ 
+      {/* ══ SECTION 3 — Project Lainnya & Zona Bahaya ══ */}
+      <Animated.View style={animStyle(anim3)}>
         <Section icon="rocket-launch-outline" title="Project Lainnya" cardCol={card} textCol={textCol}>
           {[
-            { label: 'Globe 3D', url: 'https://globe3d-byfhaz.netlify.app/', icon: 'earth' },
-            { label: 'World Clock & Timer', url: 'https://worldclockandtimer.netlify.app/', icon: 'clock-outline' },
-            { label: 'Teacher Absence', url: 'https://teacher-absence-byfhaz.up.railway.app/', icon: 'account-clock-outline' },
-            { label: 'Student Registration', url: 'https://student-registration-sage-delta.vercel.app/', icon: 'account-plus-outline' },
-            { label: 'Frieren Website', url: 'https://siswayangtidakmencolok-afk.github.io/website-frieren/', icon: 'cards-heart-outline' },
+            { label: 'Globe 3D',            url: 'https://globe3d-byfhaz.netlify.app/',                                    icon: 'earth' },
+            { label: 'World Clock & Timer', url: 'https://worldclockandtimer.netlify.app/',                                icon: 'clock-outline' },
+            { label: 'Teacher Absence',     url: 'https://teacher-absence-byfhaz.up.railway.app/',                        icon: 'account-clock-outline' },
+            { label: 'Student Registration',url: 'https://student-registration-sage-delta.vercel.app/',                   icon: 'account-plus-outline' },
+            { label: 'Frieren Website',     url: 'https://siswayangtidakmencolok-afk.github.io/website-frieren/',         icon: 'cards-heart-outline' },
           ].map((project, index) => (
             <View key={project.label}>
               <TouchableOpacity style={styles.projectRow} onPress={() => Linking.openURL(project.url)}>
@@ -300,37 +372,35 @@ const ProfileScreen = () => {
                 </View>
                 <MaterialCommunityIcons name="arrow-top-right" size={18} color={subText} />
               </TouchableOpacity>
-              {index < 1 && <View style={[styles.divider, { backgroundColor: border }]} />}
+              {index < 4 && <View style={[styles.divider, { backgroundColor: border }]} />}
             </View>
           ))}
         </Section>
-      </AnimatedSection>
-
-      {/* ── ZONA BAHAYA ── */}
-      <AnimatedSection delay={750}>
+ 
+        {/* Zona Bahaya */}
         <View style={[styles.section, { backgroundColor: card }]}>
-        <TouchableOpacity style={styles.dangerRow} onPress={() => {
-          Alert.alert('Kosongkan Keranjang', 'Hapus semua item?', [
-            { text: 'Batal', style: 'cancel' },
-            { text: 'Hapus', style: 'destructive', onPress: () => { clearCart(); Alert.alert('Berhasil', 'Keranjang dikosongkan'); } }
-          ])
-        }}>
-          <MaterialCommunityIcons name="cart-remove" size={20} color="#ff4444" style={{ marginRight: 12 }} />
-          <Text style={styles.dangerTxt}>Kosongkan Keranjang Belanja</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.dangerRow} onPress={handleSignOut}>
-          <MaterialCommunityIcons name="logout" size={20} color="#ff4444" style={{ marginRight: 12 }} />
-          <Text style={styles.dangerTxt}>Keluar dari Akun</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.dangerRow} onPress={() => {
+            Alert.alert('Kosongkan Keranjang', 'Hapus semua item?', [
+              { text: 'Batal', style: 'cancel' },
+              { text: 'Hapus', style: 'destructive', onPress: () => { clearCart(); Alert.alert('Berhasil', 'Keranjang dikosongkan'); } }
+            ]);
+          }}>
+            <MaterialCommunityIcons name="cart-remove" size={20} color="#ff4444" style={{ marginRight: 12 }} />
+            <Text style={styles.dangerTxt}>Kosongkan Keranjang Belanja</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.dangerRow} onPress={handleSignOut}>
+            <MaterialCommunityIcons name="logout" size={20} color="#ff4444" style={{ marginRight: 12 }} />
+            <Text style={styles.dangerTxt}>Keluar dari Akun</Text>
+          </TouchableOpacity>
         </View>
-      </AnimatedSection>
+      </Animated.View>
 
       <Text style={[styles.appVer, { color: subText }]}>FoodApp v1.0.0 (Premium OS)</Text>
       <View style={{ height: 40 }} />
     </ScrollView>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: { flex: 1 },

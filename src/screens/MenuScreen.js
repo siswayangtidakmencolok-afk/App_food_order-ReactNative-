@@ -1,8 +1,7 @@
-import { useMemo, useRef, useState } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
-  Dimensions,
   Image, Modal,
   ScrollView,
   StyleSheet, Text,
@@ -149,6 +148,98 @@ const MasonryGrid = ({ data, theme, onAddToCart, onToggleFavorite, onPress, favo
   );
 };
 
+// ─── Animated Restaurant Opening Header ──────────────────────
+const RestaurantOpeningHeader = () => {
+  const leftCurtain  = useRef(new Animated.Value(0)).current;
+  const rightCurtain = useRef(new Animated.Value(0)).current;
+  const titleOpacity = useRef(new Animated.Value(0)).current;
+  const titleScale   = useRef(new Animated.Value(0.7)).current;
+  const glowAnim     = useRef(new Animated.Value(0)).current;
+  const borderAnim   = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // 1. Tirai kiri-kanan membuka
+    Animated.sequence([
+      Animated.delay(200),
+      Animated.parallel([
+        Animated.spring(leftCurtain,  { toValue: 1, friction: 7, tension: 40, useNativeDriver: false }),
+        Animated.spring(rightCurtain, { toValue: 1, friction: 7, tension: 40, useNativeDriver: false }),
+      ]),
+      // 2. Judul muncul
+      Animated.parallel([
+        Animated.spring(titleScale,   { toValue: 1, friction: 5, tension: 60, useNativeDriver: false }),
+        Animated.timing(titleOpacity, { toValue: 1, duration: 400, useNativeDriver: false }),
+      ]),
+    ]).start();
+
+    // 3. Glow border loop terus
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowAnim, { toValue: 1, duration: 1200, useNativeDriver: false }),
+        Animated.timing(glowAnim, { toValue: 0, duration: 1200, useNativeDriver: false }),
+      ])
+    ).start();
+
+    // 4. Border light sweep
+    Animated.loop(
+      Animated.timing(borderAnim, { toValue: 1, duration: 2000, useNativeDriver: false })
+    ).start();
+  }, []);
+
+  const leftTranslate  = leftCurtain.interpolate({ inputRange: [0,1], outputRange: [0, -200] });
+  const rightTranslate = rightCurtain.interpolate({ inputRange: [0,1], outputRange: [0, 200] });
+  const glowColor      = glowAnim.interpolate({ inputRange: [0,1], outputRange: ['rgba(255,99,71,0.4)', 'rgba(255,200,50,0.9)'] });
+  const borderPos      = borderAnim.interpolate({ inputRange: [0,1], outputRange: [-300, 400] });
+
+  return (
+    <View style={rStyles.wrapper}>
+      {/* ── Background dasar ── */}
+      <View style={rStyles.bg} />
+
+      {/* ── Animated glow border ── */}
+      <Animated.View style={[rStyles.glowBorder, { borderColor: glowColor }]} />
+
+      {/* ── Light sweep ── */}
+      <Animated.View style={[rStyles.lightSweep, { left: borderPos }]} />
+
+      {/* ── Tirai kiri ── */}
+      <Animated.View style={[rStyles.curtainLeft, { transform: [{ translateX: leftTranslate }] }]}>
+        <View style={rStyles.curtainInner} />
+        <View style={[rStyles.curtainInner, { opacity: 0.7 }]} />
+        <View style={[rStyles.curtainInner, { opacity: 0.5 }]} />
+      </Animated.View>
+
+      {/* ── Tirai kanan ── */}
+      <Animated.View style={[rStyles.curtainRight, { transform: [{ translateX: rightTranslate }] }]}>
+        <View style={rStyles.curtainInner} />
+        <View style={[rStyles.curtainInner, { opacity: 0.7 }]} />
+        <View style={[rStyles.curtainInner, { opacity: 0.5 }]} />
+      </Animated.View>
+
+      {/* ── Judul ── */}
+      <Animated.View style={[rStyles.titleWrap, { opacity: titleOpacity, transform: [{ scale: titleScale }] }]}>
+        <Text style={rStyles.icon}>🍔</Text>
+        <Text style={rStyles.title}>Aplikasi Pemesanan Makanan</Text>
+        <Text style={rStyles.sub}>🌟 Selamat datang — pilih favoritmu! 🌟</Text>
+      </Animated.View>
+    </View>
+  );
+};
+
+const rStyles = StyleSheet.create({
+  wrapper:      { height: 80, overflow: 'hidden', position: 'relative', alignItems: 'center', justifyContent: 'center' },
+  bg:           { ...StyleSheet.absoluteFillObject, backgroundColor: '#1a0a00' },
+  glowBorder:   { position: 'absolute', top: 2, left: 8, right: 8, bottom: 2, borderRadius: 4, borderWidth: 1.5 },
+  lightSweep:   { position: 'absolute', top: 0, width: 80, bottom: 0, backgroundColor: 'rgba(255,220,100,0.15)', transform: [{ skewX: '-20deg' }] },
+  curtainLeft:  { position: 'absolute', left: 0, top: 0, bottom: 0, width: '52%', flexDirection: 'row', backgroundColor: '#8B0000' },
+  curtainRight: { position: 'absolute', right: 0, top: 0, bottom: 0, width: '52%', flexDirection: 'row-reverse', backgroundColor: '#8B0000' },
+  curtainInner: { flex: 1, backgroundColor: 'rgba(0,0,0,0.15)', borderRightWidth: 1, borderColor: 'rgba(255,150,50,0.2)' },
+  titleWrap:    { alignItems: 'center', zIndex: 10 },
+  icon:         { fontSize: 18, marginBottom: 2 },
+  title:        { fontSize: 15, fontWeight: '900', color: '#FFD700', letterSpacing: 0.5, textShadowColor: 'rgba(255,100,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 },
+  sub:          { fontSize: 10, color: 'rgba(255,220,100,0.8)', marginTop: 2 },
+});
+
 // ─── Main Screen ──────────────────────────────────────────────
 const MenuScreen = ({ navigation }) => {
   const { addToCart, favorites, toggleFavorite, isDarkMode, menuItems, menuLoading } = useApp();
@@ -178,7 +269,11 @@ const MenuScreen = ({ navigation }) => {
     triggerSuccess();
   };
 
-  const categories  = ['Semua', 'Makanan Utama', 'Minuman'];
+  const categories = useMemo(() => {
+    if (!menuItems || menuItems.length === 0) return ['Semua', 'Makanan Utama', 'Minuman'];
+    const uniqueCats = [...new Set(menuItems.map(item => item.category))];
+    return ['Semua', ...uniqueCats];
+  }, [menuItems]);
   const sortOptions = [
     { value: 'name-asc',    label: '🔤 Nama A-Z' },
     { value: 'name-desc',   label: '🔤 Nama Z-A' },
@@ -213,6 +308,7 @@ const MenuScreen = ({ navigation }) => {
         <Text style={styles.menuHeaderTitle}>Aplikasi Pemesanan Makanan</Text>
       </View>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }} showsVerticalScrollIndicator={false} stickyHeaderIndices={[0]}>
+        <RestaurantOpeningHeader />
 
         {/* ── Sticky Header ── */}
         <View style={[styles.header, { backgroundColor: theme.background }]}>

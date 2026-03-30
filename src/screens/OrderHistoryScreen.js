@@ -311,7 +311,12 @@ useEffect(() => {
     </View>
   );
 
-  const filteredData = orderHistory.filter(order => {
+  // Dedup by id dulu sebelum filter
+const uniqueOrders = orderHistory.filter(
+  (order, index, self) => index === self.findIndex(o => o.id === order.id)
+);
+
+const filteredData = uniqueOrders.filter(order => {
     if (activeTab === 'Sedang Berjalan') return order.status !== 'Delivered';
     return order.status === 'Delivered';
   });
