@@ -38,6 +38,12 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Aplikasi membutuhkan lokasi untuk menampilkan toko terdekat."
+        }
       ]
     ],
     "experiments": {
