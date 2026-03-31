@@ -1,7 +1,8 @@
+import { useEffect, useMemo, useState, useRef } from 'react';
+import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, Animated } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
-import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useApp } from '../context/AppContext';
+import MapComponent from '../components/MapComponent';
 
 const { width } = Dimensions.get('window');
 
@@ -17,6 +18,44 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
     return 'Perlu dibayar';
   };
   const [activeTab, setActiveTab] = useState(getInitialTab());
+
+  // ── Simulation State ──
+  const RESTAURANT_LOC = { latitude: -6.2000, longitude: 106.8400 };
+  const USER_LOC       = { latitude: -6.2088, longitude: 106.8456 };
+  
+  const [driverLoc, setDriverLoc] = useState(RESTAURANT_LOC);
+  const [simStatus, setSimStatus] = useState(order.status);
+  const [isPreparing, setIsPreparing] = useState(true);
+
+  useEffect(() => {
+    // 1. Diam selama 5 detik (Menyiapkan Makanan)
+    const prepTimer = setTimeout(() => {
+      setIsPreparing(false);
+      setSimStatus('Akan diterima'); // Map status ke tab Shopee
+      
+      // 2. Mulai bergerak (Simulasi 15 detik perjalanan)
+      let step = 0;
+      const totalSteps = 150; // 15 detik @ 10fps
+      const moveInterval = setInterval(() => {
+        step++;
+        const progress = step / totalSteps;
+        
+        const currentLat = RESTAURANT_LOC.latitude + (USER_LOC.latitude - RESTAURANT_LOC.latitude) * progress;
+        const currentLon = RESTAURANT_LOC.longitude + (USER_LOC.longitude - RESTAURANT_LOC.longitude) * progress;
+        
+        setDriverLoc({ latitude: currentLat, longitude: currentLon });
+
+        if (step >= totalSteps) {
+          clearInterval(moveInterval);
+          setSimStatus('Selesai');
+        }
+      }, 100);
+
+      return () => clearInterval(moveInterval);
+    }, 5000);
+
+    return () => clearTimeout(prepTimer);
+  }, []);
 
   // Tampilan warna
   const bg = isDarkMode ? '#121212' : '#f5f5f5';
@@ -110,7 +149,26 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
               <Text style={[styles.storeName, { color: textPrimary }]}>Food Station</Text>
               <MaterialCommunityIcons name="chevron-right" size={16} color={textSecondary} />
             </View>
-            <Text style={styles.statusText}>{order.status === 'Delivered' ? 'Pesanan Selesai' : 'Menunggu kurir'}</Text>
+            <Text style={styles.statusText}>
+              {isPreparing ? 'Penjual sedang menyiapkan pesananku' : (simStatus === 'Selesai' ? 'Pesanan Selesai' : 'Kurir sedang mengantar')}
+            </Text>
+          </View>
+
+          {/* REALISTIC MAP SIMULATION */}
+          <View style={styles.mapContainer}>
+             <MapComponent 
+                latitude={driverLoc.latitude} 
+                longitude={driverLoc.longitude} 
+                height={180}
+                isDarkMode={isDarkMode}
+                locationName={isPreparing ? 'Restoran (Menyiapkan...)' : 'Kurir OTW'}
+             />
+             {isPreparing && (
+               <View style={styles.prepOverlay}>
+                 <MaterialCommunityIcons name="silverware-clean" size={24} color="#EE4D2D" />
+                 <Text style={styles.prepText}>Menyiapkan...</Text>
+               </View>
+             )}
           </View>
 
           {/* Estimasi Pengiriman */}
@@ -245,6 +303,23 @@ const styles = StyleSheet.create({
   recomPrice: { fontSize: 15, fontWeight: 'bold', color: '#EE4D2D', marginRight: 4 },
   recomPriceStrikethrough: { fontSize: 10, color: '#999', textDecorationLine: 'line-through' },
   recomSold: { fontSize: 10, color: '#999', marginTop: 4 },
+  mapContainer: {
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#eee',
+    borderWidth: 1,
+    borderColor: '#eee'
+  },
+  prepOverlay: {
+    position: 'absolute', top: 10, right: 10, 
+    backgroundColor: 'rgba(255,255,255,0.9)', 
+    paddingHorizontal: 12, paddingVertical: 6, 
+    borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3
+  },
+  prepText: { fontSize: 11, fontWeight: 'bold', color: '#EE4D2D' }
 });
 
 export default DeliveryTrackerScreen;

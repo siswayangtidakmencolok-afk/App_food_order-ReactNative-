@@ -12,6 +12,7 @@ import AnimatedLogo from '../components/AnimatedLogo';
 import Aurora from '../components/Aurora';
 import { darkTheme, lightTheme } from '../config/theme';
 import { useApp } from '../context/AppContext';
+import MapComponent from '../components/MapComponent';
 
 const { width } = Dimensions.get('window');
 
@@ -155,102 +156,7 @@ const StoreCard = ({ store }) => {
   );
 };
 
-// ─── Map Component — Platform Aware ───────────────────────────
-// Mobile: WebView + Leaflet (OpenStreetMap, gratis)
-// Web: Static image fallback (WebView tidak support web)
-const MapView = ({ latitude, longitude, isDark, locationName }) => {
-
-  // ── WEB FALLBACK ──
-  if (Platform.OS === 'web') {
-    // Pakai Static Maps dari geoapify (gratis 3000 req/hari, tanpa kartu kredit)
-    const staticMapUrl = `https://maps.geoapify.com/v1/staticmap?style=osm-bright-smooth&width=600&height=300&center=lonlat:${longitude},${latitude}&zoom=14&marker=lonlat:${longitude},${latitude};color:%23EE4D2D;size:medium&apiKey=YOUR_GEOAPIFY_KEY`;
-
-    // Fallback paling aman untuk web: OpenStreetMap iframe embed
-    const osmEmbedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${longitude - 0.01},${latitude - 0.01},${longitude + 0.01},${latitude + 0.01}&layer=mapnik&marker=${latitude},${longitude}`;
-
-    return (
-      <View style={styles.mapBox}>
-        <iframe
-          src={osmEmbedUrl}
-          style={{
-            width: '100%',
-            height: '100%',
-            border: 'none',
-            borderRadius: 14,
-          }}
-          title="Peta Lokasi"
-          sandbox="allow-scripts allow-same-origin"
-        />
-        <View style={[styles.mapPinLabel, { backgroundColor: '#EE4D2D' }]}>
-          <Text style={styles.mapPinTxt}>🎯 {locationName || 'Lokasi Kamu'}</Text>
-        </View>
-      </View>
-    );
-  }
-
-  // ── MOBILE: WebView + Leaflet ──
-  const { WebView } = require('react-native-webview');
-
-  const mapHTML = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-      <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { background:${isDark ? '#1a1a1a' : '#f0f0f0'}; }
-        #map { width:100%; height:150px; }
-        .leaflet-control-attribution, .leaflet-control-zoom { display:none; }
-      </style>
-    </head>
-    <body>
-      <div id="map"></div>
-      <script>
-        var map = L.map('map', {
-          zoomControl:false, attributionControl:false,
-          dragging:false, scrollWheelZoom:false,
-          doubleClickZoom:false, touchZoom:false
-        }).setView([${latitude}, ${longitude}], 15);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19 }).addTo(map);
-
-        var pulse = L.divIcon({
-          html:'<div style="width:40px;height:40px;border-radius:50%;background:rgba(238,77,45,0.2);border:2px solid rgba(238,77,45,0.5);animation:p 1.5s infinite;"></div><style>@keyframes p{0%{transform:scale(0.8);opacity:1}100%{transform:scale(1.5);opacity:0}}</style>',
-          iconSize:[40,40], iconAnchor:[20,20], className:''
-        });
-        var dot = L.divIcon({
-          html:'<div style="background:#EE4D2D;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>',
-          iconSize:[14,14], iconAnchor:[7,7], className:''
-        });
-
-        L.marker([${latitude}, ${longitude}], { icon: pulse }).addTo(map);
-        L.marker([${latitude}, ${longitude}], { icon: dot }).addTo(map)
-          .bindPopup('<b>📍 Lokasi Kamu</b>', { closeButton:false }).openPopup();
-      </script>
-    </body>
-    </html>
-  `;
-
-  return (
-    <View style={styles.mapBox}>
-      <WebView
-        source={{ html: mapHTML }}
-        style={{ flex: 1 }}
-        scrollEnabled={false}
-        bounces={false}
-        javaScriptEnabled={true}
-        startInLoadingState={true}
-        renderLoading={() => (
-          <View style={styles.mapLoading}>
-            <Text style={{ color: '#999', fontSize: 12 }}>🗺️ Memuat peta...</Text>
-          </View>
-        )}
-      />
-    </View>
-  );
-};
+// ─── Map Component logic ditangani oleh MapComponent.js ───
 
 // ─── Data Toko ────────────────────────────────────────────────
 const nearbyStores = [
@@ -394,12 +300,15 @@ const HomeScreen = ({ navigation }) => {
         </View>
 
         {/* Map — platform aware */}
-        <MapView
-          latitude={userLocation.latitude}
-          longitude={userLocation.longitude}
-          isDark={isDarkMode}
-          locationName={locationName}
-        />
+        <View style={styles.mapBox}>
+          <MapComponent
+            latitude={userLocation.latitude}
+            longitude={userLocation.longitude}
+            isDarkMode={isDarkMode}
+            locationName={locationName}
+            height={150}
+          />
+        </View>
 
         {/* Store cards */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.storeScroll}>

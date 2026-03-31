@@ -17,6 +17,13 @@ export const AppProvider = ({ children }) => {
   const [isDarkMode, setIsDarkMode]       = useState(false);
   const [userProfile, setUserProfile]     = useState(null);
   const [notifications, setNotifications] = useState([]);
+  
+  // ── Global Location ─────────────────────────────────────
+  const [userLocation, setUserLocation] = useState({
+    latitude: -6.2088,
+    longitude: 106.8456,
+    address: 'Menteng, Jakarta Pusat'
+  });
 
   // ── Settings state ────────────────────────────────────
   const [accentColor, setAccentColor] = useState('#FF6347');
@@ -262,6 +269,12 @@ export const AppProvider = ({ children }) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
+  // ── LOCATION ACTIONS ──────────────────────────────────
+  const updateUserLocation = (lat, lng, addr) => {
+    setUserLocation({ latitude: lat, longitude: lng, address: addr || 'Lokasi Terpilih' });
+    addNotification('Lokasi pengiriman diperbarui!', 'info');
+  };
+
   // ── UI ────────────────────────────────────────────────
   const toggleDarkMode = () => setIsDarkMode(prev => !prev);
 
@@ -326,6 +339,9 @@ export const AppProvider = ({ children }) => {
       // UI
       isDarkMode, toggleDarkMode,
       notifications, addNotification, clearNotification,
+
+      // Location
+      userLocation, updateUserLocation,
 
       // Settings
       accentColor, changeAccentColor,

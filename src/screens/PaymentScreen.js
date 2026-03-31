@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useApp } from '../context/AppContext';
 import { processEWalletPayment } from '../services/eWallet';
+import PinInputModal from '../components/PinInputModal';
 
 const PaymentScreen = ({ navigation, route }) => {
   const { total } = route.params;
@@ -21,6 +22,8 @@ const PaymentScreen = ({ navigation, route }) => {
   const [customerName, setCustomerName]         = useState('');
   const [phoneNumber, setPhoneNumber]           = useState('');
   const [isProcessing, setIsProcessing]         = useState(false);
+  const [showPinModal, setShowPinModal]         = useState(false);
+  const [walletType, setWalletType]             = useState(null);
 
   // ── Countdown state ──────────────────────────────────────
   const [showCountdown, setShowCountdown] = useState(false);
@@ -70,8 +73,10 @@ const PaymentScreen = ({ navigation, route }) => {
 
   const paymentMethods = [
     { id: 'cod',      name: 'Cash on Delivery (COD)', icon: '💵', description: 'Bayar saat pesanan sampai' },
+    { id: 'gopay',    name: 'GoPay',                   icon: '🟩', description: 'Bayar pakai saldo GoPay' },
+    { id: 'ovo',      name: 'OVO',                     icon: '🟪', description: 'Bayar pakai saldo OVO' },
+    { id: 'dana',     name: 'DANA',                    icon: '🟦', description: 'Bayar pakai saldo DANA' },
     { id: 'transfer', name: 'Transfer Bank',           icon: '🏦', description: 'BCA, Mandiri, BNI, BRI' },
-    { id: 'ewallet',  name: 'E-Wallet',                icon: '📱', description: 'GoPay, OVO, Dana, ShopeePay' },
     { id: 'qris',     name: 'QRIS',                    icon: '📲', description: 'Scan QR untuk bayar' },
   ];
 
@@ -83,18 +88,34 @@ const PaymentScreen = ({ navigation, route }) => {
 
     const orderNum = `ORD${Date.now().toString().slice(-8)}`;
 
-    if (selectedPayment === 'ewallet') {
-      setIsProcessing(true);
-      try {
-        await processEWalletPayment('GoPay/OVO/Dana', total, orderNum);
-      } catch (err) {
-        setIsProcessing(false);
-        Alert.alert('Pembayaran Gagal', err.message || 'Terjadi kesalahan sistem.');
-        return;
-      }
-      setIsProcessing(false);
+    const isEWallet = ['gopay', 'ovo', 'dana'].includes(selectedPayment);
+
+    if (isEWallet) {
+      setWalletType(selectedPayment);
+      setShowPinModal(true);
+      // Logic lanjut di handlePinComplete
+      return;
     }
 
+    processFinalOrder(orderNum);
+  };
+
+  const handlePinComplete = async (pin) => {
+    setShowPinModal(false);
+    setIsProcessing(true);
+    const orderNum = `ORD${Date.now().toString().slice(-8)}`;
+
+    try {
+      await processEWalletPayment(walletType, total, orderNum, pin);
+      processFinalOrder(orderNum);
+    } catch (err) {
+      Alert.alert('Pembayaran Gagal', err.message || 'Terjadi kesalahan sistem.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const processFinalOrder = async (orderNum) => {
     const newOrder = {
       id: Date.now(),
       orderNumber: orderNum,
@@ -113,11 +134,11 @@ const PaymentScreen = ({ navigation, route }) => {
     };
 
     const { data: savedOrder, error } = await saveOrder(newOrder);
-if (error) {
-  Alert.alert('Error', 'Gagal menyimpan pesanan. Coba lagi.');
-  return;
-}
-setPendingOrder(savedOrder);
+    if (error) {
+      Alert.alert('Error', 'Gagal menyimpan pesanan. Coba lagi.');
+      return;
+    }
+    setPendingOrder(savedOrder);
 
     // Mulai countdown
     setCountdownNum(3);
@@ -129,11 +150,7 @@ setPendingOrder(savedOrder);
 
   return (
     <View style={{ flex: 1 }}>
-            <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 120 }}>
-        <TouchableOpacity style={styles.payButton} onPress={handlePayment} disabled={isProcessing}>
-          <Text style={styles.payButtonText}>{isProcessing ? 'Memproses E-Wallet...' : 'Konfirmasi & Bayar'}</Text>
-        </TouchableOpacity>
-        {/* ── Form section — sama persis seperti sebelumnya ── */}
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 120 }}>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>📋 Informasi Pemesan</Text>
           <Text style={styles.label}>Nama Lengkap *</Text>
@@ -179,9 +196,9 @@ setPendingOrder(savedOrder);
           <View style={styles.summaryRow}><Text style={styles.totalLabel}>Total Bayar:</Text><Text style={styles.totalValue}>Rp {total.toLocaleString('id-ID')}</Text></View>
         </View>
 
-        
-          
-        
+        <TouchableOpacity style={styles.payButton} onPress={handlePayment} disabled={isProcessing}>
+          <Text style={styles.payButtonText}>{isProcessing ? 'Memproses E-Wallet...' : 'Konfirmasi & Bayar'}</Text>
+        </TouchableOpacity>
 
         <View style={styles.bottomSpace} />
       </ScrollView>
@@ -215,6 +232,14 @@ setPendingOrder(savedOrder);
           </View>
         </View>
       )}
+
+      {/* ── PIN Entry Modal ── */}
+      <PinInputModal
+        visible={showPinModal}
+        walletType={walletType}
+        onComplete={handlePinComplete}
+        onCancel={() => setShowPinModal(false)}
+      />
     </View>
   );
 };
