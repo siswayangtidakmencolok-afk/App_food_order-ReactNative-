@@ -1,22 +1,79 @@
+import { useEffect, useMemo, useState, useRef } from 'react';
+import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, Animated, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
-import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useApp } from '../context/AppContext';
+import MapComponent from '../components/MapComponent';
+import { GEOAPIFY_KEY } from '../config/maps';
 
 const { width } = Dimensions.get('window');
 
 const DeliveryTrackerScreen = ({ route, navigation }) => {
   const { order } = route.params;
-  const { isDarkMode, menuItems } = useApp();
+  const { isDarkMode, menuItems, userLocation, updateOrder } = useApp();
 
   const getInitialTab = () => {
     if (order.status === 'Delivered') return 'Selesai';
     if (order.status === 'Delivering') return 'Akan diterima';
-    if (order.status === 'Processing') return 'Untuk dikirim';
-    if (order.paymentMethod === 'Cash on Delivery (COD)' && order.status === 'Pending') return 'Untuk dikirim';
-    return 'Perlu dibayar';
+    return 'Untuk dikirim';
   };
+
   const [activeTab, setActiveTab] = useState(getInitialTab());
+  
+  // ── Simulation State ──
+  const RESTAURANT_LOC = { latitude: -6.2000, longitude: 106.8400 };
+  const [driverLoc, setDriverLoc] = useState(RESTAURANT_LOC);
+  const [simStatus, setSimStatus] = useState(order.status);
+  const [isPreparing, setIsPreparing] = useState(true);
+  const [routeCoords, setRouteCoords] = useState([]);
+
+  useEffect(() => {
+    fetchRoute();
+  }, [userLocation]);
+
+  const fetchRoute = async () => {
+    try {
+      const url = `https://api.geoapify.com/v1/routing?waypoints=${RESTAURANT_LOC.latitude},${RESTAURANT_LOC.longitude}|${userLocation.latitude},${userLocation.longitude}&mode=drive&apiKey=${GEOAPIFY_KEY}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.features && data.features.length > 0) {
+        const coords = data.features[0].geometry.coordinates[0].map(c => ({
+          latitude: c[1],
+          longitude: c[0]
+        }));
+        setRouteCoords(coords);
+        startSimulation(coords);
+      }
+    } catch (e) {
+      console.error('Routing Error:', e);
+    }
+  };
+
+  const startSimulation = (coords) => {
+    // 1. Menyiapkan (Fast: 3 detik)
+    setTimeout(() => {
+      setIsPreparing(false);
+      setSimStatus('Delivering');
+      setActiveTab('Akan diterima');
+
+      // 2. Drive along road (Fast simulation)
+      let currentIdx = 0;
+      const moveInterval = setInterval(() => {
+        if (currentIdx < coords.length) {
+          setDriverLoc(coords[currentIdx]);
+          currentIdx++;
+        } else {
+          clearInterval(moveInterval);
+          finishOrder();
+        }
+      }, 100); // Super fast movement (10fps)
+    }, 3000);
+  };
+
+  const finishOrder = () => {
+    setSimStatus('Delivered');
+    setActiveTab('Selesai');
+    Alert.alert('🎉 Pesanan Sampai!', 'Kurir sudah sampai di lokasi tujuan Anda. Selamat menikmati!');
+  };
 
   // Tampilan warna
   const bg = isDarkMode ? '#121212' : '#f5f5f5';
@@ -26,12 +83,9 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
 
   const TABS = ['Perlu dibayar', 'Untuk dikirim', 'Akan diterima', 'Selesai'];
 
-  // Ambil rekomendasi dari menu Supabase — kecuali item yang sedang dipesan
-  const orderedIds = new Set((order.items || []).map(i => i.id || i.menu_item_id));
   const recommendations = useMemo(() => {
-    const pool = (menuItems || []).filter(m => !orderedIds.has(m.id));
-    // Shuffle dan ambil maksimal 4
-    return pool.sort(() => Math.random() - 0.5).slice(0, 4);
+    const pool = (menuItems || []).slice(0, 4);
+    return pool.sort(() => Math.random() - 0.5);
   }, [menuItems]);
 
   return (
@@ -48,203 +102,145 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
       </View>
 
       <ScrollView style={{ flex: 1 }}>
-        {/* Konten hanya tampil jika tab sesuai status order */}
-{(() => {
-  const tabStatusMap = {
-    'Perlu dibayar': ['Pending'],
-    'Untuk dikirim': ['Processing', 'Pending'],
-    'Akan diterima': ['Delivering'],
-    'Selesai': ['Delivered'],
-  };
-  const validStatuses = tabStatusMap[activeTab] || [];
-  if (!validStatuses.includes(order.status)) {
-    return (
-      <View style={{ flex: 1, alignItems: 'center', paddingTop: 80 }}>
-        <Text style={{ fontSize: 48 }}>📭</Text>
-        <Text style={{ color: textSecondary, marginTop: 12, fontSize: 15 }}>
-          Tidak ada pesanan di tab ini
-        </Text>
-      </View>
-    );
-  }
-  return null;
-})()}
-
-{/* Guard: sembunyikan order card jika tab tidak sesuai status */}
-{(() => {
-  const tabMatch = {
-    'Perlu dibayar': ['Pending'],
-    'Untuk dikirim': ['Processing'],
-    'Akan diterima': ['Delivering'],
-    'Selesai':       ['Delivered'],
-  };
-  if (!tabMatch[activeTab]?.includes(order.status)) {
-    return (
-      <View style={{ alignItems: 'center', paddingTop: 60, paddingBottom: 20 }}>
-        <Text style={{ fontSize: 50 }}>📭</Text>
-        <Text style={{ color: textSecondary, marginTop: 12, fontSize: 14, textAlign: 'center' }}>
-          Tidak ada pesanan di tab ini
-        </Text>
-        <Text style={{ color: textSecondary, fontSize: 12, marginTop: 4 }}>
-          Status pesanan kamu: {order.status}
-        </Text>
-      </View>
-    );
-  }
-  return null;
-})()}
-
-        {/* Banner Pengembalian */}
-        <View style={styles.banner}>
-          <MaterialCommunityIcons name="shield-check-outline" size={16} color="#EE4D2D" />
-          <Text style={styles.bannerText}>Pengembalian pesanan praktis dan cepat</Text>
-          <MaterialCommunityIcons name="chevron-right" size={16} color="#999" style={{ marginLeft: 'auto' }} />
-        </View>
-
-        {/* Order Card */}
-        <View style={[styles.orderCard, { backgroundColor: cardBg }]}>
-          {/* Header Toko & Status */}
-          <View style={styles.cardHeader}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={styles.mallBadge}><Text style={styles.mallBadgeText}>Mall</Text></View>
-              <Text style={[styles.storeName, { color: textPrimary }]}>Food Station</Text>
-              <MaterialCommunityIcons name="chevron-right" size={16} color={textSecondary} />
+        
+        {/* Guard Logic: Hanya tampilkan card jika tab AKTIF sesuai dengan status SIMULASI */}
+        {(activeTab === 'Untuk dikirim' && isPreparing) || 
+         (activeTab === 'Akan diterima' && simStatus === 'Delivering') || 
+         (activeTab === 'Selesai' && simStatus === 'Delivered') ? (
+          
+          <View>
+            <View style={styles.banner}>
+              <MaterialCommunityIcons name="shield-check-outline" size={16} color="#EE4D2D" />
+              <Text style={styles.bannerText}>Jaminan makanan segar & tepat waktu</Text>
             </View>
-            <Text style={styles.statusText}>{order.status === 'Delivered' ? 'Pesanan Selesai' : 'Menunggu kurir'}</Text>
-          </View>
 
-          {/* Estimasi Pengiriman */}
-          {order.status !== 'Delivered' && (
-            <View style={[styles.etaBox, { backgroundColor: isDarkMode ? '#2c2c2c' : '#f8f8f8' }]}>
-              <MaterialCommunityIcons name="truck-delivery-outline" size={20} color="#26aa99" />
-              <Text style={[styles.etaText, { color: textSecondary }]}>
-                Estimasi tiba: <Text style={{ color: '#26aa99', fontWeight: 'bold' }}>sekitar 30 menit</Text>
-              </Text>
-            </View>
-          )}
+            <View style={[styles.orderCard, { backgroundColor: cardBg }]}>
+              {/* Header */}
+              <View style={styles.cardHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={styles.mallBadge}><Text style={styles.mallBadgeText}>Mall</Text></View>
+                  <Text style={[styles.storeName, { color: textPrimary }]}>FoodsStreets Official</Text>
+                </View>
+                <Text style={styles.statusText}>
+                  {isPreparing ? 'Menyiapkan' : (simStatus === 'Delivered' ? 'Selesai' : 'Sedang Dijalan')}
+                </Text>
+              </View>
 
-          {/* Items List */}
-          {order.items.map((item, index) => (
-            <View key={index} style={styles.itemRow}>
-              <Image source={{ uri: item.image || 'https://via.placeholder.com/80' }} style={styles.itemImage} />
-              <View style={styles.itemDetails}>
-                <Text style={[styles.itemName, { color: textPrimary }]} numberOfLines={2}>{item.name}</Text>
-                <Text style={styles.itemVariant}>Variasi: Original</Text>
-                <View style={styles.priceRow}>
-                  <Text style={[styles.itemQty, { color: textSecondary }]}>x{item.quantity}</Text>
-                  <Text style={[styles.itemPrice, { color: textPrimary }]}>Rp {item.price.toLocaleString('id-ID')}</Text>
+              {/* Map Routing Real-time */}
+              <View style={styles.mapContainer}>
+                <MapComponent 
+                  latitude={driverLoc.latitude} 
+                  longitude={driverLoc.longitude} 
+                  height={220}
+                  isDarkMode={isDarkMode}
+                  locationName={isPreparing ? 'Restoran' : 'E-Kurir'}
+                  showRoute={true}
+                  destinationLoc={userLocation}
+                  interactive={false}
+                />
+                {isPreparing && (
+                  <View style={styles.prepOverlay}>
+                    <MaterialCommunityIcons name="silverware-fork-knife" size={20} color="#EE4D2D" />
+                    <Text style={styles.prepText}>Proses Memasak...</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Information */}
+              <View style={styles.infoRow}>
+                <MaterialCommunityIcons name="map-marker-radius" size={20} color="#EE4D2D" />
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={[styles.infoTitle, { color: textPrimary }]}>Alamat Tujuan</Text>
+                  <Text style={[styles.infoSub, { color: textSecondary }]} numberOfLines={1}>{userLocation.address}</Text>
                 </View>
               </View>
+
+              {/* Items */}
+              {order.items.map((item, index) => (
+                <View key={index} style={styles.itemRow}>
+                  <Image source={{ uri: item.image }} style={styles.itemImage} />
+                  <View style={styles.itemDetails}>
+                    <Text style={[styles.itemName, { color: textPrimary }]}>{item.name}</Text>
+                    <View style={styles.priceRow}>
+                      <Text style={{ color: textSecondary }}>x{item.quantity}</Text>
+                      <Text style={{ color: '#EE4D2D', fontWeight: 'bold' }}>Rp {item.price.toLocaleString('id-ID')}</Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+
+              <View style={styles.divider} />
+              <View style={styles.totalRow}>
+                <Text style={{ color: textSecondary }}>Total Pesanan:</Text>
+                <Text style={styles.totalValue}>Rp {order.total.toLocaleString('id-ID')}</Text>
+              </View>
             </View>
-          ))}
-
-          {/* Total */}
-          <View style={[styles.totalRow, { borderTopColor: isDarkMode ? '#333' : '#eee' }]}>
-            <Text style={[styles.totalLabel, { color: textSecondary }]}>Total:</Text>
-            <Text style={[styles.totalValue, { color: '#EE4D2D' }]}>Rp {order.total.toLocaleString('id-ID')}</Text>
           </View>
-
-          {/* Action Buttons */}
-          <View style={styles.actionRow}>
-            {order.status !== 'Delivered' ? (
-              <TouchableOpacity style={[styles.btnAction, { backgroundColor: isDarkMode ? '#333' : '#f5f5f5' }]} onPress={() => {
-                alert('Pesanan dibatalkan');
-                navigation.goBack();
-              }}>
-                <Text style={[styles.btnActionText, { color: textPrimary }]}>Batalkan pesanan</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={[styles.btnAction, { backgroundColor: '#EE4D2D' }]} onPress={() => {
-                navigation.navigate('Cart');
-              }}>
-                <Text style={[styles.btnActionText, { color: '#fff' }]}>Beli lagi</Text>
-              </TouchableOpacity>
-            )}
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/512/7486/7486744.png' }} style={styles.emptyIcon} />
+            <Text style={{ color: textSecondary, marginTop: 15 }}>Tidak ada pesanan di tab ini</Text>
           </View>
-        </View>
+        )}
 
-        {/* Rekomendasi Shopee Style */}
+        {/* Rekomendasi */}
         <View style={styles.recomSection}>
-          <Text style={[styles.recomTitle, { color: textPrimary }]}>Anda mungkin juga menyukai</Text>
+          <Text style={[styles.recomTitle, { color: textPrimary }]}>Mungkin Anda suka ini</Text>
           <View style={styles.recomGrid}>
             {recommendations.map(item => (
-              <TouchableOpacity 
-                key={item.id} 
-                style={[styles.recomCard, { backgroundColor: cardBg }]}
-                onPress={() => navigation.navigate('MenuDetail', { item })}
-              >
-                <View style={styles.discountBadge}><Text style={styles.discountText}>-50%</Text></View>
+              <TouchableOpacity key={item.id} style={[styles.recomCard, { backgroundColor: cardBg }]}>
                 <Image source={{ uri: item.image }} style={styles.recomImage} />
-                <View style={{ padding: 8 }}>
-                  <Text style={[styles.recomName, { color: textPrimary }]} numberOfLines={2}>
-                    <Text style={styles.tagCod}>[BISA COD]</Text> {item.name}
-                  </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={styles.recomPrice}>
-                      Rp {Math.round(item.price * 0.5).toLocaleString('id-ID')}
-                    </Text>
-                    <Text style={styles.recomPriceStrikethrough}>
-                      Rp {item.price.toLocaleString('id-ID')}
-                    </Text>
-</View>
-                  <Text style={styles.recomSold}>Terjual 10RB+</Text>
+                <View style={{ padding: 10 }}>
+                  <Text style={[styles.recomName, { color: textPrimary }]} numberOfLines={1}>{item.name}</Text>
+                  <Text style={styles.recomPrice}>Rp {item.price.toLocaleString('id-ID')}</Text>
                 </View>
               </TouchableOpacity>
             ))}
           </View>
         </View>
-
       </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  tab: { paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tab: { paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 3, borderBottomColor: 'transparent' },
   activeTab: { borderBottomColor: '#EE4D2D' },
-  tabText: { fontSize: 13, fontWeight: '500' },
-  banner: { 
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF5F5', 
-    paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderColor: '#ffe4e1'
-  },
+  tabText: { fontSize: 14, fontWeight: '500' },
+  banner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF5F5', padding: 12, marginBottom: 1 },
   bannerText: { color: '#EE4D2D', fontSize: 12, marginLeft: 8, fontWeight: '500' },
-  orderCard: { marginTop: 8, padding: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#eee' },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  orderCard: { padding: 16, borderBottomWidth: 1, borderColor: '#eee' },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
   mallBadge: { backgroundColor: '#d0011b', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 2, marginRight: 6 },
   mallBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
-  storeName: { fontSize: 14, fontWeight: 'bold', marginRight: 4 },
-  statusText: { fontSize: 13, color: '#EE4D2D', fontWeight: '500' },
-  etaBox: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 6, marginBottom: 16 },
-  etaText: { fontSize: 13, marginLeft: 8 },
-  itemRow: { flexDirection: 'row', marginBottom: 16 },
-  itemImage: { width: 75, height: 75, borderRadius: 4, backgroundColor: '#eee', borderWidth: 1, borderColor: '#fafafa' },
-  itemDetails: { flex: 1, marginLeft: 12, justifyContent: 'space-between' },
-  itemName: { fontSize: 14, marginBottom: 2 },
-  itemVariant: { fontSize: 12, color: '#999', marginBottom: 4 },
-  priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  itemQty: { fontSize: 13 },
-  itemPrice: { fontSize: 14, fontWeight: '600' },
-  totalRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', borderTopWidth: 1, paddingTop: 12, marginTop: 4 },
-  totalLabel: { fontSize: 13, marginRight: 8 },
-  totalValue: { fontSize: 16, fontWeight: 'bold' },
-  actionRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16 },
-  btnAction: { paddingHorizontal: 20, paddingVertical: 8, borderRadius: 4, borderWidth: 1, borderColor: '#ddd' },
-  btnActionText: { fontSize: 13, fontWeight: '500' },
-  recomSection: { padding: 12 },
-  recomTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 12, marginLeft: 4 },
-  recomGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  recomCard: { 
-    width: (width - 32) / 2, borderRadius: 6, marginBottom: 12, overflow: 'hidden', 
-    position: 'relative', borderWidth: 1, borderColor: '#eee' 
+  storeName: { fontSize: 15, fontWeight: 'bold' },
+  statusText: { fontSize: 14, color: '#EE4D2D', fontWeight: 'bold' },
+  mapContainer: { height: 220, borderRadius: 15, overflow: 'hidden', marginBottom: 20, position: 'relative' },
+  prepOverlay: {
+    position: 'absolute', top: 15, right: 15, backgroundColor: 'rgba(255,255,255,0.95)',
+    padding: 10, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 8, elevation: 5
   },
-  discountBadge: { position: 'absolute', top: 0, right: 0, backgroundColor: '#FF4D2D', paddingHorizontal: 4, paddingVertical: 2, zIndex: 1, borderBottomLeftRadius: 4 },
-  discountText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
-  recomImage: { width: '100%', height: 160, backgroundColor: '#eee', resizeMode: 'cover' },
-  recomName: { fontSize: 12, marginBottom: 4, lineHeight: 18 },
-  tagCod: { color: '#EE4D2D', fontWeight: 'bold' },
-  recomPrice: { fontSize: 15, fontWeight: 'bold', color: '#EE4D2D', marginRight: 4 },
-  recomPriceStrikethrough: { fontSize: 10, color: '#999', textDecorationLine: 'line-through' },
-  recomSold: { fontSize: 10, color: '#999', marginTop: 4 },
+  prepText: { fontSize: 12, fontWeight: 'bold', color: '#EE4D2D' },
+  infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, padding: 12, backgroundColor: '#f9f9f9', borderRadius: 10 },
+  infoTitle: { fontSize: 13, fontWeight: 'bold' },
+  infoSub: { fontSize: 12 },
+  itemRow: { flexDirection: 'row', marginBottom: 15 },
+  itemImage: { width: 60, height: 60, borderRadius: 8 },
+  itemDetails: { flex: 1, marginLeft: 15, justifyContent: 'center' },
+  itemName: { fontSize: 14, fontWeight: '600', marginBottom: 5 },
+  priceRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  divider: { height: 1, backgroundColor: '#eee', marginVertical: 15 },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  totalValue: { fontSize: 18, fontWeight: 'bold', color: '#EE4D2D' },
+  emptyContainer: { alignItems: 'center', paddingVertical: 80 },
+  emptyIcon: { width: 100, height: 100, opacity: 0.5 },
+  recomSection: { padding: 16 },
+  recomTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 15 },
+  recomGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  recomCard: { width: (width - 48) / 2, borderRadius: 12, marginBottom: 15, overflow: 'hidden', elevation: 2 },
+  recomImage: { width: '100%', height: 120 },
+  recomName: { fontSize: 13, fontWeight: '600', marginBottom: 5 },
+  recomPrice: { fontSize: 14, fontWeight: 'bold', color: '#EE4D2D' }
 });
 
 export default DeliveryTrackerScreen;
