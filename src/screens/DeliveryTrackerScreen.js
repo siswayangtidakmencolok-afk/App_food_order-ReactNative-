@@ -49,24 +49,27 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
   };
 
   const startSimulation = (coords) => {
-    // 1. Menyiapkan (Fast: 3 detik)
+    // 1. Menyiapkan (Simulasi masak selama 4 detik)
     setTimeout(() => {
       setIsPreparing(false);
       setSimStatus('Delivering');
       setActiveTab('Akan diterima');
 
-      // 2. Drive along road (Fast simulation)
+      // 2. Drive along road (Simulasi perjalanan)
       let currentIdx = 0;
+      // Tingkatkan interval agar gerakan terlihat lebih alami dan tidak terlalu cepat
       const moveInterval = setInterval(() => {
         if (currentIdx < coords.length) {
           setDriverLoc(coords[currentIdx]);
           currentIdx++;
+          
+          // Jika sudah mendekati akhir, perlambat sedikit (opsional)
         } else {
           clearInterval(moveInterval);
-          finishOrder();
+          setTimeout(finishOrder, 1000);
         }
-      }, 100); // Super fast movement (10fps)
-    }, 3000);
+      }, 300); // Gerakan setiap 300ms agar lebih smooth di peta
+    }, 4000);
   };
 
   const finishOrder = () => {

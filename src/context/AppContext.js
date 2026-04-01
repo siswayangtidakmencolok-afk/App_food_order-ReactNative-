@@ -181,6 +181,18 @@ export const AppProvider = ({ children }) => {
     return { data: newOrder, error: null };
   };
 
+  const updateOrder = async (orderId, updates) => {
+    const { error } = await supabase
+      .from('orders')
+      .update(updates)
+      .eq('id', orderId);
+    
+    if (!error) {
+      setOrderHistory(prev => prev.map(o => o.id === orderId ? { ...o, ...updates } : o));
+    }
+    return { error };
+  };
+
   // ── FAVORITES ─────────────────────────────────────────
   const fetchFavorites = async () => {
     const { data, error } = await supabase
@@ -325,7 +337,7 @@ export const AppProvider = ({ children }) => {
       cart, setCart, addToCart, removeFromCart, clearCart, reorder,
 
       // Orders
-      orderHistory, setOrderHistory, saveOrder, fetchOrders, clearOrderHistory,
+      orderHistory, setOrderHistory, saveOrder, updateOrder, fetchOrders, clearOrderHistory,
 
       // Favorites
       favorites, toggleFavorite,

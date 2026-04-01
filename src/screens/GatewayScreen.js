@@ -5,10 +5,13 @@ import {
   Alert, SafeAreaView
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useApp } from '../context/AppContext';
 
 const GatewayScreen = ({ route, navigation }) => {
   const { total, orderData } = route.params;
+  const { updateOrder } = useApp();
   const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState(null);
   const [step, setStep] = useState(1); // 1: Select, 2: Detail/Pay
 
@@ -18,17 +21,28 @@ const GatewayScreen = ({ route, navigation }) => {
     { id: 'qris', name: 'QRIS / GoPay / ShopeePay', icon: 'qrcode-scan', color: '#ee2d24' }
   ];
 
-  const handlePay = () => {
+  const handlePay = async () => {
     setLoading(true);
-    // Simulasi verifikasi bank (2 detik)
-    setTimeout(() => {
+    
+    // Simulasi verifikasi bank (1.5 detik)
+    setTimeout(async () => {
+      // Update status di DB menjadi 'Preparing' (Lagi dimasak)
+      await updateOrder(orderData.id, { status: 'Preparing' });
+      
       setLoading(false);
-      Alert.alert(
-        'Payment Success',
-        'Transaksi Anda telah berhasil diverifikasi oleh sistem gateway.',
-        [{ text: 'OK', onPress: () => navigation.navigate('Invoice', { order: orderData }) }]
-      );
-    }, 2500);
+      setShowSuccess(true);
+
+      // Tampilkan animasi success sebentar, lalu lanjut ke pelacakan
+      setTimeout(() => {
+        navigation.reset({
+          index: 0,
+          routes: [
+            { name: 'Home' },
+            { name: 'Cart', state: { routes: [{ name: 'DeliveryTracker', params: { order: { ...orderData, status: 'Preparing' } } }] } }
+          ],
+        });
+      }, 1500);
+    }, 1500);
   };
 
   const renderQRIS = () => (
@@ -128,6 +142,16 @@ const GatewayScreen = ({ route, navigation }) => {
           </View>
         </View>
       )}
+
+      {showSuccess && (
+        <View style={styles.overlay}>
+          <Animated.View style={styles.successBox}>
+            <MaterialCommunityIcons name="check-circle" size={80} color="#4CAF50" />
+            <Text style={styles.successTitle}>Pembayaran Berhasil!</Text>
+            <Text style={styles.successSub}>Menghubungkan Anda ke Driver...</Text>
+          </Animated.View>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -173,9 +197,12 @@ const styles = StyleSheet.create({
   payButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   footer: { marginTop: 40, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5 },
   footerText: { fontSize: 10, color: '#aaa' },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
   loadingBox: { backgroundColor: '#fff', padding: 30, borderRadius: 20, alignItems: 'center' },
-  loadingText: { marginTop: 15, fontWeight: 'bold', color: '#333' }
+  loadingText: { marginTop: 15, fontWeight: 'bold', color: '#333' },
+  successBox: { backgroundColor: '#fff', padding: 40, borderRadius: 25, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, elevation: 10 },
+  successTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', marginTop: 15 },
+  successSub: { fontSize: 13, color: '#666', marginTop: 5 }
 });
 
 export default GatewayScreen;

@@ -3,7 +3,7 @@ import React, { useRef, useEffect } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
 import { GEOAPIFY_KEY, MAP_TILE_URL, MAP_ATTRIBUTION } from '../config/maps';
 
-const MapComponent = ({ 
+const MapComponent = React.memo(({ 
   latitude, 
   longitude, 
   height = 200, 
@@ -16,8 +16,22 @@ const MapComponent = ({
 }) => {
   
   const webViewRef = useRef(null);
+  const iframeRef  = useRef(null);
   const tileUrl = MAP_TILE_URL(isDarkMode);
   const bgColor = isDarkMode ? '#1a1a1a' : '#f0f0f0';
+
+  // ── UPDATE LIVE POS VIA MESSAGE (PREVENT REBOOT) ──
+  useEffect(() => {
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      if (Platform.OS === 'web') {
+        iframeRef.current?.contentWindow?.postMessage({ type: 'update_pos', lat, lng }, '*');
+      } else {
+        webViewRef.current?.injectJavaScript(`window.updateDriverPos(${lat}, ${lng}); true;`);
+      }
+    }
+  }, [latitude, longitude]);
 
   // ── HTML CONTENT (Leaflet + Routing) ──
   const mapHTML = `
@@ -108,11 +122,19 @@ const MapComponent = ({
           });
         ` : ''}
 
-        // Handle update dari props (via injectJS)
-        window.updateDriverPos = (lat, lng) => {
+        // Handle update dari props (via injectJS / Message)
+        function updateUIPos(lat, lng) {
           if(currentMarker) currentMarker.setLatLng([lat, lng]);
-        };
+          // map.panTo([lat, lng]); // Aktifkan jika mau kamera ikut gerak
+        }
 
+        window.updateDriverPos = updateUIPos;
+        
+        window.addEventListener('message', function(event) {
+          if(event.data.type === 'update_pos') {
+            updateUIPos(event.data.lat, event.data.lng);
+          }
+        });
       </script>
     </body>
     </html>
@@ -131,6 +153,7 @@ const MapComponent = ({
     return (
       <View style={[styles.container, { height }]}>
         <iframe
+          ref={iframeRef}
           srcDoc={mapHTML}
           style={{ width: '100%', height: '100%', border: 'none', borderRadius: 12 }}
           title="Peta Lokasi"
@@ -154,7 +177,7 @@ const MapComponent = ({
       />
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
