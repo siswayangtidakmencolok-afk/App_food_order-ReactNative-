@@ -243,7 +243,11 @@ export const AppProvider = ({ children }) => {
   const clearCart = () => setCart([]);
 
   const reorder = (order) => {
-    setCart(order.items.map(i => ({ ...i, quantity: i.quantity })));
+    setCart(prev => {
+      const newItems = order.items.map(i => ({ ...i, quantity: i.quantity }));
+      // Tambahkan item lama ke cart tanpa duplikasi jika memungkinkan, atau sekadar append
+      return [...prev, ...newItems];
+    });
     addNotification('Pesanan ditambahkan ke keranjang', 'success');
   };
 

@@ -99,7 +99,7 @@ useEffect(() => {
           text: 'Ya',
           onPress: () => {
             reorder(order);
-            navigation.navigate('Cart');
+            navigation.navigate('CartMain');
           }
         }
       ]
@@ -147,33 +147,32 @@ useEffect(() => {
 
         <View style={styles.cardBody}>
           <View style={styles.itemsSection}>
-             <View style={styles.thumbnails}>
-               {order.items?.slice(0, 3).map((item, i) => (
+            <View style={styles.thumbnails}>
+              {order.items?.slice(0, 3).map((item, i) => (
                  <Image key={i} source={{ uri: item.image }} style={[styles.miniThumb, { left: i * 15, zIndex: 3 - i }]} />
-               ))}
-               {order.items?.length > 3 && (
-                 <View style={[styles.moreThumb, { left: 45 }]}>
+              ))}
+              {order.items?.length > 3 && (
+                <View style={[styles.moreThumb, { left: 45 }]}>
                     <Text style={styles.moreThumbTxt}>+{order.items.length - 3}</Text>
-                 </View>
-               )}
-             </View>
-             <View style={styles.orderInfoSide}>
+                </View>
+              )}
+            </View>
+            <View style={styles.orderInfoSide}>
                 <Text style={[styles.mainItemName, { color: theme.text }]} numberOfLines={1}>
                   {order.items?.[0]?.name || 'Pesanan'}
                 </Text>
                 <Text style={[styles.orderDateTxt, { color: theme.textSecondary }]}>
                   {new Date(order.createdAt).toLocaleDateString('id-ID', { day:'numeric', month:'short' })} • {order.paymentMethod}
                 </Text>
-             </View>
+            </View>
           </View>
 
           <View style={styles.cardFooter}>
-             <View>
-               <Text style={[styles.totalLabelTxt, { color: theme.textSecondary }]}>Total Bayar</Text>
-               <Text style={[styles.totalPriceTxt, { color: theme.primary }]}>Rp {order.total.toLocaleString('id-ID')}</Text>
-             </View>
-             
-             <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View>
+              <Text style={[styles.totalLabelTxt, { color: theme.textSecondary }]}>Total Bayar</Text>
+              <Text style={[styles.totalPriceTxt, { color: theme.primary }]}>Rp {order.total.toLocaleString('id-ID')}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
                 {order.status !== 'Delivered' && (
                   <TouchableOpacity
                     style={[styles.actionBtn, { backgroundColor: '#FF6347' }]}
@@ -192,7 +191,7 @@ useEffect(() => {
                     <Text style={styles.actionBtnTxt}>Ulang</Text>
                   </TouchableOpacity>
                 )}
-             </View>
+            </View>
           </View>
         </View>
       </TouchableOpacity>

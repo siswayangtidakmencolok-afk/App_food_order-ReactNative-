@@ -32,176 +32,183 @@ const InvoiceScreen = ({ navigation, route }) => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Success Header with Animated Logo */}
-      <View style={styles.successHeader}>
-        <Animated.View style={[styles.logoContainer, { transform: [{ translateX: slideAnim }] }]}>
-          <View style={styles.logoRow}>
-            <MaterialCommunityIcons name="weather-windy" size={28} color="#FFF" style={styles.windIcon} />
-            <MaterialCommunityIcons name="moped" size={70} color="#FFF" />
-            <View style={styles.foodDome}>
-              <MaterialCommunityIcons name="silverware-fork-knife" size={16} color="#4CAF50" />
+    <View style={{ flex: 1 }}>
+      <ScrollView style={styles.container}>
+        {/* Success Header with Animated Logo */}
+        <View style={styles.successHeader}>
+          <Animated.View style={[styles.logoContainer, { transform: [{ translateX: slideAnim }] }]}>
+            <View style={styles.logoRow}>
+              <MaterialCommunityIcons name="weather-windy" size={28} color="#FFF" style={styles.windIcon} />
+              <MaterialCommunityIcons name="moped" size={70} color="#FFF" />
+              <View style={styles.foodDome}>
+                <MaterialCommunityIcons name="silverware-fork-knife" size={16} color="#4CAF50" />
+              </View>
             </View>
-          </View>
-          <Text style={styles.logoText}>FOOD DELIVERY</Text>
-        </Animated.View>
+            <Text style={styles.logoText}>FOOD DELIVERY</Text>
+          </Animated.View>
 
-        <Text style={styles.successTitle}>Pesanan Berhasil!</Text>
-        <Text style={styles.successSubtitle}>
-          Pesanan Anda telah diterima dan sedang diproses
-        </Text>
-      </View>
-
-      {/* Invoice Card */}
-      <View style={styles.invoiceCard}>
-        <View style={styles.invoiceHeader}>
-          <Text style={styles.invoiceTitle}>INVOICE</Text>
-          <Text style={styles.orderNumber}>#{order.orderNumber}</Text>
+          <Text style={styles.successTitle}>Pesanan Berhasil!</Text>
+          <Text style={styles.successSubtitle}>
+            Pesanan Anda telah diterima dan sedang diproses
+          </Text>
         </View>
 
-        <View style={styles.divider} />
+        {/* Invoice Card */}
+        <View style={styles.invoiceCard}>
+          <View style={styles.invoiceHeader}>
+            <TouchableOpacity onPress={() => navigation.navigate('CartMain')} style={styles.headerBackBtn}>
+              <MaterialCommunityIcons name="arrow-left" size={24} color="#333" />
+            </TouchableOpacity>
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <Text style={styles.invoiceTitle}>INVOICE</Text>
+              <Text style={styles.orderNumber}>#{order.orderNumber}</Text>
+            </View>
+          </View>
 
-        {/* Customer Info */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informasi Pemesan</Text>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Nama:</Text>
-            <Text style={styles.infoValue}>{order.customerName}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Telepon:</Text>
-            <Text style={styles.infoValue}>{order.phoneNumber}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Alamat:</Text>
-            <Text style={[styles.infoValue, styles.addressText]}>
-              {order.deliveryAddress}
-            </Text>
-          </View>
-          {order.orderNotes && (
+          <View style={styles.divider} />
+
+          {/* Customer Info */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Informasi Pemesan</Text>
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Catatan:</Text>
-              <Text style={[styles.infoValue, styles.notesText]}>
-                {order.orderNotes}
+              <Text style={styles.infoLabel}>Nama:</Text>
+              <Text style={styles.infoValue}>{order.customerName}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Telepon:</Text>
+              <Text style={styles.infoValue}>{order.phoneNumber}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Alamat:</Text>
+              <Text style={[styles.infoValue, styles.addressText]}>
+                {order.deliveryAddress}
               </Text>
             </View>
-          )}
-        </View>
-
-        <View style={styles.divider} />
-
-        {/* Order Items */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Detail Pesanan</Text>
-          {order.items.map((item, index) => (
-            <View key={index} style={styles.itemRow}>
-              <View style={styles.itemLeft}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemQty}>
-                  {item.quantity} x Rp {item.price.toLocaleString('id-ID')}
+            {order.orderNotes && (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Catatan:</Text>
+                <Text style={[styles.infoValue, styles.notesText]}>
+                  {order.orderNotes}
                 </Text>
               </View>
-              <Text style={styles.itemTotal}>
-                Rp {(item.price * item.quantity).toLocaleString('id-ID')}
+            )}
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* Order Items */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Detail Pesanan</Text>
+            {order.items.map((item, index) => (
+              <View key={index} style={styles.itemRow}>
+                <View style={styles.itemLeft}>
+                  <Text style={styles.itemName}>{item.name}</Text>
+                  <Text style={styles.itemQty}>
+                    {item.quantity} x Rp {item.price.toLocaleString('id-ID')}
+                  </Text>
+                </View>
+                <Text style={styles.itemTotal}>
+                  Rp {(item.price * item.quantity).toLocaleString('id-ID')}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.divider} />
+
+          {/* Payment Summary */}
+          <View style={styles.section}>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Subtotal</Text>
+              <Text style={styles.summaryValue}>
+                Rp {order.total.toLocaleString('id-ID')}
               </Text>
             </View>
-          ))}
-        </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Biaya Pengiriman</Text>
+              <Text style={styles.summaryValue}>GRATIS</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Diskon</Text>
+              <Text style={styles.summaryValue}>Rp 0</Text>
+            </View>
+            
+            <View style={styles.totalDivider} />
+            
+            <View style={styles.summaryRow}>
+              <Text style={styles.totalLabel}>Total Pembayaran</Text>
+              <Text style={styles.totalValue}>
+                Rp {order.total.toLocaleString('id-ID')}
+              </Text>
+            </View>
+          </View>
 
-        <View style={styles.divider} />
+          <View style={styles.divider} />
 
-        {/* Payment Summary */}
-        <View style={styles.section}>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal</Text>
-            <Text style={styles.summaryValue}>
-              Rp {order.total.toLocaleString('id-ID')}
-            </Text>
+          {/* Payment Method */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Metode Pembayaran</Text>
+            <View style={styles.paymentMethodBox}>
+              <Text style={styles.paymentMethodText}>
+                {order.paymentMethod}
+              </Text>
+            </View>
           </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Biaya Pengiriman</Text>
-            <Text style={styles.summaryValue}>GRATIS</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Diskon</Text>
-            <Text style={styles.summaryValue}>Rp 0</Text>
-          </View>
-          
-          <View style={styles.totalDivider} />
-          
-          <View style={styles.summaryRow}>
-            <Text style={styles.totalLabel}>Total Pembayaran</Text>
-            <Text style={styles.totalValue}>
-              Rp {order.total.toLocaleString('id-ID')}
-            </Text>
-          </View>
-        </View>
 
-        <View style={styles.divider} />
+          <View style={styles.divider} />
 
-        {/* Payment Method */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Metode Pembayaran</Text>
-          <View style={styles.paymentMethodBox}>
-            <Text style={styles.paymentMethodText}>
-              {order.paymentMethod}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.divider} />
-
-        {/* Order Info */}
-        <View style={styles.section}>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Waktu Pemesanan:</Text>
-            <Text style={styles.infoValue}>
-              {new Date(order.createdAt).toLocaleString('id-ID')}
-            </Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Estimasi Sampai:</Text>
-            <Text style={styles.infoValue}>
-              ± {order.estimatedDelivery} (30 menit)
-            </Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Status:</Text>
-            <View style={styles.statusBadge}>
-              <Text style={styles.statusText}>⏳ {order.status}</Text>
+          {/* Order Info */}
+          <View style={styles.section}>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Waktu Pemesanan:</Text>
+              <Text style={styles.infoValue}>
+                {new Date(order.createdAt).toLocaleString('id-ID')}
+              </Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Estimasi Sampai:</Text>
+              <Text style={styles.infoValue}>
+                ± {order.estimatedDelivery} (30 menit)
+              </Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Status:</Text>
+              <View style={styles.statusBadge}>
+                <Text style={styles.statusText}>⏳ {order.status}</Text>
+              </View>
             </View>
           </View>
         </View>
-      </View>
 
-      {/* Info Box */}
-      <View style={styles.infoBox}>
-        <Text style={styles.infoBoxTitle}>ℹ️ Informasi</Text>
-        <Text style={styles.infoBoxText}>
-          • Simpan screenshot invoice ini sebagai bukti pesanan{'\n'}
-          • Pesanan akan diproses segera{'\n'}
-          • Cek tab Riwayat untuk tracking pesanan{'\n'}
-          • Hubungi kami jika ada kendala
-        </Text>
-      </View>
+        {/* Info Box */}
+        <View style={styles.infoBox}>
+          <Text style={styles.infoBoxTitle}>ℹ️ Informasi</Text>
+          <Text style={styles.infoBoxText}>
+            • Simpan screenshot invoice ini sebagai bukti pesanan{'\n'}
+            • Pesanan akan diproses segera{'\n'}
+            • Cek tab Riwayat untuk tracking pesanan{'\n'}
+            • Hubungi kami jika ada kendala
+          </Text>
+        </View>
 
-      {/* Action Buttons */}
-      <TouchableOpacity 
-        style={styles.doneButton}
-        onPress={handleDone}
-      >
-        <Text style={styles.doneButtonText}>Selesai</Text>
-      </TouchableOpacity>
+        {/* Action Buttons */}
+        <TouchableOpacity 
+          style={styles.doneButton}
+          onPress={handleDone}
+        >
+          <Text style={styles.doneButtonText}>Selesai</Text>
+        </TouchableOpacity>
 
-      <TouchableOpacity 
-        style={styles.trackButton}
-        onPress={handleDone}
-      >
-        <Text style={styles.trackButtonText}>Track Pesanan</Text>
-      </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.trackButton}
+          onPress={handleDone}
+        >
+          <Text style={styles.trackButtonText}>Track Pesanan</Text>
+        </TouchableOpacity>
 
-      <View style={styles.bottomSpace} />
-    </ScrollView>
+        <View style={styles.bottomSpace} />
+      </ScrollView>
+    </View>
   );
 };
 
@@ -269,14 +276,22 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   invoiceHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
+    position: 'relative',
+    minHeight: 50,
+  },
+  headerBackBtn: {
+    position: 'absolute',
+    left: 0,
+    zIndex: 10,
+    padding: 8,
   },
   invoiceTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 8,
   },
   orderNumber: {
     fontSize: 16,
@@ -451,6 +466,18 @@ const styles = StyleSheet.create({
   },
   bottomSpace: {
     height: 30,
+  },
+  floatingBack: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 9999,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
