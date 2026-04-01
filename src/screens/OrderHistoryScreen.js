@@ -1,5 +1,5 @@
-// src/screens/OrderHistoryScreen.js - ADVANCED VERSION
-import { useEffect, useState } from 'react';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import {
   Alert,
   FlatList,
@@ -7,10 +7,16 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
+  Image,
+  Dimensions,
+  Animated
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { darkTheme, lightTheme } from '../config/theme';
 import { useApp } from '../context/AppContext';
+
+const { width } = Dimensions.get('window');
 
 const OrderHistoryScreen = ({ navigation }) => {
   const { orderHistory, setOrderHistory, reorder, isDarkMode, clearHistory } = useApp();
@@ -57,36 +63,36 @@ useEffect(() => {
 
   const getStatusColor = (status) => {
     const colors = {
-      'Pending': { bg: '#FFF3CD', text: '#856404' },
-      'Processing': { bg: '#CCE5FF', text: '#004085' },
-      'Delivering': { bg: '#D1ECF1', text: '#0C5460' },
-      'Delivered': { bg: '#D4EDDA', text: '#155724' },
+      'Pending': { bg: ['#FFF3CD', '#FFEEBA'], text: '#856404', grad: ['#FEDCC8', '#FDB398'] },
+      'Processing': { bg: ['#CCE5FF', '#B8DAFF'], text: '#004085', grad: ['#A1C4FD', '#C2E9FB'] },
+      'Delivering': { bg: ['#D1ECF1', '#BEE5EB'], text: '#0C5460', grad: ['#FF9A9E', '#FAD0C4'] },
+      'Delivered': { bg: ['#D4EDDA', '#C3E6CB'], text: '#155724', grad: ['#84FAB0', '#8FD3F4'] },
     };
     return colors[status] || colors['Pending'];
   };
 
   const getStatusIcon = (status) => {
     return {
-      'Pending': '⏳',
-      'Processing': '👨‍🍳',
-      'Delivering': '🚚',
-      'Delivered': '✅',
-    }[status] || '📦';
+      'Pending': 'timer-sand',
+      'Processing': 'muffin',
+      'Delivering': 'truck-delivery',
+      'Delivered': 'check-decagram',
+    }[status] || 'package-variant';
   };
 
-  const getProgressPercentage = (status) => {
+  const getStatusLabel = (status) => {
     return {
-      'Pending': '25%',
-      'Processing': '50%',
-      'Delivering': '75%',
-      'Delivered': '100%',
-    }[status] || '0%';
+      'Pending': 'Menunggu',
+      'Processing': 'Dimasak',
+      'Delivering': 'Dikirim',
+      'Delivered': 'Selesai',
+    }[status] || status;
   };
 
   const handleReorder = (order) => {
     Alert.alert(
       'Pesan Ulang',
-      `Tambahkan ${order.items.length} item ke keranjang?`,
+      `Tambahkan ke keranjang?`,
       [
         { text: 'Batal', style: 'cancel' },
         {
@@ -100,10 +106,21 @@ useEffect(() => {
     );
   };
 
-  const OrderCard = ({ order }) => {
+  const OrderCard = ({ order, index }) => {
     const statusStyle = getStatusColor(order.status);
-    
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        delay: index * 100,
+        useNativeDriver: true,
+      }).start();
+    }, [index]);
+
     return (
+      <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: fadeAnim.interpolate({ inputRange:[0,1], outputRange:[20,0] }) }] }}>
       <TouchableOpacity 
         style={[styles.orderCard, { backgroundColor: theme.card }]}
         onPress={() => {
@@ -111,76 +128,75 @@ useEffect(() => {
           setModalVisible(true);
         }}
       >
-        <View style={styles.orderHeader}>
-          <View>
-            <Text style={[styles.orderNumber, { color: theme.text }]}>
-              #{order.orderNumber}
-            </Text>
-            <Text style={[styles.orderDate, { color: theme.textSecondary }]}>
-              {new Date(order.createdAt).toLocaleDateString('id-ID', {
-                day: 'numeric',
-                month: 'long',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </Text>
+        <LinearGradient
+          colors={statusStyle.grad}
+          start={{x:0, y:0}}
+          end={{x:1, y:0}}
+          style={styles.cardHeaderGrad}
+        >
+          <View style={styles.cardHeaderTop}>
+            <View style={styles.orderIdBox}>
+              <Text style={styles.orderIdTxt}>#{order.orderNumber.slice(-6)}</Text>
+            </View>
+            <View style={[styles.statusTag, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+              <MaterialCommunityIcons name={getStatusIcon(order.status)} size={14} color="#fff" />
+              <Text style={styles.statusTagTxt}>{getStatusLabel(order.status)}</Text>
+            </View>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
-            <Text style={[styles.statusText, { color: statusStyle.text }]}>
-              {getStatusIcon(order.status)} {order.status}
-            </Text>
+        </LinearGradient>
+
+        <View style={styles.cardBody}>
+          <View style={styles.itemsSection}>
+             <View style={styles.thumbnails}>
+               {order.items?.slice(0, 3).map((item, i) => (
+                 <Image key={i} source={{ uri: item.image }} style={[styles.miniThumb, { left: i * 15, zIndex: 3 - i }]} />
+               ))}
+               {order.items?.length > 3 && (
+                 <View style={[styles.moreThumb, { left: 45 }]}>
+                    <Text style={styles.moreThumbTxt}>+{order.items.length - 3}</Text>
+                 </View>
+               )}
+             </View>
+             <View style={styles.orderInfoSide}>
+                <Text style={[styles.mainItemName, { color: theme.text }]} numberOfLines={1}>
+                  {order.items?.[0]?.name || 'Pesanan'}
+                </Text>
+                <Text style={[styles.orderDateTxt, { color: theme.textSecondary }]}>
+                  {new Date(order.createdAt).toLocaleDateString('id-ID', { day:'numeric', month:'short' })} • {order.paymentMethod}
+                </Text>
+             </View>
+          </View>
+
+          <View style={styles.cardFooter}>
+             <View>
+               <Text style={[styles.totalLabelTxt, { color: theme.textSecondary }]}>Total Bayar</Text>
+               <Text style={[styles.totalPriceTxt, { color: theme.primary }]}>Rp {order.total.toLocaleString('id-ID')}</Text>
+             </View>
+             
+             <View style={{ flexDirection: 'row', gap: 8 }}>
+                {order.status !== 'Delivered' && (
+                  <TouchableOpacity
+                    style={[styles.actionBtn, { backgroundColor: '#FF6347' }]}
+                    onPress={() => navigation.navigate('DeliveryTracker', { order })}
+                  >
+                    <MaterialCommunityIcons name="map-marker-path" size={16} color="#fff" />
+                    <Text style={styles.actionBtnTxt}>Lacak</Text>
+                  </TouchableOpacity>
+                )}
+                {order.status === 'Delivered' && (
+                  <TouchableOpacity
+                    style={[styles.actionBtn, { backgroundColor: theme.success }]}
+                    onPress={() => handleReorder(order)}
+                  >
+                    <MaterialCommunityIcons name="refresh" size={16} color="#fff" />
+                    <Text style={styles.actionBtnTxt}>Ulang</Text>
+                  </TouchableOpacity>
+                )}
+             </View>
           </View>
         </View>
-
-        {/* Progress Bar */}
-        <View style={styles.progressContainer}>
-          <View style={[styles.progressBar, { backgroundColor: theme.border }]}>
-            <View 
-              style={[
-                styles.progressFill,
-                { 
-                  width: getProgressPercentage(order.status),
-                  backgroundColor: statusStyle.text
-                }
-              ]} 
-            />
-          </View>
-        </View>
-
-        <View style={[styles.divider, { backgroundColor: theme.border }]} />
-
-        {/* Items Preview */}
-<View style={styles.itemsPreview}>
-  <Text style={[styles.itemsCount, { color: theme.textSecondary }]}>
-    {(order.items || []).length} item pesanan
-  </Text>
-  <Text style={[styles.firstItem, { color: theme.text }]} numberOfLines={1}>
-    {order.items && order.items.length > 0
-      ? `${order.items[0].name}${order.items.length > 1 ? ` +${order.items.length - 1} lainnya` : ''}`
-      : 'Detail pesanan'}
-  </Text>
-</View>
-
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-  {/* Tombol Track — selalu muncul */}
-  <TouchableOpacity
-    style={[styles.reorderButton, { backgroundColor: '#2196F3' }]}
-    onPress={() => navigation.navigate('DeliveryTracker', { order })}
-  >
-    <Text style={styles.reorderButtonText}>🛵 Track</Text>
-  </TouchableOpacity>
-
-  {/* Tombol Pesan Lagi — hanya saat Delivered */}
-  {order.status === 'Delivered' && (
-    <TouchableOpacity
-      style={[styles.reorderButton, { backgroundColor: theme.success }]}
-      onPress={() => handleReorder(order)}
-    >
-      <Text style={styles.reorderButtonText}>🔄 Pesan Lagi</Text>
-    </TouchableOpacity>
-  )}
-</View>
       </TouchableOpacity>
+      </Animated.View>
     );
   };
 
@@ -361,7 +377,7 @@ const filteredData = uniqueOrders.filter(order => {
       <FlatList
         data={filteredData}
         keyExtractor={item => item.id.toString()}
-        renderItem={({ item }) => <OrderCard order={item} />}
+        renderItem={({ item, index }) => <OrderCard order={item} index={index} />}
         contentContainerStyle={styles.listContainer}
         ListEmptyComponent={
           <View style={{ padding: 40, alignItems: 'center' }}>
@@ -389,120 +405,126 @@ const styles = StyleSheet.create({
   tabTxt: {
     fontSize: 14,
   },
+  tabTxt: {
+    fontSize: 14,
+  },
   listContainer: {
     padding: 16,
+    paddingBottom: 40,
   },
   orderCard: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: 20,
+    marginBottom: 20,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 15,
+    elevation: 8,
   },
-  orderHeader: {
+  cardHeaderGrad: {
+    padding: 15,
+  },
+  cardHeaderTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
-  orderNumber: {
-    fontSize: 16,
+  orderIdBox: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  orderIdTxt: {
+    color: '#fff',
     fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  orderDate: {
     fontSize: 12,
   },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+  statusTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
   },
-  statusText: {
+  statusTagTxt: {
+    color: '#fff',
     fontSize: 11,
     fontWeight: 'bold',
   },
-  progressContainer: {
-    marginTop: 12,
+  cardBody: {
+    padding: 15,
   },
-  progressBar: {
-    height: 6,
-    borderRadius: 3,
-    overflow: 'hidden',
+  itemsSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
   },
-  progressFill: {
-    height: '100%',
-    borderRadius: 3,
+  thumbnails: {
+    width: 80,
+    height: 40,
+    position: 'relative',
+    marginRight: 10,
   },
-  divider: {
-    height: 1,
-    marginVertical: 12,
+  miniThumb: {
+    width: 40, height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#fff',
+    position: 'absolute',
   },
-  itemsPreview: {
-    marginBottom: 8,
+  moreThumb: {
+    width: 40, height: 40,
+    borderRadius: 20,
+    backgroundColor: '#333',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
   },
-  itemsCount: {
-    fontSize: 13,
-    marginBottom: 4,
+  moreThumbTxt: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
-  firstItem: {
-    fontSize: 14,
-    fontWeight: '500',
+  orderInfoSide: {
+    flex: 1,
   },
-  orderFooter: {
+  mainItemName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  orderDateTxt: {
+    fontSize: 12,
+  },
+  cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
   },
-  totalLabel: {
-    fontSize: 12,
-    marginBottom: 4,
+  totalLabelTxt: {
+    fontSize: 10,
   },
-  totalValue: {
+  totalPriceTxt: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FF6347',
   },
-  reorderButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  reorderButtonText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: 'bold',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  actionBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-  },
-  emptyIcon: {
-    fontSize: 80,
-    marginBottom: 16,
-  },
-  emptyText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 16,
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  menuButton: {
-    paddingHorizontal: 32,
-    paddingVertical: 12,
+    gap: 6,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
     borderRadius: 12,
   },
-  menuButtonText: {
+  actionBtnTxt: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: 'bold',
   },
   modalOverlay: {
@@ -511,10 +533,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     padding: 24,
-    maxHeight: '80%',
+    maxHeight: '85%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -523,7 +545,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
   },
   closeButton: {
@@ -531,7 +553,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   timeline: {
-    marginBottom: 8,
+    marginBottom: 20,
   },
   timelineItem: {
     flexDirection: 'row',
@@ -557,7 +579,6 @@ const styles = StyleSheet.create({
   timelineLine: {
     width: 2,
     height: 30,
-    marginTop: 4,
   },
   timelineTitle: {
     fontSize: 14,
@@ -581,27 +602,59 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+  divider: { height: 1, backgroundColor: '#eee' },
   modalTotal: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 15,
   },
   modalTotalLabel: {
     fontSize: 16,
     fontWeight: 'bold',
   },
   modalTotalValue: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#FF6347',
   },
   modalReorderButton: {
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 15,
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 20,
   },
   modalReorderButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyIcon: {
+    fontSize: 80,
+    marginBottom: 16,
+  },
+  emptyText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 16,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  menuButton: {
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 15,
+  },
+  menuButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',

@@ -68,7 +68,7 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
           clearInterval(moveInterval);
           setTimeout(finishOrder, 1000);
         }
-      }, 300); // Gerakan setiap 300ms agar lebih smooth di peta
+      }, 1200); // Langkah kurir lebih lambat (1.2 detik) agar tidak terlalu cepat
     }, 4000);
   };
 
@@ -103,6 +103,14 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
           ))}
         </ScrollView>
       </View>
+
+      {/* ── Floating Back Button ── */}
+      <TouchableOpacity 
+        style={styles.floatingBack} 
+        onPress={() => navigation.navigate('Cart')}
+      >
+        <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
+      </TouchableOpacity>
 
       <ScrollView style={{ flex: 1 }}>
         
@@ -200,6 +208,13 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
               </TouchableOpacity>
             ))}
           </View>
+          
+          <TouchableOpacity 
+            style={[styles.reorderBtn, { backgroundColor: '#EE4D2D' }]}
+            onPress={() => navigation.navigate('Cart')}
+          >
+            <Text style={styles.reorderBtnText}>Pesan Lainnya</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -243,7 +258,18 @@ const styles = StyleSheet.create({
   recomCard: { width: (width - 48) / 2, borderRadius: 12, marginBottom: 15, overflow: 'hidden', elevation: 2 },
   recomImage: { width: '100%', height: 120 },
   recomName: { fontSize: 13, fontWeight: '600', marginBottom: 5 },
-  recomPrice: { fontSize: 14, fontWeight: 'bold', color: '#EE4D2D' }
+  recomPrice: { fontSize: 14, fontWeight: 'bold', color: '#EE4D2D' },
+  floatingBack: {
+    position: 'absolute', top: 60, left: 20, zIndex: 100,
+    width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center', alignItems: 'center'
+  },
+  reorderBtn: {
+    marginTop: 30, marginBottom: 20, padding: 16, borderRadius: 12, alignItems: 'center'
+  },
+  reorderBtnText: {
+    color: '#fff', fontSize: 16, fontWeight: 'bold'
+  }
 });
 
 export default DeliveryTrackerScreen;

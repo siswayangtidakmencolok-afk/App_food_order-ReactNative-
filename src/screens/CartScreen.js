@@ -105,17 +105,32 @@ const CartScreen = ({ navigation }) => {
   );
 
   if (cart.length === 0) {
+    const activeOrder = orderHistory.find(o => ['Pending', 'Preparing', 'Delivering'].includes(o.status));
+
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyIcon}>🛒</Text>
         <Text style={styles.emptyText}>Keranjang Kosong</Text>
         <Text style={styles.emptySubtext}>Yuk tambahkan menu favorit!</Text>
+        
         <TouchableOpacity 
           style={styles.menuButton}
           onPress={() => navigation.navigate('Menu')}
         >
           <Text style={styles.menuButtonText}>Lihat Menu</Text>
         </TouchableOpacity>
+
+        {activeOrder && (
+          <TouchableOpacity 
+            style={[styles.trackButton, { marginTop: 20 }]}
+            onPress={() => navigation.navigate('DeliveryTracker', { order: activeOrder })}
+          >
+            <LinearGradient colors={['#FF4B2B', '#FF416C']} style={styles.trackGradient}>
+              <MaterialCommunityIcons name="map-marker-distance" size={24} color="#fff" />
+              <Text style={styles.trackButtonText}>Pantau Pesanan Aktif</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
@@ -352,6 +367,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  trackButton: {
+    width: '80%',
+    borderRadius: 15,
+    overflow: 'hidden',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+  },
+  trackGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 15,
+    gap: 10,
+  },
+  trackButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  }
 });
 
 export default CartScreen;

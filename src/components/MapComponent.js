@@ -17,6 +17,7 @@ const MapComponent = React.memo(({
   
   const webViewRef = useRef(null);
   const iframeRef  = useRef(null);
+  const initialPos = useRef({ latitude, longitude }); // SIMPAN POSISI AWAL
   const tileUrl = MAP_TILE_URL(isDarkMode);
   const bgColor = isDarkMode ? '#1a1a1a' : '#f0f0f0';
 
@@ -26,7 +27,10 @@ const MapComponent = React.memo(({
     const lng = parseFloat(longitude);
     if (!isNaN(lat) && !isNaN(lng)) {
       if (Platform.OS === 'web') {
-        iframeRef.current?.contentWindow?.postMessage({ type: 'update_pos', lat, lng }, '*');
+        // Gunakan timeout kecil agar iframe sempat load sempurna
+        setTimeout(() => {
+          iframeRef.current?.contentWindow?.postMessage({ type: 'update_pos', lat, lng }, '*');
+        }, 100);
       } else {
         webViewRef.current?.injectJavaScript(`window.updateDriverPos(${lat}, ${lng}); true;`);
       }
@@ -34,7 +38,8 @@ const MapComponent = React.memo(({
   }, [latitude, longitude]);
 
   // ── HTML CONTENT (Leaflet + Routing) ──
-  const mapHTML = `
+  // GUNAKAN useMemo AGAR TIDAK RE-RENDER SAAT LAT/LNG BERUBAH
+  const mapHTML = React.useMemo(() => `
     <!DOCTYPE html>
     <html>
     <head>
@@ -52,13 +57,17 @@ const MapComponent = React.memo(({
           background: rgba(238, 77, 45, 0.4); border: 2px solid #EE4D2D;
           animation: pulse 1.5s infinite;
         }
+        /* Smooth Transition for Marker */
+        .leaflet-marker-icon {
+          transition: all 0.3s linear;
+        }
         @keyframes pulse { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
       </style>
     </head>
     <body>
       <div id="map"></div>
       <script>
-        var map = L.map('map', { zoomControl: false }).setView([${latitude}, ${longitude}], 15);
+        var map = L.map('map', { zoomControl: false }).setView([${initialPos.current.latitude}, ${initialPos.current.longitude}], 15);
         L.tileLayer('${tileUrl}', { attribution: '${MAP_ATTRIBUTION}', maxZoom: 19 }).addTo(map);
 
         var currentMarker;
@@ -74,11 +83,11 @@ const MapComponent = React.memo(({
           });
         }
 
-        // Initialize Marker
-        currentMarker = L.marker([${latitude}, ${longitude}], { icon: createPulseIcon() }).addTo(map);
+        // Initialize Marker at Initial Pos
+        currentMarker = L.marker([${initialPos.current.latitude}, ${initialPos.current.longitude}], { icon: createPulseIcon() }).addTo(map);
         currentMarker.bindPopup("<b>📍 ${locationName}</b>").openPopup();
 
-        // ── ROUTING LOGIC ──
+        // ... (Route Logic)
         async function updateRoute(start, end) {
           if (!end) return;
           try {
@@ -94,38 +103,16 @@ const MapComponent = React.memo(({
             
             destMarker = L.marker(end).addTo(map).bindPopup("<b>🏁 Tujuan</b>");
             map.fitBounds(routeLine.getBounds(), { padding: [30, 30] });
-
-            // Kirim data koordinat jalur ke RN jika diperlukan
-            window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'route_ready', coords: coordinates }));
           } catch(e) { console.error(e); }
         }
 
         if(${showRoute && destinationLoc ? 'true' : 'false'}) {
-          updateRoute([${latitude}, ${longitude}], [${destinationLoc?.latitude || 0}, ${destinationLoc?.longitude || 0}]);
+          updateRoute([${initialPos.current.latitude}, ${initialPos.current.longitude}], [${destinationLoc?.latitude || 0}, ${destinationLoc?.longitude || 0}]);
         }
-
-        // ── CLICK HANDLER ──
-        ${interactive ? `
-          map.on('click', function(e) {
-            const { lat, lng } = e.latlng;
-            if(currentMarker) map.removeLayer(currentMarker);
-            currentMarker = L.marker([lat, lng], { icon: createPulseIcon() }).addTo(map);
-            
-            // Post ke React Native
-            if(window.ReactNativeWebView) {
-              window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'location_pick',
-                latitude: lat,
-                longitude: lng
-              }));
-            }
-          });
-        ` : ''}
 
         // Handle update dari props (via injectJS / Message)
         function updateUIPos(lat, lng) {
           if(currentMarker) currentMarker.setLatLng([lat, lng]);
-          // map.panTo([lat, lng]); // Aktifkan jika mau kamera ikut gerak
         }
 
         window.updateDriverPos = updateUIPos;
@@ -138,7 +125,7 @@ const MapComponent = React.memo(({
       </script>
     </body>
     </html>
-  `;
+  `, [isDarkMode, showRoute, !!destinationLoc]); // RELOAD HANYA JIKA THEME/ROUTE BERUBAH
 
   const handleMessage = (event) => {
     try {

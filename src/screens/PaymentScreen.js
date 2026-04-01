@@ -143,8 +143,13 @@ const PaymentScreen = ({ navigation, route }) => {
       return;
     }
     
-    // Redirect ke Gateway Simulation
-    navigation.navigate('Gateway', { total, orderData: savedOrder });
+    const isGatewayMethod = ['transfer', 'qris'].includes(selectedPayment);
+
+    if (isGatewayMethod) {
+      navigation.navigate('Gateway', { total, orderData: savedOrder });
+    } else {
+      navigation.navigate('Invoice', { order: savedOrder });
+    }
   };
 
   return (

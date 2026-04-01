@@ -1,7 +1,7 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Platform, Text, View } from 'react-native';
 
 import { darkTheme, lightTheme } from './src/config/theme';
@@ -21,7 +21,8 @@ import PaymentScreen from './src/screens/PaymentScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SplashScreen from './src/screens/SplashScreen';
-import GatewayScreen from './src/screens/GatewayScreen'; // NEW
+import GatewayScreen from './src/screens/GatewayScreen';
+import GlobalToast from './src/components/GlobalToast';
 
 // ── Animated Dock ──
 import AnimatedDock from './src/components/AnimatedDock';
@@ -165,8 +166,17 @@ function MainTabs() {
 function AppContent() {
   const [showSplash, setShowSplash]         = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(true);
-  const { session, authLoading, isDarkMode } = useApp();
+  const { session, authLoading, isDarkMode, notifications } = useApp();
   const theme = isDarkMode ? darkTheme : lightTheme;
+  const toastRef = useRef(null);
+
+  // ── Toast Listener ──
+  useEffect(() => {
+    if (notifications.length > 0) {
+      const last = notifications[0];
+      toastRef.current?.show(last.message, last.type);
+    }
+  }, [notifications]);
 
   if (showSplash)     return <SplashScreen onFinish={() => setShowSplash(false)} />;
   if (showOnboarding) return <OnboardingScreen onFinish={() => setShowOnboarding(false)} />;
@@ -180,6 +190,7 @@ function AppContent() {
   return (
     <NavigationContainer theme={theme}>
       <MainTabs />
+      <GlobalToast ref={toastRef} />
     </NavigationContainer>
   );
 }
