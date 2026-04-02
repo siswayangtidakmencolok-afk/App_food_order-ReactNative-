@@ -37,6 +37,16 @@ Aplikasi pemesanan makanan berbasis **React Native + Expo** yang memungkinkan pe
 |--------|------------|
 | <img src="./assets/screenshots/profile.jpg" width="250"/> | <img src="./assets/screenshots/settings.jpg" width="250"/> |
 
+### 💳 Pembayaran & 🧾 Invoice
+| Pembayaran | Invoice |
+|--------|------------|
+| <img src="./assets/screenshots/payment.jpg" width="250"/> | <img src="./assets/screenshots/invoice.jpg" width="250"/> |
+
+### 👨🏼‍💻Admin & 🧾 Riwayat Pesanan
+| Admin | Riwayat Pesanan |
+|--------|------------|
+| <img src="./assets/screenshots/admin.jpg" width="250"/> | <img src="./assets/screenshots/order-history.jpg" width="250"/> |
+
 </div>
 
 ---
@@ -128,7 +138,7 @@ AplikasiPemesananMakanan/
 │   ├── assets/
 │   │   ├── lottie/
 │   │   │   └── success.json
-│   │   └── screenshots/          ← Simpan screenshot app di sini
+│   │   └── screenshots/          
 │   │       ├── home.jpg
 │   │       ├── menu.jpg
 │   │       ├── profile.jpg
@@ -137,13 +147,20 @@ AplikasiPemesananMakanan/
 │   │   ├── Aurora.native.js
 │   │   ├── AnimatedLogo.js
 │   │   ├── Aurora.web.js
+│   │   ├── AnimatedLogo.web.js
+│   │   ├── AnimatedDock.native.js
+│   │   ├── AnimatedDock.web.js
 │   │   ├── CartItem.js
 │   │   ├── FoodCard.js
+│   │   ├── GlobalToast.js
+│   │   ├── MapComponent.js
 │   │   ├── MenuReview.js
 │   │   ├── OnboardingAnimation.js
 │   │   ├── OnboardingAnimation.native.js
+│   │   ├── PinInput.js
 │   │   └── SuccessAnimation.js
 │   ├── config/
+│   │   ├── maps.js
 │   │   ├── supabase.js
 │   │   └── theme.js
 │   ├── context/
@@ -154,6 +171,7 @@ AplikasiPemesananMakanan/
 │       ├── AuthScreen.js
 │       ├── SplashScreen.js
 │       ├── OnboardingScreen.js
+│       ├── GateawayScreen.js
 │       ├── HomeScreen.js
 │       ├── MenuScreen.js
 │       ├── MenuDetailScreen.js
@@ -165,6 +183,8 @@ AplikasiPemesananMakanan/
 │       └── ProfileScreen.js
 ├── services/
 │   └── menuService.js
+│   └── eWallet.js
+│   └── mitransService.js
 ├── App.js
 ├── .gitignore
 ├── LICENSE
