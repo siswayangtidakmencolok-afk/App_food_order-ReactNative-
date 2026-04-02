@@ -12,7 +12,8 @@ const MapComponent = React.memo(({
   onLocationSelect = null, // Callback saat peta diklik
   destinationLoc = null,    // { latitude, longitude } untuk routing
   showRoute = false,
-  interactive = true
+  interactive = true,
+  nearbyOrders = []        // Array dari { latitude, longitude } untuk pesanan fiktif
 }) => {
   
   const webViewRef = useRef(null);
@@ -27,18 +28,16 @@ const MapComponent = React.memo(({
     const lng = parseFloat(longitude);
     if (!isNaN(lat) && !isNaN(lng)) {
       if (Platform.OS === 'web') {
-        // Gunakan timeout kecil agar iframe sempat load sempurna
         setTimeout(() => {
           iframeRef.current?.contentWindow?.postMessage({ type: 'update_pos', lat, lng }, '*');
         }, 100);
       } else {
-        webViewRef.current?.injectJavaScript(`window.updateDriverPos(${lat}, ${lng}); true;`);
+        webViewRef.current?.injectJavaScript(`if(window.updateDriverPos) window.updateDriverPos(${lat}, ${lng}); true;`);
       }
     }
   }, [latitude, longitude]);
 
-  // ── HTML CONTENT (Leaflet + Routing) ──
-  // GUNAKAN useMemo AGAR TIDAK RE-RENDER SAAT LAT/LNG BERUBAH
+  // ── HTML CONTENT (Leaflet + Interaction + Nearby) ──
   const mapHTML = React.useMemo(() => `
     <!DOCTYPE html>
     <html>
@@ -50,82 +49,94 @@ const MapComponent = React.memo(({
       <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { background:${bgColor}; overflow: hidden; }
-        #map { width:100%; height:100vh; cursor: crosshair; }
+        #map { width:100%; height:100vh; cursor: ${onLocationSelect ? 'pointer' : 'default'}; }
         .leaflet-control-attribution { font-size: 8px !important; }
         .pulse {
           width: 30px; height: 30px; border-radius: 50%;
           background: rgba(238, 77, 45, 0.4); border: 2px solid #EE4D2D;
           animation: pulse 1.5s infinite;
         }
-        /* Smooth Transition for Marker */
-        .leaflet-marker-icon {
-          transition: all 0.3s linear;
+        .nearby-pulse {
+          width: 20px; height: 20px; border-radius: 50%;
+          background: rgba(76, 175, 80, 0.3); border: 1px solid #4CAF50;
+          animation: pulse 2s infinite;
         }
         @keyframes pulse { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
+        .leaflet-marker-icon { transition: all 0.3s linear; }
       </style>
     </head>
     <body>
       <div id="map"></div>
       <script>
-        var map = L.map('map', { zoomControl: false }).setView([${initialPos.current.latitude}, ${initialPos.current.longitude}], 15);
-        L.tileLayer('${tileUrl}', { attribution: '${MAP_ATTRIBUTION}', maxZoom: 19 }).addTo(map);
+        var map = L.map('map', { zoomControl: false, attributionControl: false }).setView([${latitude}, ${longitude}], 15);
+        L.tileLayer('${tileUrl}').addTo(map);
 
         var currentMarker;
         var destMarker;
         var routeLine;
+        var nearbyMarkers = [];
 
-        // Custom Icon
-        function createPulseIcon() {
+        function createIcon(isNearby) {
           return L.divIcon({
             className: 'custom-div-icon',
-            html: "<div class='pulse'></div><div style='background:#EE4D2D;width:12px;height:12px;border-radius:50%;border:2px solid #fff;position:absolute;top:9px;left:9px;'></div>",
+            html: "<div class='" + (isNearby ? "nearby-pulse" : "pulse") + "'></div><div style='background:" + (isNearby ? "#4CAF50" : "#EE4D2D") + ";width:" + (isNearby? "8px":"12px") + ";height:" + (isNearby? "8px":"12px") + ";border-radius:50%;border:2px solid #fff;position:absolute;top:" + (isNearby? "6px":"9px") + ";left:" + (isNearby? "6px":"9px") + ";'></div>",
             iconSize: [30, 30], iconAnchor: [15, 15]
           });
         }
 
-        // Initialize Marker at Initial Pos
-        currentMarker = L.marker([${initialPos.current.latitude}, ${initialPos.current.longitude}], { icon: createPulseIcon() }).addTo(map);
-        currentMarker.bindPopup("<b>📍 ${locationName}</b>").openPopup();
+        // Main Marker
+        currentMarker = L.marker([${latitude}, ${longitude}], { icon: createIcon(false) }).addTo(map);
+        currentMarker.bindPopup("<b>${locationName}</b>").openPopup();
 
-        // ... (Route Logic)
+        // Nearby Orders (Fiktif)
+        const nearbyData = ${JSON.stringify(nearbyOrders)};
+        nearbyData.forEach(pos => {
+          L.marker([pos.latitude, pos.longitude], { icon: createIcon(true) }).addTo(map)
+            .bindPopup("Pesanan Sekitar Baru!");
+        });
+
+        // Click to Pick Location
+        map.on('click', function(e) {
+          if(${onLocationSelect ? 'true' : 'false'}) {
+            var lat = e.latlng.lat;
+            var lng = e.latlng.lng;
+            currentMarker.setLatLng([lat, lng]);
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'location_pick', latitude: lat, longitude: lng }));
+          }
+        });
+
         async function updateRoute(start, end) {
           if (!end) return;
           try {
             const url = "https://api.geoapify.com/v1/routing?waypoints=" + start[0] + "," + start[1] + "|" + end[0] + "," + end[1] + "&mode=drive&apiKey=${GEOAPIFY_KEY}";
-            const response = await fetch(url);
-            const data = await response.json();
-            
+            const res = await fetch(url);
+            const d = await res.json();
             if (routeLine) map.removeLayer(routeLine);
             if (destMarker) map.removeLayer(destMarker);
-
-            const coordinates = data.features[0].geometry.coordinates[0].map(c => [c[1], c[0]]);
-            routeLine = L.polyline(coordinates, { color: '#EE4D2D', weight: 5, opacity: 0.7, dashArray: '10, 10' }).addTo(map);
-            
-            destMarker = L.marker(end).addTo(map).bindPopup("<b>🏁 Tujuan</b>");
-            map.fitBounds(routeLine.getBounds(), { padding: [30, 30] });
-          } catch(e) { console.error(e); }
+            const coords = d.features[0].geometry.coordinates[0].map(c => [c[1], c[0]]);
+            routeLine = L.polyline(coords, { color: '#EE4D2D', weight: 4, opacity: 0.8, dashArray: '8, 8' }).addTo(map);
+            destMarker = L.marker(end).addTo(map).bindPopup("🏁 Tujuan");
+            map.fitBounds(routeLine.getBounds(), { padding: [40, 40] });
+          } catch(e) {}
         }
 
         if(${showRoute && destinationLoc ? 'true' : 'false'}) {
-          updateRoute([${initialPos.current.latitude}, ${initialPos.current.longitude}], [${destinationLoc?.latitude || 0}, ${destinationLoc?.longitude || 0}]);
+          updateRoute([${latitude}, ${longitude}], [${destinationLoc?.latitude || 0}, ${destinationLoc?.longitude || 0}]);
         }
 
-        // Handle update dari props (via injectJS / Message)
         function updateUIPos(lat, lng) {
           if(currentMarker) currentMarker.setLatLng([lat, lng]);
+          if(!${showRoute ? 'true' : 'false'}) map.panTo([lat, lng]);
         }
 
         window.updateDriverPos = updateUIPos;
-        
-        window.addEventListener('message', function(event) {
-          if(event.data.type === 'update_pos') {
-            updateUIPos(event.data.lat, event.data.lng);
-          }
+        window.addEventListener('message', function(e) {
+          if(e.data.type === 'update_pos') updateUIPos(e.data.lat, e.data.lng);
         });
       </script>
     </body>
     </html>
-  `, [isDarkMode, showRoute, !!destinationLoc]); // RELOAD HANYA JIKA THEME/ROUTE BERUBAH
+  `, [isDarkMode, showRoute, !!destinationLoc, nearbyOrders.length]); // RELOAD HANYA JIKA THEME/ROUTE BERUBAH
 
   const handleMessage = (event) => {
     try {

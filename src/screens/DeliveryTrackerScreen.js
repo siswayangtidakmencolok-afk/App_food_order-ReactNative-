@@ -19,6 +19,26 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
 
   const [activeTab, setActiveTab] = useState(getInitialTab());
   
+  // ── Animation for Header Motor ──
+  const mopedAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(mopedAnim, {
+          toValue: 1,
+          duration: 3000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(mopedAnim, {
+          toValue: 0,
+          duration: 3000,
+          useNativeDriver: true,
+        })
+      ])
+    ).start();
+  }, []);
+  
   // ── Simulation State ──
   const RESTAURANT_LOC = { latitude: -6.2000, longitude: 106.8400 };
   const [driverLoc, setDriverLoc] = useState(RESTAURANT_LOC);
@@ -93,6 +113,31 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
 
   return (
     <View style={{ flex: 1, backgroundColor: bg }}>
+      {/* ── Animated Header Container ── */}
+      <View style={styles.animatedHeaderContainer}>
+        <View style={styles.headerContent}>
+          <MaterialCommunityIcons name="moped" size={20} color="#fff" />
+          <Text style={styles.headerTitleText}>Lacak Pesanan</Text>
+        </View>
+        
+        {/* The Moving Motor Animation */}
+        <Animated.View style={[styles.mopedAnimBox, {
+          transform: [{
+            translateX: mopedAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [60, width - 60]
+            })
+          }, {
+            scaleX: mopedAnim.interpolate({
+              inputRange: [0, 0.45, 0.55, 1],
+              outputRange: [1, 1, -1, -1] // Flip when turning
+            })
+          }]
+        }]}>
+          <MaterialCommunityIcons name="moped" size={18} color="rgba(255,255,255,0.4)" />
+        </Animated.View>
+      </View>
+
       {/* ── Tabs ala Shopee ── */}
       <View style={{ backgroundColor: cardBg, flexDirection: 'row', borderBottomWidth: 1, borderColor: isDarkMode ? '#333' : '#eee' }}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8 }}>
@@ -269,6 +314,30 @@ const styles = StyleSheet.create({
   },
   reorderBtnText: {
     color: '#fff', fontSize: 16, fontWeight: 'bold'
+  },
+  animatedHeaderContainer: {
+    backgroundColor: '#EE4D2D',
+    height: 50,
+    justifyContent: 'center',
+    position: 'relative',
+    overflow: 'hidden'
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    zIndex: 10
+  },
+  headerTitleText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8
+  },
+  mopedAnimBox: {
+    position: 'absolute',
+    bottom: 5,
+    opacity: 0.8
   }
 });
 

@@ -6,13 +6,16 @@ import * as Location from 'expo-location';
 import { useEffect, useRef, useState } from 'react';
 import {
   Animated, Dimensions, Image, Platform, ScrollView,
-  StyleSheet, Text, TouchableOpacity, View
+  StyleSheet, Text, TouchableOpacity, View,
+  TextInput, ActivityIndicator, Alert
 } from 'react-native';
 import AnimatedLogo from '../components/AnimatedLogo';
 import Aurora from '../components/Aurora';
 import { darkTheme, lightTheme } from '../config/theme';
 import { useApp } from '../context/AppContext';
 import MapComponent from '../components/MapComponent';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { GEOAPIFY_KEY } from '../config/maps';
 
 const { width } = Dimensions.get('window');
 
@@ -131,7 +134,7 @@ const DustParticle = ({ delay, color }) => {
 };
 
 // ─── Store Card ───────────────────────────────────────────────
-const StoreCard = ({ store }) => {
+const StoreCard = ({ store, onPress }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const { isDarkMode } = useApp();
@@ -146,11 +149,16 @@ const StoreCard = ({ store }) => {
   return (
     <Animated.View style={{ flex: 1, opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
       <TouchableOpacity
+        onPress={() => onPress && onPress(store)}
         onPressIn={() => Animated.spring(scaleAnim, { toValue: 0.95, friction: 5, useNativeDriver: Platform.OS !== 'web' }).start()}
         onPressOut={() => Animated.spring(scaleAnim, { toValue: 1, friction: 3, useNativeDriver: Platform.OS !== 'web' }).start()}
         activeOpacity={1} style={[styles.storeCard, { backgroundColor: card }]}
       >
-        <Image source={{ uri: store.image }} style={styles.storeImg} />
+        <Image 
+          source={{ uri: store.image }} 
+          style={styles.storeImg} 
+          resizeMode="cover"
+        />
         <View style={styles.storeOverlay} />
         <View style={styles.storeInfo}>
           <Text style={[styles.storeName, { color: textCol }]} numberOfLines={1}>{store.name}</Text>
@@ -167,11 +175,12 @@ const StoreCard = ({ store }) => {
 };
 
 // ─── Data Toko ────────────────────────────────────────────────
+// Ditambah Koordinat untuk Sinkronisasi Peta
 const nearbyStores = [
-  { id: '1', name: 'Warteg Bahari',     distance: '0.5 km', rating: 4.5, image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=500&q=80' },
-  { id: '2', name: 'Sate Khas Senayan', distance: '1.2 km', rating: 4.8, image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=500&q=80' },
-  { id: '3', name: 'Ayam Geprek Bensu', distance: '2.0 km', rating: 4.2, image: 'https://images.unsplash.com/photo-1626804475297-41609ea0ebb3?w=500&q=80' },
-  { id: '4', name: 'Nasi Goreng Gila',  distance: '2.5 km', rating: 4.6, image: 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=500&q=80' },
+  { id: '1', name: 'Warteg Bahari',     distance: '0.5 km', rating: 4.5, image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=500&q=80', lat: -6.2088, lng: 106.8456 },
+  { id: '2', name: 'Sate Khas Senayan', distance: '1.2 km', rating: 4.8, image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=500&q=80', lat: -6.2150, lng: 106.8500 },
+  { id: '3', name: 'Ayam Geprek Bensu', distance: '2.0 km', rating: 4.2, image: 'https://images.unsplash.com/photo-1626804475297-41609ea0ebb3?w=500&q=80', lat: -6.2000, lng: 106.8350 },
+  { id: '4', name: 'Nasi Goreng Gila',  distance: '2.5 km', rating: 4.6, image: 'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=500&q=80', lat: -6.2200, lng: 106.8400 },
 ];
 
 // ─── Main Screen ──────────────────────────────────────────────
@@ -188,6 +197,77 @@ const HomeScreen = ({ navigation }) => {
   const headerAnim = useRef(new Animated.Value(0)).current;
 
   const [locationGranted, setLocationGranted] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimeout = useRef(null);
+
+  // Data Pesanan Fiktif
+  const [nearbyOrders] = useState([
+    { latitude: userLocation.latitude + 0.002, longitude: userLocation.longitude - 0.003 },
+    { latitude: userLocation.latitude - 0.004, longitude: userLocation.longitude + 0.002 },
+    { latitude: userLocation.latitude + 0.005, longitude: userLocation.longitude + 0.005 },
+  ]);
+
+  const fetchSuggestions = async (text) => {
+    if (text.length < 3) {
+      setSuggestions([]);
+      return;
+    }
+    try {
+      // BATASI HANYA DI INDONESIA (filter=countrycode:id)
+      const url = `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(text)}&filter=countrycode:id&limit=5&apiKey=${GEOAPIFY_KEY}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.features) {
+        setSuggestions(data.features.map(f => ({
+          id: f.properties.place_id,
+          name: f.properties.name || f.properties.formatted,
+          fullAddress: f.properties.formatted,
+          coords: { lat: f.properties.lat, lng: f.properties.lon }
+        })));
+      }
+    } catch (e) {
+      console.error('Autocomplete Error:', e);
+    }
+  };
+
+  const handleTextChange = (text) => {
+    setSearchQuery(text);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => fetchSuggestions(text), 600); // Debounce 600ms
+  };
+
+  const selectSuggestion = (item) => {
+    updateUserLocation(item.coords.lat, item.coords.lng, item.name);
+    setSearchQuery('');
+    setSuggestions([]);
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setIsSearching(true);
+    try {
+      const url = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(searchQuery)}&filter=countrycode:id&limit=1&apiKey=${GEOAPIFY_KEY}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.features && data.features.length > 0) {
+        const feat = data.features[0];
+        const [lng, lat] = feat.geometry.coordinates;
+        updateUserLocation(lat, lng, feat.properties.formatted || 'Lokasi Terpilih');
+        setSearchQuery('');
+        setSuggestions([]);
+      }
+    } catch (e) { 
+      console.error(e);
+    } finally {
+        setIsSearching(false);
+    }
+  };
+
+  const handleStorePress = (store) => {
+    updateUserLocation(store.lat, store.lng, store.name);
+  };
 
   const handleMapClick = async (lat, lng) => {
     try {
@@ -236,7 +316,7 @@ const HomeScreen = ({ navigation }) => {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: bg }]} showsVerticalScrollIndicator={false}>
+    <ScrollView style={[styles.container, { backgroundColor: bg }]} showsVerticalScrollIndicator={false}> /* penambah agar panjang ke atas maps page beranda */
 
       {/* ══ HERO ══ */}
       <View style={styles.hero}>
@@ -321,19 +401,63 @@ const HomeScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.mapBox}>
+          {/* 🔍 Search Bar Overlay */}
+          <View style={styles.searchOverlay}>
+            <View style={[styles.searchInner, { backgroundColor: isDarkMode ? '#333' : '#fff' }]}>
+              <MaterialCommunityIcons name="magnify" size={20} color={isDarkMode ? '#aaa' : '#666'} />
+              <TextInput 
+                style={[styles.searchInput, { color: textCol }]}
+                placeholder="Cari lokasi baru (Indonesia)..."
+                placeholderTextColor={isDarkMode ? '#888' : '#aaa'}
+                value={searchQuery}
+                onChangeText={handleTextChange}
+                onSubmitEditing={handleSearch}
+              />
+              {isSearching ? (
+                <ActivityIndicator size="small" color="#FF6347" />
+              ) : (
+                searchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => { setSearchQuery(''); setSuggestions([]); }}>
+                    <MaterialCommunityIcons name="close-circle" size={18} color="#aaa" />
+                  </TouchableOpacity>
+                )
+              )}
+            </View>
+
+            {/* Suggestions List Overlay */}
+            {suggestions.length > 0 && (
+              <View style={[styles.suggestionList, { backgroundColor: isDarkMode ? '#222' : '#fff' }]}>
+                {suggestions.map((item) => (
+                  <TouchableOpacity 
+                    key={item.id} 
+                    style={styles.suggestionItem}
+                    onPress={() => selectSuggestion(item)}
+                  >
+                    <MaterialCommunityIcons name="map-marker-outline" size={18} color={isDarkMode ? '#eee' : '#333'} />
+                    <View style={{ flex: 1, marginLeft: 10 }}>
+                      <Text style={[styles.suggestionName, { color: textCol }]} numberOfLines={1}>{item.name}</Text>
+                      <Text style={styles.suggestionAddress} numberOfLines={1}>{item.fullAddress}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+
           <MapComponent
             latitude={userLocation.latitude}
             longitude={userLocation.longitude}
             isDarkMode={isDarkMode}
             locationName={userLocation.address}
-            height={150}
+            height={350}
             onLocationSelect={handleMapClick}
+            nearbyOrders={nearbyOrders}
           />
         </View>
 
         {/* Store cards */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.storeScroll}>
-          {nearbyStores.map(store => <StoreCard key={store.id} store={store} />)}
+          {nearbyStores.map(store => <StoreCard key={store.id} store={store} onPress={handleStorePress} />)}
         </ScrollView>
       </View>
 
@@ -404,7 +528,14 @@ const styles = StyleSheet.create({
   locationDot:      { width: 8, height: 8, borderRadius: 4 },
 
   // Map
-  mapBox:           { width: '100%', height: 150, borderRadius: 14, overflow: 'hidden', marginBottom: 14, position: 'relative' },
+  mapBox:           { width: '100%', height: 350, borderRadius: 14, overflow: 'hidden', marginBottom: 14, position: 'relative' },
+  searchOverlay:    { position: 'absolute', top: 12, left: 12, right: 12, zIndex: 1000 },
+  searchInner:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, elevation: 5, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 5 },
+  searchInput:      { flex: 1, marginLeft: 8, fontSize: 13, paddingVertical: 0 },
+  suggestionList:   { marginTop: 4, borderRadius: 12, padding: 8, elevation: 5, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 5 },
+  suggestionItem:   { flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)' },
+  suggestionName:   { fontSize: 14, fontWeight: '700' },
+  suggestionAddress:{ fontSize: 11, color: '#888', marginTop: 2 },
   mapLoading:       { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1a1a1a' },
   mapPinLabel:      { position: 'absolute', bottom: 8, left: 8, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 16 },
   mapPinTxt:        { color: '#fff', fontSize: 11, fontWeight: 'bold' },
@@ -412,7 +543,7 @@ const styles = StyleSheet.create({
   // Store scroll
   storeScroll:      { marginHorizontal: -4 },
   storeCard:        { width: 150, marginRight: 12, borderRadius: 14, overflow: 'hidden' },
-  storeImg:         { width: '100%', height: 100, resizeMode: 'cover' },
+  storeImg:         { width: '100%', height: 100 },
   storeOverlay:     { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.2)' },
   storeInfo:        { padding: 10 },
   storeName:        { fontSize: 13, fontWeight: '700', marginBottom: 6 },
