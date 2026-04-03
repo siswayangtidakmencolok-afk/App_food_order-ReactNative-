@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
-import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, Animated, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useApp } from '../context/AppContext';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Animated, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapComponent from '../components/MapComponent';
 import { GEOAPIFY_KEY } from '../config/maps';
+import { useApp } from '../context/AppContext';
 
 const { width } = Dimensions.get('window');
 
@@ -18,9 +18,10 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
   };
 
   const [activeTab, setActiveTab] = useState(getInitialTab());
-  
+
   // ── Animation for Header Motor ──
   const mopedAnim = useRef(new Animated.Value(0)).current;
+
 
   useEffect(() => {
     Animated.loop(
@@ -38,7 +39,7 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
       ])
     ).start();
   }, []);
-  
+
   // ── Simulation State ──
   const RESTAURANT_LOC = { latitude: -6.2000, longitude: 106.8400 };
   const [driverLoc, setDriverLoc] = useState(RESTAURANT_LOC);
@@ -82,7 +83,7 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
         if (currentIdx < coords.length) {
           setDriverLoc(coords[currentIdx]);
           currentIdx++;
-          
+
           // Jika sudah mendekati akhir, perlambat sedikit (opsional)
         } else {
           clearInterval(moveInterval);
@@ -119,7 +120,7 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
           <MaterialCommunityIcons name="moped" size={20} color="#fff" />
           <Text style={styles.headerTitleText}>Lacak Pesanan</Text>
         </View>
-        
+
         {/* The Moving Motor Animation */}
         <Animated.View style={[styles.mopedAnimBox, {
           transform: [{
@@ -150,20 +151,20 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
       </View>
 
       {/* ── Floating Back Button ── */}
-      <TouchableOpacity 
-        style={styles.floatingBack} 
+      <TouchableOpacity
+        style={styles.floatingBack}
         onPress={() => navigation.navigate('CartMain')}
       >
         <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
       </TouchableOpacity>
 
       <ScrollView style={{ flex: 1 }}>
-        
+
         {/* Guard Logic: Hanya tampilkan card jika tab AKTIF sesuai dengan status SIMULASI */}
-        {(activeTab === 'Untuk dikirim' && isPreparing) || 
-         (activeTab === 'Akan diterima' && simStatus === 'Delivering') || 
-         (activeTab === 'Selesai' && simStatus === 'Delivered') ? (
-          
+        {(activeTab === 'Untuk dikirim' && isPreparing) ||
+          (activeTab === 'Akan diterima' && simStatus === 'Delivering') ||
+          (activeTab === 'Selesai' && simStatus === 'Delivered') ? (
+
           <View>
             <View style={styles.banner}>
               <MaterialCommunityIcons name="shield-check-outline" size={16} color="#EE4D2D" />
@@ -184,9 +185,9 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
 
               {/* Map Routing Real-time - Persegi & Lebih Tinggi */}
               <View style={styles.mapContainer}>
-                <MapComponent 
-                  latitude={driverLoc.latitude} 
-                  longitude={driverLoc.longitude} 
+                <MapComponent
+                  latitude={driverLoc.latitude}
+                  longitude={driverLoc.longitude}
                   height={width - 32}
                   isDarkMode={isDarkMode}
                   locationName={isPreparing ? 'Restoran' : 'E-Kurir'}
@@ -253,8 +254,8 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
               </TouchableOpacity>
             ))}
           </View>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={[styles.reorderBtn, { backgroundColor: '#EE4D2D' }]}
             onPress={() => navigation.navigate('Cart')}
           >
@@ -278,13 +279,13 @@ const styles = StyleSheet.create({
   mallBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
   storeName: { fontSize: 15, fontWeight: 'bold' },
   statusText: { fontSize: 14, color: '#EE4D2D', fontWeight: 'bold' },
-  mapContainer: { 
-    aspectRatio: 1, 
-    width: '100%', 
-    borderRadius: 15, 
-    overflow: 'hidden', 
-    marginBottom: 20, 
-    position: 'relative' 
+  mapContainer: {
+    aspectRatio: 1,
+    width: '100%',
+    borderRadius: 15,
+    overflow: 'hidden',
+    marginBottom: 20,
+    position: 'relative'
   },
   prepOverlay: {
     position: 'absolute', top: 15, right: 15, backgroundColor: 'rgba(255,255,255,0.95)',
