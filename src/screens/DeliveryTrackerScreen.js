@@ -27,12 +27,12 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
       Animated.sequence([
         Animated.timing(mopedAnim, {
           toValue: 1,
-          duration: 3000,
+          duration: 5000,
           useNativeDriver: true,
         }),
         Animated.timing(mopedAnim, {
           toValue: 0,
-          duration: 3000,
+          duration: 5000,
           useNativeDriver: true,
         })
       ])
@@ -134,7 +134,10 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
             })
           }]
         }]}>
-          <MaterialCommunityIcons name="moped" size={18} color="rgba(255,255,255,0.4)" />
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <MaterialCommunityIcons name="moped" size={20} color="rgba(255,255,255,0.7)" />
+            <MaterialCommunityIcons name="package-variant" size={14} color="rgba(255,255,255,0.5)" style={{ marginLeft: -6, marginTop: -4 }} />
+          </View>
         </Animated.View>
       </View>
 
@@ -187,7 +190,7 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
                 <MapComponent 
                   latitude={driverLoc.latitude} 
                   longitude={driverLoc.longitude} 
-                  height={220}
+                  height={320}
                   isDarkMode={isDarkMode}
                   locationName={isPreparing ? 'Restoran' : 'E-Kurir'}
                   showRoute={true}
@@ -201,6 +204,32 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
                   </View>
                 )}
               </View>
+
+              {/* 🚚 Premium Driver Card (Maxim Style Reference) */}
+              {simStatus === 'Delivering' && (
+                <View style={styles.driverCard}>
+                   <View style={styles.driverTop}>
+                      <View style={styles.maximLogo}><Text style={styles.maximLogoText}>O</Text></View>
+                      <Text style={styles.maximBrand}>maksim 🚕 • sekarang 🔔</Text>
+                      <MaterialCommunityIcons name="chevron-up" size={24} color="#333" style={{marginLeft: 'auto'}} />
+                   </View>
+                   <View style={styles.driverMain}>
+                      <View style={{flex: 1}}>
+                         <Text style={styles.arriveTime}>Dalam 2 menit akan datang</Text>
+                         <Text style={styles.motorDesc}>Motorcycle, warna biru</Text>
+                      </View>
+                      <View style={styles.plateBadge}>
+                         <MaterialCommunityIcons name="moped" size={20} color="#fff" />
+                         <Text style={styles.plateText}>B 5987 BHU</Text>
+                      </View>
+                   </View>
+                   {/* Progress bar fiktif gaya notifikasi */}
+                   <View style={styles.notifProgress}>
+                      <View style={styles.notifProgressActive} />
+                      <View style={styles.notifProgressDot} />
+                   </View>
+                </View>
+              )}
 
               {/* Information */}
               <View style={styles.infoRow}>
@@ -256,7 +285,7 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
           
           <TouchableOpacity 
             style={[styles.reorderBtn, { backgroundColor: '#EE4D2D' }]}
-            onPress={() => navigation.navigate('Cart')}
+            onPress={() => navigation.navigate('Menu')}
           >
             <Text style={styles.reorderBtnText}>Pesan Lainnya</Text>
           </TouchableOpacity>
@@ -278,7 +307,7 @@ const styles = StyleSheet.create({
   mallBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
   storeName: { fontSize: 15, fontWeight: 'bold' },
   statusText: { fontSize: 14, color: '#EE4D2D', fontWeight: 'bold' },
-  mapContainer: { height: 220, borderRadius: 15, overflow: 'hidden', marginBottom: 20, position: 'relative' },
+  mapContainer: { height: 320, borderRadius: 15, overflow: 'hidden', marginBottom: 20, position: 'relative' },
   prepOverlay: {
     position: 'absolute', top: 15, right: 15, backgroundColor: 'rgba(255,255,255,0.95)',
     padding: 10, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 8, elevation: 5
@@ -301,7 +330,7 @@ const styles = StyleSheet.create({
   recomTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 15 },
   recomGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   recomCard: { width: (width - 48) / 2, borderRadius: 12, marginBottom: 15, overflow: 'hidden', elevation: 2 },
-  recomImage: { width: '100%', height: 120 },
+  recomImage: { width: '100%', height: 160 },
   recomName: { fontSize: 13, fontWeight: '600', marginBottom: 5 },
   recomPrice: { fontSize: 14, fontWeight: 'bold', color: '#EE4D2D' },
   floatingBack: {
@@ -338,6 +367,91 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 5,
     opacity: 0.8
+  },
+  // 🚚 Driver Card Styles
+  driverCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 15,
+    marginBottom: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10
+  },
+  driverTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10
+  },
+  maximLogo: {
+    backgroundColor: '#ffc107',
+    width: 24, height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8
+  },
+  maximLogoText: {
+    color: '#333',
+    fontWeight: 'bold',
+    fontSize: 14
+  },
+  maximBrand: {
+    color: '#666',
+    fontSize: 12
+  },
+  driverMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  arriveTime: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000'
+  },
+  motorDesc: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 2
+  },
+  plateBadge: {
+    backgroundColor: '#2e3a47',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+    gap: 8
+  },
+  plateText: {
+    color: '#fff',
+    fontWeight: '900',
+    fontSize: 15
+  },
+  notifProgress: {
+    height: 4,
+    backgroundColor: '#eee',
+    borderRadius: 2,
+    marginTop: 15,
+    position: 'relative'
+  },
+  notifProgressActive: {
+    width: '40%',
+    height: '100%',
+    backgroundColor: '#ddd',
+    borderRadius: 2
+  },
+  notifProgressDot: {
+    width: 14, height: 14,
+    borderRadius: 7,
+    backgroundColor: '#EE4D2D',
+    position: 'absolute',
+    right: '60%',
+    top: -5,
+    borderWidth: 2,
+    borderColor: '#fff'
   }
 });
 
