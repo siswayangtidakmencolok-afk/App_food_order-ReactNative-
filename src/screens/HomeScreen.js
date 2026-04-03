@@ -601,7 +601,7 @@ const HomeScreen = ({ navigation }) => {
           color={isDarkMode ? '#065f46' : '#10b981'}
           accentColor={isDarkMode ? '#047857' : '#059669'}
           dustColor="#34d399"
-          onPress={() => navigation.navigate('OrderHistory')}
+          onPress={() => navigation.navigate('History')}
           delay={300}
         />
       </View>
