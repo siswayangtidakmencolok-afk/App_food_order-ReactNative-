@@ -856,7 +856,7 @@ const HomeScreen = ({ navigation }) => {
                       <Image 
                         source={{ uri: trend.image }} 
                         style={styles.compImg}
-                        defaultSource={require('../../assets/icon.png')} // Fallback jika blank
+                        defaultSource={require('../../assets/images/icon.png')} // Fallback jika blank
                       />
                       <View style={styles.compBadgeInternet}>
                         <Text style={styles.compBadgeTxt}>INTERNET</Text>

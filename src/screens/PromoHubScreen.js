@@ -71,7 +71,7 @@ const PromoHubScreen = ({ navigation }) => {
           </View>
           <TouchableOpacity 
             style={[styles.aiCard, { backgroundColor: isDarkMode ? '#2d2d2d' : '#f0f9ff' }]}
-            onPress={() => navigation.navigate('MenuDetail', { item: aiPick.matchedMenu })}
+            onPress={() => navigation.navigate('Menu', { screen: 'MenuDetail', params: { item: aiPick.matchedMenu } })}
           >
             <Image source={{ uri: aiPick.matchedMenu.image }} style={styles.aiImg} />
             <View style={styles.aiInfo}>
@@ -97,7 +97,7 @@ const PromoHubScreen = ({ navigation }) => {
             <TouchableOpacity 
               key={item.id} 
               style={[styles.itemCard, { backgroundColor: cardBg }]}
-              onPress={() => navigation.navigate('MenuDetail', { item })}
+              onPress={() => navigation.navigate('Menu', { screen: 'MenuDetail', params: { item } })}
             >
               <Image source={{ uri: item.image }} style={styles.itemImg} />
               <View style={styles.itemBadge}>
