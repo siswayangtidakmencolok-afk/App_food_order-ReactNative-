@@ -15,6 +15,7 @@ import { useApp } from '../context/AppContext';
 import { fetchAITrends } from '../services/qdrantService';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as WebBrowser from 'expo-web-browser';
 
 // ─── Komponen Reply Item ──────────────────────────────────────
 // Menampilkan satu reply dari user
@@ -477,6 +478,14 @@ const MenuDetailScreen = ({ route }) => {
                 <Text style={styles.viralSourceTxt}>Sedang Tren di Internet</Text>
                 <MaterialCommunityIcons name="trending-up" size={14} color="#8b5cf6" />
               </View>
+              
+              <TouchableOpacity 
+                style={styles.viralSourceBtn}
+                onPress={() => WebBrowser.openBrowserAsync(viralTrend.sourceUrl)}
+              >
+                <Text style={styles.viralSourceBtnTxt}>Lihat Insight Lengkap 🌍</Text>
+                <MaterialCommunityIcons name="chevron-right" size={16} color="#fff" />
+              </TouchableOpacity>
             </LinearGradient>
           )}
         </View>
@@ -611,6 +620,22 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: '#8b5cf6',
+  },
+  viralSourceBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#8b5cf6',
+    paddingVertical: 10,
+    borderRadius: 10,
+    marginTop: 12,
+    gap: 8,
+    elevation: 3,
+  },
+  viralSourceBtnTxt: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 
   ratingBox:        { padding: 16, borderRadius: 12, alignItems: 'center' },

@@ -828,6 +828,68 @@ const HomeScreen = ({ navigation }) => {
         </View>
       </View>
 
+      {/* ══ VIRAL SPOTLIGHT (AI Comparison) ══ */}
+      {aiTrends.length > 0 && aiTrends[0].matchedMenu && (
+        <View style={styles.spotlightSection}>
+          <LinearGradient
+            colors={isDarkMode ? ['#312e81', '#1e1b4b'] : ['#eff6ff', '#dbeafe']}
+            style={styles.spotlightCard}
+          >
+            <View style={styles.spotlightHeader}>
+              <MaterialCommunityIcons name="auto-fix" size={18} color="#8b5cf6" />
+              <Text style={[styles.spotlightTitle, { color: isDarkMode ? '#fff' : '#1e3a8a' }]}>
+                Viral Match Spotlight
+              </Text>
+            </View>
+            
+            <View style={styles.comparisonRow}>
+              {/* Internet side */}
+              <View style={styles.comparisonCol}>
+                <View style={styles.compImgWrap}>
+                  <Image source={{ uri: aiTrends[0].image }} style={styles.compImg} />
+                  <View style={styles.compBadgeInternet}>
+                    <Text style={styles.compBadgeTxt}>INTERNET</Text>
+                  </View>
+                </View>
+                <Text style={[styles.compLbl, { color: textCol }]} numberOfLines={1}>
+                  {aiTrends[0].title}
+                </Text>
+              </View>
+
+              {/* VS Divider */}
+              <View style={styles.vsCircle}>
+                <Text style={styles.vsTxt}>VS</Text>
+              </View>
+
+              {/* Local side */}
+              <View style={styles.comparisonCol}>
+                <View style={styles.compImgWrap}>
+                  <Image source={{ uri: aiTrends[0].matchedMenu.image }} style={styles.compImg} />
+                  <View style={styles.compBadgeLocal}>
+                    <Text style={styles.compBadgeTxt}>MENU KITA</Text>
+                  </View>
+                </View>
+                <Text style={[styles.compLbl, { color: textCol }]} numberOfLines={1}>
+                  {aiTrends[0].matchedMenu.name}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.spotlightFooter}>
+              <Text style={styles.spotlightDesc} numberOfLines={2}>
+                "Kemiripan {aiTrends[0].matchScore}%! Menu ini sedang sangat dicari di internet."
+              </Text>
+              <TouchableOpacity 
+                style={styles.spotlightBtn}
+                onPress={() => navigation.navigate('MenuDetail', { item: aiTrends[0].matchedMenu })}
+              >
+                <Text style={styles.spotlightBtnTxt}>Lihat Kemiripan →</Text>
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+        </View>
+      )}
+
       {/* ══ PROMO BANNER ══ */}
       <View style={styles.promoBanner}>
         <View style={styles.promoBg} />
@@ -983,6 +1045,26 @@ const styles = StyleSheet.create({
   promoSub:         { fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 },
   promoBtn:         { marginLeft: 'auto', backgroundColor: '#FF6347', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
   promoBtnTxt:      { color: '#fff', fontWeight: '800', fontSize: 13 },
+
+  // Spotlight Section
+  spotlightSection: { marginHorizontal: 16, marginBottom: 14 },
+  spotlightCard: { borderRadius: 20, padding: 18, borderWidth: 1, borderColor: '#8b5cf630' },
+  spotlightHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
+  spotlightTitle: { fontSize: 13, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.8 },
+  comparisonRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  comparisonCol: { width: '44%', alignItems: 'center' },
+  compImgWrap: { width: '100%', height: 100, borderRadius: 14, overflow: 'hidden', position: 'relative', elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5 },
+  compImg: { width: '100%', height: '100%', resizeMode: 'cover' },
+  compBadgeInternet: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.6)', paddingVertical: 2 },
+  compBadgeLocal: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(139,92,246,0.8)', paddingVertical: 2 },
+  compBadgeTxt: { color: '#fff', fontSize: 8, fontWeight: '900', textAlign: 'center' },
+  compLbl: { fontSize: 10, fontWeight: '700', marginTop: 8 },
+  vsCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#8b5cf6', justifyContent: 'center', alignItems: 'center', zIndex: 5, borderOuterWidth: 3, borderColor: '#fff', elevation: 5 },
+  vsTxt: { color: '#fff', fontSize: 12, fontWeight: '900' },
+  spotlightFooter: { alignItems: 'center' },
+  spotlightDesc: { fontSize: 11, fontStyle: 'italic', color: '#666', textAlign: 'center', marginBottom: 12 },
+  spotlightBtn: { backgroundColor: '#8b5cf6', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
+  spotlightBtnTxt: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
 });
 
 export default HomeScreen;
