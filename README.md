@@ -207,6 +207,12 @@ AplikasiPemesananMakanan/
 - [x] Profil & Statistik Pesanan
 - [x] Mode Gelap
 - [x] Notifikasi Push
+- [x] Lacak Pesanan
+- [x] Driver Card (Simulasi)
+- [x] Navigasi Tombol pesanan lain
+- [x] Tampilan Maps
+- [x] Animasi Moped
+- [x] Payment Gateway
 - [ ] Panel Admin
 - [ ] Integrasi Backend & Database
 - [ ] Autentikasi Login / Register
