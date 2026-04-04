@@ -1,6 +1,9 @@
 // src/screens/MenuDetailScreen.js
 // Screen detail menu dengan sistem review + reply realtime dari Supabase
 
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert, Animated,
@@ -12,10 +15,7 @@ import {
 } from 'react-native';
 import { supabase } from '../config/supabase';
 import { useApp } from '../context/AppContext';
-import { fetchAITrends } from '../services/qdrantService';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as WebBrowser from 'expo-web-browser';
+import { getViralInfoForMenuItem } from '../services/qdrantService';
 
 // ─── Komponen Reply Item ──────────────────────────────────────
 // Menampilkan satu reply dari user
@@ -292,17 +292,8 @@ const MenuDetailScreen = ({ route }) => {
   const [viralTrend, setViralTrend] = useState(null);
 
   useEffect(() => {
-    const checkViralStatus = async () => {
-      // Ambil tren dari semua kategori
-      const [f, d, s] = await Promise.all([
-        fetchAITrends('food', [item]),
-        fetchAITrends('drink', [item]),
-        fetchAITrends('snack', [item])
-      ]);
-      const matchedTrend = [...f, ...d, ...s].find(t => t.matchedMenu && t.matchedMenu.id === item.id);
-      if (matchedTrend) setViralTrend(matchedTrend);
-    };
-    checkViralStatus();
+    const trend = getViralInfoForMenuItem(item);
+    if (trend) setViralTrend(trend);
   }, [item.id]);
 
   // Theme colors

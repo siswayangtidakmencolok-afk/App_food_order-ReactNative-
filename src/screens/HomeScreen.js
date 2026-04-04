@@ -599,10 +599,10 @@ const HomeScreen = ({ navigation }) => {
               <Text style={styles.quickStatLbl}>Menu</Text>
             </View>
             <View style={styles.quickStatDivider} />
-            <View style={styles.quickStat}>
+            <TouchableOpacity style={styles.quickStat} onPress={() => navigation.navigate('Cart')}>
               <Text style={styles.quickStatVal}>{cart.length}</Text>
               <Text style={styles.quickStatLbl}>Keranjang</Text>
-            </View>
+            </TouchableOpacity>
             <View style={styles.quickStatDivider} />
             <View style={styles.quickStat}>
               <Text style={styles.quickStatVal}>4</Text>
@@ -828,80 +828,82 @@ const HomeScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {/* ══ VIRAL SPOTLIGHT (AI Comparison) ══ */}
-      {aiTrends.length > 0 && aiTrends[0].matchedMenu && (
+      {/* ══ VIRAL SPOTLIGHT (Multi AI Comparison) ══ */}
+      {aiTrends.length > 0 && (
         <View style={styles.spotlightSection}>
-          <LinearGradient
-            colors={isDarkMode ? ['#312e81', '#1e1b4b'] : ['#eff6ff', '#dbeafe']}
-            style={styles.spotlightCard}
-          >
-            <View style={styles.spotlightHeader}>
-              <MaterialCommunityIcons name="auto-fix" size={18} color="#8b5cf6" />
-              <Text style={[styles.spotlightTitle, { color: isDarkMode ? '#fff' : '#1e3a8a' }]}>
-                Viral Match Spotlight
-              </Text>
-            </View>
-            
-            <View style={styles.comparisonRow}>
-              {/* Internet side */}
-              <View style={styles.comparisonCol}>
-                <View style={styles.compImgWrap}>
-                  <Image source={{ uri: aiTrends[0].image }} style={styles.compImg} />
-                  <View style={styles.compBadgeInternet}>
-                    <Text style={styles.compBadgeTxt}>INTERNET</Text>
-                  </View>
-                </View>
-                <Text style={[styles.compLbl, { color: textCol }]} numberOfLines={1}>
-                  {aiTrends[0].title}
-                </Text>
-              </View>
-
-              {/* VS Divider */}
-              <View style={styles.vsCircle}>
-                <Text style={styles.vsTxt}>VS</Text>
-              </View>
-
-              {/* Local side */}
-              <View style={styles.comparisonCol}>
-                <View style={styles.compImgWrap}>
-                  <Image source={{ uri: aiTrends[0].matchedMenu.image }} style={styles.compImg} />
-                  <View style={styles.compBadgeLocal}>
-                    <Text style={styles.compBadgeTxt}>MENU KITA</Text>
-                  </View>
-                </View>
-                <Text style={[styles.compLbl, { color: textCol }]} numberOfLines={1}>
-                  {aiTrends[0].matchedMenu.name}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.spotlightFooter}>
-              <Text style={styles.spotlightDesc} numberOfLines={2}>
-                "Kemiripan {aiTrends[0].matchScore}%! Menu ini sedang sangat dicari di internet."
-              </Text>
-              <TouchableOpacity 
-                style={styles.spotlightBtn}
-                onPress={() => navigation.navigate('MenuDetail', { item: aiTrends[0].matchedMenu })}
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: textCol }]}>🎭 Viral Comparison Spotlight</Text>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.spotlightScroll}>
+            {aiTrends.filter(t => t.matchedMenu).slice(0, 3).map((trend, index) => (
+              <LinearGradient
+                key={trend.id}
+                colors={isDarkMode ? ['#312e81', '#1e1b4b'] : ['#eff6ff', '#dbeafe']}
+                style={styles.spotlightCard}
               >
-                <Text style={styles.spotlightBtnTxt}>Lihat Kemiripan →</Text>
-              </TouchableOpacity>
-            </View>
-          </LinearGradient>
+                <View style={styles.spotlightHeader}>
+                  <View style={styles.spotlightRank}>
+                    <Text style={styles.spotlightRankText}>#{index + 1}</Text>
+                  </View>
+                  <Text style={[styles.spotlightTitle, { color: isDarkMode ? '#fff' : '#1e3a8a' }]}>
+                    {trend.title}
+                  </Text>
+                </View>
+                
+                <View style={styles.comparisonRow}>
+                  <View style={styles.comparisonCol}>
+                    <View style={styles.compImgWrap}>
+                      <Image source={{ uri: trend.image }} style={styles.compImg} />
+                      <View style={styles.compBadgeInternet}>
+                        <Text style={styles.compBadgeTxt}>INTERNET</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.vsCircle}>
+                    <Text style={styles.vsTxt}>VS</Text>
+                  </View>
+
+                  <View style={styles.comparisonCol}>
+                    <View style={styles.compImgWrap}>
+                      <Image source={{ uri: trend.matchedMenu.image }} style={styles.compImg} />
+                      <View style={styles.compBadgeLocal}>
+                        <Text style={styles.compBadgeTxt}>MENU KITA</Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.spotlightFooter}>
+                  <Text style={[styles.spotlightMatch, { color: '#8b5cf6' }]}>Kecocokan {trend.matchScore}%</Text>
+                  <TouchableOpacity 
+                    style={styles.spotlightBtn}
+                    onPress={() => navigation.navigate('MenuDetail', { item: trend.matchedMenu })}
+                  >
+                    <Text style={styles.spotlightBtnTxt}>Cek Menu →</Text>
+                  </TouchableOpacity>
+                </View>
+              </LinearGradient>
+            ))}
+          </ScrollView>
         </View>
       )}
 
       {/* ══ PROMO BANNER ══ */}
-      <View style={styles.promoBanner}>
+      <TouchableOpacity 
+        style={styles.promoBanner}
+        onPress={() => navigation.navigate('PromoHub')}
+      >
         <View style={styles.promoBg} />
         <Text style={styles.promoEmoji}>🎉</Text>
         <View>
           <Text style={styles.promoTitle}>Gratis Ongkir!</Text>
           <Text style={styles.promoSub}>Untuk semua pesanan hari ini</Text>
         </View>
-        <TouchableOpacity style={styles.promoBtn} onPress={() => navigation.navigate('Menu')}>
+        <View style={styles.promoBtn}>
           <Text style={styles.promoBtnTxt}>Pesan →</Text>
-        </TouchableOpacity>
-      </View>
+        </View>
+      </TouchableOpacity>
 
       <View style={{ height: 30 }} />
     </ScrollView>
@@ -1048,23 +1050,25 @@ const styles = StyleSheet.create({
 
   // Spotlight Section
   spotlightSection: { marginHorizontal: 16, marginBottom: 14 },
-  spotlightCard: { borderRadius: 20, padding: 18, borderWidth: 1, borderColor: '#8b5cf630' },
-  spotlightHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
-  spotlightTitle: { fontSize: 13, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.8 },
-  comparisonRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  comparisonCol: { width: '44%', alignItems: 'center' },
-  compImgWrap: { width: '100%', height: 100, borderRadius: 14, overflow: 'hidden', position: 'relative', elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5 },
-  compImg: { width: '100%', height: '100%', resizeMode: 'cover' },
-  compBadgeInternet: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.6)', paddingVertical: 2 },
-  compBadgeLocal: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(139,92,246,0.8)', paddingVertical: 2 },
-  compBadgeTxt: { color: '#fff', fontSize: 8, fontWeight: '900', textAlign: 'center' },
-  compLbl: { fontSize: 10, fontWeight: '700', marginTop: 8 },
-  vsCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#8b5cf6', justifyContent: 'center', alignItems: 'center', zIndex: 5, borderOuterWidth: 3, borderColor: '#fff', elevation: 5 },
-  vsTxt: { color: '#fff', fontSize: 12, fontWeight: '900' },
-  spotlightFooter: { alignItems: 'center' },
-  spotlightDesc: { fontSize: 11, fontStyle: 'italic', color: '#666', textAlign: 'center', marginBottom: 12 },
-  spotlightBtn: { backgroundColor: '#8b5cf6', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
-  spotlightBtnTxt: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
+  spotlightScroll:  { marginHorizontal: -16, paddingLeft: 16 },
+  spotlightCard:    { width: width * 0.75, borderRadius: 24, padding: 16, marginRight: 16, borderWidth: 1, borderColor: '#8b5cf630' },
+  spotlightHeader:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  spotlightRank:    { width: 24, height: 24, borderRadius: 12, backgroundColor: '#8b5cf6', justifyContent: 'center', alignItems: 'center' },
+  spotlightRankText:{ color: '#fff', fontSize: 10, fontWeight: 'bold' },
+  spotlightTitle:   { fontSize: 12, fontWeight: '900', textTransform: 'uppercase', flex: 1 },
+  comparisonRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  comparisonCol:    { width: '42%' },
+  compImgWrap:      { width: '100%', height: 80, borderRadius: 12, overflow: 'hidden', position: 'relative' },
+  compImg:          { width: '100%', height: '100%' },
+  compBadgeInternet:{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.6)', paddingVertical: 2 },
+  compBadgeLocal:   { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(139,92,246,0.8)', paddingVertical: 2 },
+  compBadgeTxt:     { color: '#fff', fontSize: 7, fontWeight: '900', textAlign: 'center' },
+  vsCircle:         { width: 28, height: 28, borderRadius: 14, backgroundColor: '#8b5cf6', justifyContent: 'center', alignItems: 'center', zIndex: 5 },
+  vsTxt:            { color: '#fff', fontSize: 10, fontWeight: '900' },
+  spotlightFooter:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  spotlightMatch:   { fontSize: 10, fontWeight: '800' },
+  spotlightBtn:     { backgroundColor: '#8b5cf6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  spotlightBtnTxt:  { color: '#fff', fontSize: 10, fontWeight: 'bold' },
 });
 
 export default HomeScreen;

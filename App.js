@@ -1,16 +1,18 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { useState, useEffect, useRef } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Text, View } from 'react-native';
 
 import { darkTheme, lightTheme } from './src/config/theme';
 import { AppProvider, useApp } from './src/context/AppContext';
 
 // ── Screens ──
+import GlobalToast from './src/components/GlobalToast';
 import AuthScreen from './src/screens/AuthScreen';
 import CartScreen from './src/screens/CartScreen';
 import DeliveryTrackerScreen from './src/screens/DeliveryTrackerScreen';
+import GatewayScreen from './src/screens/GatewayScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import InvoiceScreen from './src/screens/InvoiceScreen';
 import MenuDetailScreen from './src/screens/MenuDetailScreen';
@@ -19,10 +21,9 @@ import OnboardingScreen from './src/screens/OnboardingScreen';
 import OrderHistoryScreen from './src/screens/OrderHistoryScreen';
 import PaymentScreen from './src/screens/PaymentScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import PromoHubScreen from './src/screens/PromoHubScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SplashScreen from './src/screens/SplashScreen';
-import GatewayScreen from './src/screens/GatewayScreen';
-import GlobalToast from './src/components/GlobalToast';
 
 // ── Animated Dock ──
 import AnimatedDock from './src/components/AnimatedDock';
@@ -158,6 +159,16 @@ function MainTabs() {
       <Tab.Screen name="History"  component={OrderHistoryScreen} options={{ title: 'Riwayat' }} />
       <Tab.Screen name="Profile"  component={ProfileScreen}     options={{ title: 'Profil' }} />
       <Tab.Screen name="Settings" component={SettingsScreen}    options={{ title: 'Pengaturan' }} />
+      <Tab.Screen 
+        name="PromoHub" 
+        component={PromoHubScreen}    
+        options={{ 
+          title: 'Promo Hub',
+          tabBarButton: () => null, // Sembunyikan dari Bottom Tab
+          headerStyle: { backgroundColor: '#FFD700' },
+          headerTintColor: '#000'
+        }} 
+      />
     </Tab.Navigator>
   );
 }

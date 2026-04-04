@@ -2,6 +2,7 @@
 
 /**
  * Data Mentah Tren AI (Simulasi Crawling/Doku/SOSMED)
+ * Menambahkan lebih banyak variasi data untuk akurasi matching.
  */
 const RAW_TRENDS = {
   food: [
@@ -9,17 +10,25 @@ const RAW_TRENDS = {
       id: 'f1',
       title: 'Seafood Platter Viral',
       description: 'Lagi ramai di TikTok, perpaduan lobster dan saus Padang melimpah.',
-      keywords: ['seafood', 'lobster', 'udang', 'kepiting', 'ikan'],
+      keywords: ['seafood', 'lobster', 'udang', 'kepiting', 'ikan', 'sate seafood'],
       image: 'https://images.unsplash.com/photo-1559740038-f95bab91acc1?w=500&q=80',
       sourceUrl: 'https://www.tiktok.com/tag/seafoodviral',
     },
     {
       id: 'f2',
-      title: 'Steak Kaki Lima Premium',
+      title: 'Wagyu Steak Low Budget',
       description: 'Tren makan steak wagyu dengan harga miring di pinggir jalan.',
-      keywords: ['steak', 'daging', 'sapi', 'wagyu', 'bbq', 'geprek'],
+      keywords: ['steak', 'daging', 'sapi', 'wagyu', 'bbq', 'daging sapi'],
       image: 'https://images.unsplash.com/photo-1546241072-48010ad28c2c?w=500&q=80',
       sourceUrl: 'https://www.instagram.com/explore/tags/steakviral/',
+    },
+    {
+      id: 'f3',
+      title: 'Seblak Prasmanan Pedas',
+      description: 'Tren seblak dengan topping bebas pilih yang meluap di Bandung.',
+      keywords: ['seblak', 'pedas', 'kerupuk', 'level', 'hot'],
+      image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=500&q=80',
+      sourceUrl: 'https://www.tiktok.com/tag/seblakprasmanan',
     }
   ],
   drink: [
@@ -27,12 +36,20 @@ const RAW_TRENDS = {
       id: 'd1',
       title: 'Es Teh Jumbo 3000',
       description: 'Segarnya es teh dengan porsi raksasa yang hits di mana-mana.',
-      keywords: ['teh', 'es', 'jumbo', 'segar', 'minum'],
+      keywords: ['teh', 'es', 'jumbo', 'segar', 'minum', 'tea'],
       image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80',
       sourceUrl: 'https://www.google.com/search?q=es+teh+jumbo+viral',
     },
     {
       id: 'd2',
+      title: 'Dirty Matcha Latte',
+      description: 'Kombinasi matcha premium dengan shot espresso lumer.',
+      keywords: ['matcha', 'kopi', 'greentea', 'latte', 'susu'],
+      image: 'https://images.unsplash.com/photo-1515824918246-a8a042ba2466?w=500&q=80',
+      sourceUrl: 'https://www.instagram.com/explore/tags/matchalatte/',
+    },
+    {
+      id: 'd3',
       title: 'Kopi Susu Gula Aren 2.0',
       description: 'Varian baru kopi susu dengan tambahan topping salt cream.',
       keywords: ['kopi', 'susu', 'coffee', 'latte', 'aren'],
@@ -43,14 +60,22 @@ const RAW_TRENDS = {
   snack: [
     {
       id: 's1',
-      title: 'Cromboloni Lumer',
-      description: 'Pastry renyah dengan isian cokelat melimpah yang lagi dicari semua orang.',
-      keywords: ['pastry', 'cokelat', 'manis', 'kue', 'roti', 'snack'],
+      title: 'Cheese Roll Lumer',
+      description: 'Cemilan keju gulung dengan topping cokelat yang viral di TikTok.',
+      keywords: ['cheese', 'keju', 'roll', 'pastry', 'cokelat', 'manis'],
+      image: 'https://images.unsplash.com/photo-1550617931-e17a7b70dce2?w=500&q=80',
+      sourceUrl: 'https://www.tiktok.com/tag/cheeseroll',
+    },
+    {
+      id: 's2',
+      title: 'Cromboloni Crunchy',
+      description: 'Pastry renyah yang sempat antre panjang di berbagai kota.',
+      keywords: ['pastry', 'cromboloni', 'manis', 'kue', 'roti'],
       image: 'https://images.unsplash.com/photo-1550617931-e17a7b70dce2?w=500&q=80',
       sourceUrl: 'https://www.tiktok.com/tag/cromboloni',
     },
     {
-      id: 's2',
+      id: 's3',
       title: 'Tahu Bulat Pedas Jeruk',
       description: 'Camilan klasik yang naik level dengan bumbu daun jeruk pedas.',
       keywords: ['tahu', 'pedas', 'camilan', 'jajanan', 'snack'],
@@ -61,7 +86,7 @@ const RAW_TRENDS = {
 };
 
 /**
- * Mencari kecocokan antara tren dengan menu yang tersedia (Simulasi Vector Search)
+ * Mencari kecocokan antara tren dengan menu yang tersedia
  */
 const findBestMatch = (trend, menuItems) => {
   if (!menuItems || menuItems.length === 0) return null;
@@ -73,37 +98,45 @@ const findBestMatch = (trend, menuItems) => {
     let score = 0;
     const itemName = item.name?.toLowerCase() || '';
     const itemDesc = item.description?.toLowerCase() || '';
+    const itemCat  = item.category?.toLowerCase() || '';
 
-    // Cek kecocokan keyword (Simulasi Vector Distance)
+    // Cek kecocokan keyword
     trend.keywords.forEach(keyword => {
-      if (itemName.includes(keyword)) score += 30;
-      if (itemDesc.includes(keyword)) score += 15;
+      const k = keyword.toLowerCase();
+      if (itemName === k) score += 50; // Exact match nama
+      else if (itemName.includes(k)) score += 30;
+      
+      if (itemDesc.includes(k)) score += 15;
     });
 
-    // Bonus jika kategori sama
-    if (trend.id.startsWith('f') && item.category === 'Makanan Utama') score += 20;
-    if (trend.id.startsWith('d') && item.category === 'Minuman') score += 20;
+    // Bonus Kategori (Wajib Cocok untuk Akurasi)
+    if (trend.id.startsWith('f') && (itemCat.includes('makanan') || itemCat.includes('utama'))) score += 20;
+    if (trend.id.startsWith('d') && (itemCat.includes('minuman') || itemCat.includes('drink'))) score += 40; // Strict untuk minuman
+    if (trend.id.startsWith('s') && (itemCat.includes('snack') || itemCat.includes('jajanan') || itemCat.includes('cemilan'))) score += 40;
 
     if (score > highestScore) {
       highestScore = score;
       bestMatch = { 
         ...item, 
-        matchScore: Math.min(score, 99) // Maksimal 99%
+        matchScore: Math.min(score, 99) 
       };
     }
   });
 
-  // Jika skor terlalu rendah, anggap tidak ada yang cocok secara akurat
-  return highestScore > 10 ? bestMatch : null;
+  return highestScore > 15 ? bestMatch : null;
 };
 
 /**
- * Mengambil tren AI dengan data menu yang sudah dicocokkan
+ * Mengambil tren AI dengan pengacakan (Shuffle)
  */
 export const fetchAITrends = async (category = 'food', menuItems = []) => {
   return new Promise((resolve) => {
     setTimeout(() => {
-      const trends = RAW_TRENDS[category] || [];
+      let trends = [...(RAW_TRENDS[category] || [])];
+      
+      // Shuffle trends agar selalu beda
+      trends = trends.sort(() => Math.random() - 0.5);
+
       const enrichedTrends = trends.map(trend => {
         const matchedMenu = findBestMatch(trend, menuItems);
         return {
@@ -118,21 +151,36 @@ export const fetchAITrends = async (category = 'food', menuItems = []) => {
 };
 
 /**
- * Mencari info viral untuk menu item spesifik (Untuk Halaman Detail)
+ * Mencari info viral untuk menu tertentu (Untuk Halaman Detail)
  */
-export const getViralInfoForMenuItem = (menuItemId, allTrends = []) => {
-  // Gabungkan semua tren
-  const flatTrends = [
+export const getViralInfoForMenuItem = (menuItem, menuItems = []) => {
+  if (!menuItem) return null;
+
+  const allTrends = [
     ...RAW_TRENDS.food,
     ...RAW_TRENDS.drink,
     ...RAW_TRENDS.snack
   ];
 
-  // Cari tren yang menyebutkan menu ini (Simulasi)
-  // Di real-world, ini akan menggunakan query vektor ke Qdrant
-  return flatTrends.find(trend => {
-    // Simulasi: Jika trend punya matchedMenu yang ID-nya sama (ini butuh context lebih luas)
-    // Untuk saat ini kita return tren yang keywords-nya ada di nama menu
-    return false; // Implementasi lebih lanjut
+  let bestTrend = null;
+  let highestScore = 0;
+
+  allTrends.forEach(trend => {
+    let score = 0;
+    const itemName = menuItem.name?.toLowerCase() || '';
+    const itemDesc = menuItem.description?.toLowerCase() || '';
+
+    trend.keywords.forEach(keyword => {
+      const k = keyword.toLowerCase();
+      if (itemName.includes(k)) score += 30;
+      if (itemDesc.includes(k)) score += 10;
+    });
+
+    if (score > highestScore) {
+      highestScore = score;
+      bestTrend = trend;
+    }
   });
+
+  return highestScore > 10 ? bestTrend : null;
 };
