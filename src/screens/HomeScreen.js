@@ -529,7 +529,7 @@ const HomeScreen = ({ navigation }) => {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: bg }]} showsVerticalScrollIndicator={false}> /* penambah agar panjang ke atas maps page beranda */
+    <ScrollView style={[styles.container, { backgroundColor: bg }]} showsVerticalScrollIndicator={false}>
 
       {/* ══ HERO ══ */}
       <View style={styles.hero}>
