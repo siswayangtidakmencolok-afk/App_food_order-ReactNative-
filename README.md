@@ -68,6 +68,9 @@ Aplikasi pemesanan makanan berbasis **React Native + Expo** yang memungkinkan pe
 | 📋 **Riwayat Pesanan** | Melihat daftar pesanan yang pernah dilakukan | ✅ Tersedia |
 | 👤 **Profil & Statistik** | Data profil, total pesanan, belanja, dan favorit | ✅ Tersedia |
 | 🌙 **Mode Gelap** | Tampilan dark mode untuk kenyamanan malam hari | ✅ Tersedia |
+| 🚚 **Lacak Pesanan** | Melacak pesanan | ✅ Tersedia |
+| 💳 **Payment Gateway** | Pembayaran pesanan | ✅ Tersedia |
+| 💳 **E-Wallet** | Pembayaran pesanan | ✅ Tersedia |
 | 🔔 **Notifikasi Push** | Update status pesanan secara real-time | ✅ Tersedia |
 | 🗂️ **Panel Admin** | Manajemen menu dan pesanan | 🚧 Coming Soon |
 
@@ -207,6 +210,12 @@ AplikasiPemesananMakanan/
 - [x] Profil & Statistik Pesanan
 - [x] Mode Gelap
 - [x] Notifikasi Push
+- [x] Lacak Pesanan
+- [x] Driver Card (Simulasi)
+- [x] Navigasi Tombol pesanan lain
+- [x] Tampilan Maps
+- [x] Animasi Moped
+- [x] Payment Gateway
 - [ ] Panel Admin
 - [ ] Integrasi Backend & Database
 - [ ] Autentikasi Login / Register

@@ -2,22 +2,24 @@
 // Map: Platform-aware — WebView Leaflet (mobile) / Static image (web)
 // Install: npx expo install react-native-webview expo-location expo-web-browser expo-linear-gradient
 
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import * as WebBrowser from 'expo-web-browser';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator, Alert,
   Animated, Dimensions, Image, Platform, ScrollView,
-  StyleSheet, Text, TouchableOpacity, View,
-  TextInput, ActivityIndicator, Alert
+  StyleSheet, Text,
+  TextInput,
+  TouchableOpacity, View
 } from 'react-native';
 import AnimatedLogo from '../components/AnimatedLogo';
 import Aurora from '../components/Aurora';
+import MapComponent from '../components/MapComponent';
+import { GEOAPIFY_KEY } from '../config/maps';
 import { darkTheme, lightTheme } from '../config/theme';
 import { useApp } from '../context/AppContext';
-import MapComponent from '../components/MapComponent';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { GEOAPIFY_KEY } from '../config/maps';
 import { fetchAITrends } from '../services/qdrantService';
 
 const { width } = Dimensions.get('window');
@@ -567,7 +569,7 @@ const HomeScreen = ({ navigation }) => {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: bg }]} showsVerticalScrollIndicator={false}> /* penambah agar panjang ke atas maps page beranda */
+    <ScrollView style={[styles.container, { backgroundColor: bg }]} showsVerticalScrollIndicator={false}>
 
       {/* ══ HERO ══ */}
       <View style={styles.hero}>
