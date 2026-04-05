@@ -338,7 +338,7 @@ const MenuScreen = ({ navigation }) => {
         <MaterialCommunityIcons name="food" size={32} color={theme.primary} />
         <Text style={styles.menuHeaderTitle}>Aplikasi Pemesanan Makanan</Text>
       </View>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
         <RestaurantOpeningHeader />
 
         {/* ── Sticky Header ── */}

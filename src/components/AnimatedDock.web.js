@@ -140,22 +140,18 @@ function DockItem({ tab, isActive, onClick, mouseX, badge }) {
 }
 
 export default function AnimatedDock({ state, descriptors, navigation, badges = {} }) {
-  const mouseX  = useMotionValue(Infinity);
-  const isHov   = useMotionValue(0);
-
-  // Height dock — mengembang saat hover (diturunkan agar tidak memangkas area layar di web HP)
-  const heightRow = useTransform(isHov, [0, 1], [38, 48]);
-  const height    = useSpring(heightRow, { mass: 0.1, stiffness: 150, damping: 12 });
+  const mouseX = useMotionValue(Infinity);
+  const isHov  = useMotionValue(0);
 
   return (
-    <motion.div
+    // Outer wrapper — plain div, FIXED position, tidak mempengaruhi layout scroll
+    <div
       style={{
-        height,
         display: 'flex',
-        alignItems: 'flex-end',
+        alignItems: 'center',
         justifyContent: 'center',
         position: 'fixed',
-        bottom: 5,
+        bottom: 15,
         left: 0,
         right: 0,
         zIndex: 999,
@@ -170,11 +166,14 @@ export default function AnimatedDock({ state, descriptors, navigation, badges = 
           flexDirection: 'row',
           alignItems: 'center',
           gap: 10,
-          backgroundColor: '#fff',
-          borderRadius: 18,
-          padding: '4px 10px',
-          boxShadow: '0 4px 15px rgba(0,0,0,0.15)',
+          backgroundColor: 'rgba(20,20,20,0.92)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          borderRadius: 20,
+          padding: '5px 12px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
           pointerEvents: 'auto',
+          border: '1px solid rgba(255,255,255,0.1)',
         }}
       >
         {state.routes.map((route, index) => {
@@ -203,6 +202,6 @@ export default function AnimatedDock({ state, descriptors, navigation, badges = 
           );
         })}
       </motion.div>
-    </motion.div>
+    </div>
   );
-}
+}
