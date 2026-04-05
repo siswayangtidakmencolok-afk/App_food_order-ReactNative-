@@ -214,9 +214,7 @@ function AppContent() {
 export default function App() {
   return (
     <AppProvider>
-      <View style={{ flex: 1 }}>
-        <AppContent />
-      </View>
+      <AppContent />
     </AppProvider>
   );
-}
+}

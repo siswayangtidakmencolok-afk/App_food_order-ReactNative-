@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <!-- KRUSIAL: Viewport meta untuk mobile web agar tidak bisa di-pinch-zoom dan ukurannya pas -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Aplikasi Pemesanan Makanan</title>
+    <meta name="description" content="Pesan makanan favorit Anda dengan mudah dan cepat" />
+    <meta name="theme-color" content="#FF6347" />
+
+    <!-- PWA -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <style>
+      /* ── CSS RESET KRUSIAL untuk React Native Web ── */
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        /* Kunci utama: biarkan html mengikuti ukuran layar */
+        height: 100%;
+        width: 100%;
+        overflow: hidden; /* Cegah scroll di level html — scroll ditangani RN ScrollView */
+      }
+
+      body {
+        height: 100%;
+        width: 100%;
+        overflow: hidden; /* WAJIB: tanpa ini mobile browser akan scroll seluruh halaman */
+        position: fixed; /* Kunci viewport di tempat — penting untuk iOS Safari */
+        background-color: #0a0a0a;
+        -webkit-overflow-scrolling: touch; /* Smooth momentum scroll di iOS */
+        overscroll-behavior: none; /* Cegah pull-to-refresh browser yang merusak */
+      }
+
+      #root {
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Pastikan semua ScrollView RN bisa scroll dengan benar */
+      [data-focusable="true"] {
+        outline: none;
+      }
+
+      /* Fix untuk iOS Safari — cegah bounce scroll di luar app */
+      body::before {
+        content: '';
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        z-index: -1;
+        background: #0a0a0a;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
