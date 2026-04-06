@@ -186,9 +186,9 @@ const ProfileScreen = () => {
       {/* ══ HERO GRADIENT ══ */}
       <View style={[styles.hero]}>
         <GrainientBackground 
-          color1={isDarkMode ? "#533636" : "#FF6347"}
-          color2={isDarkMode ? "#f29f40" : "#FF8C00"}
-          color3={isDarkMode ? "#2D1A1A" : "#EE4D2D"}
+          color1={isDarkMode ? "#FF2A00" : "#FF3D00"} // Strong Red/Orange
+          color2={isDarkMode ? "#FF6200" : "#FF8C00"} // Vibrant Orange
+          color3={isDarkMode ? "#0A0A0A" : "#D84315"} // Pitch Black / Deep Red
         />
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>

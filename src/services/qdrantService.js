@@ -148,6 +148,7 @@ const findBestMatch = (trend, menuItems) => {
  * Mengambil tren AI dengan pengacakan
  */
 export const fetchAITrends = async (category = 'food', menuItems = []) => {
+  
   return new Promise((resolve) => {
     setTimeout(() => {
       let trendsList = [...(RAW_TRENDS[category] || [])];

@@ -7,6 +7,11 @@ import {
   StyleSheet, Text,
   TextInput, TouchableOpacity, View
 } from 'react-native';
+import AnimatedLogo from '../components/AnimatedLogo';
+import Aurora from '../components/Aurora';
+import MapComponent from '../components/MapComponent';
+import ScrollHelper, { useScrollHelper } from '../components/ScrollHelper';
+import ShinyText from '../components/ShinyText';
 import SuccessAnimation from '../components/SuccessAnimation';
 import { darkTheme, lightTheme } from '../config/theme';
 import { useApp } from '../context/AppContext';
@@ -250,6 +255,7 @@ const rStyles = StyleSheet.create({
 const MenuScreen = ({ navigation }) => {
   const { addToCart, favorites, toggleFavorite, isDarkMode, menuItems, menuLoading } = useApp();
   const theme = isDarkMode ? darkTheme : lightTheme;
+  const { scrollRef, scrollYValue, isAtBottom, scrollProps } = useScrollHelper();
 
   const [selectedCategory, setSelectedCategory]           = useState('Semua');
   const [searchQuery, setSearchQuery]                     = useState('');
@@ -339,6 +345,7 @@ const MenuScreen = ({ navigation }) => {
         <Text style={styles.menuHeaderTitle}>Aplikasi Pemesanan Makanan</Text>
       </View>
       <ScrollView
+        {...scrollProps}
         style={{ flex: 1, minHeight: 0 }}
         contentContainerStyle={{ paddingBottom: 110, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
@@ -424,6 +431,9 @@ const MenuScreen = ({ navigation }) => {
         <View style={{ height: 40 }} />
       </ScrollView>
 
+      {/* Tanamkan Scroll Helper */}
+      <ScrollHelper scrollRef={scrollRef} scrollYValue={scrollYValue} isAtBottom={isAtBottom} />
+      
       {/* ── Filter Modal ── */}
       <Modal visible={showFilterModal} transparent animationType="slide" onRequestClose={() => setShowFilterModal(false)}>
         <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setShowFilterModal(false)}>

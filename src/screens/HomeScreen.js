@@ -17,6 +17,7 @@ import {
 import AnimatedLogo from '../components/AnimatedLogo';
 import Aurora from '../components/Aurora';
 import MapComponent from '../components/MapComponent';
+import ShinyText from '../components/ShinyText';
 import { GEOAPIFY_KEY } from '../config/maps';
 import { darkTheme, lightTheme } from '../config/theme';
 import { useApp } from '../context/AppContext';
@@ -585,7 +586,16 @@ const HomeScreen = ({ navigation }) => {
         <Animated.View style={{ opacity: headerAnim, alignItems: 'center', paddingTop: 20, width: '100%', zIndex: 10 }}>
           <AnimatedLogo size={90} />
           <View style={styles.brandRow}>
-            <TypewriterText text="FoodsStreets" style={styles.brandName} delay={800} />
+            <ShinyText 
+              text="FoodsStreets" 
+              style={styles.brandName} 
+              speed={3.6}
+              delay={0}
+              color="#ffffff"
+              shineColor="#f06f05"
+              spread={130}
+              direction="left"
+            />
           </View>
           <Text style={styles.tagline}>by fhaz • Street Food Experience</Text>
           <View style={styles.greetBox}>

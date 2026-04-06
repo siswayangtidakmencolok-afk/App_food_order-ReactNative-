@@ -4,12 +4,14 @@ import { Alert, Animated, Dimensions, Image, ScrollView, StyleSheet, Text, Touch
 import MapComponent from '../components/MapComponent';
 import { GEOAPIFY_KEY } from '../config/maps';
 import { useApp } from '../context/AppContext';
+import ScrollHelper, { useScrollHelper } from '../components/ScrollHelper';
 
 const { width } = Dimensions.get('window');
 
 const DeliveryTrackerScreen = ({ route, navigation }) => {
   const { order } = route.params;
   const { isDarkMode, menuItems, userLocation, updateOrder } = useApp();
+  const { scrollRef, scrollYValue, isAtBottom, scrollProps } = useScrollHelper();
 
   const getInitialTab = () => {
     if (order.status === 'Delivered') return 'Selesai';
@@ -161,7 +163,11 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
         <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
       </TouchableOpacity>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 110 }}>
+      <ScrollView 
+        {...scrollProps}
+        style={{ flex: 1 }} 
+        contentContainerStyle={{ paddingBottom: 110 }}
+      >
 
         {/* Guard Logic: Hanya tampilkan card jika tab AKTIF sesuai dengan status SIMULASI */}
         {(activeTab === 'Untuk dikirim' && isPreparing) ||
@@ -296,6 +302,8 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <ScrollHelper scrollRef={scrollRef} scrollYValue={scrollYValue} isAtBottom={isAtBottom} />
     </View>
   );
 };

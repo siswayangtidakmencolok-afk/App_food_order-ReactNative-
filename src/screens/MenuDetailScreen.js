@@ -7,6 +7,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert, Animated,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -16,6 +17,7 @@ import {
 import { supabase } from '../config/supabase';
 import { useApp } from '../context/AppContext';
 import { getViralInfoForMenuItem } from '../services/qdrantService';
+import ScrollHelper, { useScrollHelper } from '../components/ScrollHelper';
 
 // ─── Komponen Reply Item ──────────────────────────────────────
 // Menampilkan satu reply dari user
@@ -279,7 +281,10 @@ const ReviewItem = ({ review, currentUserId, session, userProfile, textCol, subT
 const MenuDetailScreen = ({ route }) => {
   const { item } = route.params;
   const { isDarkMode, saveReview, session, userProfile } = useApp();
-  const scrollY = useRef(new Animated.Value(0)).current;
+  // scrollY untuk parallax animasi gambar (harus Animated.Value)
+  const animatedScrollY = useRef(new Animated.Value(0)).current;
+  // scrollRef & scrollProps dari hook untuk tombol ScrollHelper
+  const { scrollRef, scrollYValue, isAtBottom, scrollProps } = useScrollHelper();
 
   const [userRating, setUserRating]         = useState(0);
   const [reviewText, setReviewText]         = useState('');
@@ -397,29 +402,23 @@ const MenuDetailScreen = ({ route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
-      {/* ── Floating Back Button ── */}
-      <TouchableOpacity 
-        style={styles.floatingBackBtn} 
-        onPress={() => navigation.goBack()}
-      >
-        <MaterialCommunityIcons name="arrow-left" size={24} color="#1a1a1a" />
-      </TouchableOpacity>
-
-      <Animated.ScrollView 
-        style={{ flex: 1, minHeight: 0 }}
-        contentContainerStyle={{ paddingBottom: 110 }} 
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
-        scrollEventThrottle={16}
+      <ScrollView
+        {...scrollProps}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        onScroll={(e) => {
+          // Forward scroll event ke animated value untuk parallax
+          animatedScrollY.setValue(e.nativeEvent.contentOffset.y);
+          // scrollProps.onScroll akan juga dipanggil untuk ScrollHelper logic
+          scrollProps.onScroll && scrollProps.onScroll(e);
+        }}
       >
         {/* Gambar parallax */}
         <Animated.Image
           source={{ uri: item.image }}
           style={[styles.image, {
             transform: [{
-              translateY: scrollY.interpolate({
+              translateY: animatedScrollY.interpolate({
                 inputRange: [-250, 0, 250],
                 outputRange: [-125, 0, 125],
                 extrapolate: 'clamp',
@@ -564,7 +563,20 @@ const MenuDetailScreen = ({ route }) => {
         </View>
 
         <View style={{ height: 40 }} />
-      </Animated.ScrollView>
+      </ScrollView>
+
+      {/* Floating Back Button & ScrollHelper */}
+      <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }}>
+        <TouchableOpacity 
+          style={styles.floatingBackBtn} 
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.8}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#333" />
+        </TouchableOpacity>
+        
+        <ScrollHelper scrollRef={scrollRef} scrollYValue={scrollYValue} isAtBottom={isAtBottom} />
+      </View>
     </View>
   );
 };

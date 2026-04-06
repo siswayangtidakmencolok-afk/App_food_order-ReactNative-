@@ -67,10 +67,10 @@ export default function ModernDock({ state, descriptors, navigation, badges = {}
 const styles = StyleSheet.create({
   outerContainer: {
     position: 'absolute',
-    bottom: 0,
+    bottom: Platform.OS === 'web' ? 16 : 0, // Lift slightly from typical bottom cutoff bounds 
     left: 0,
     right: 0,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
+    paddingBottom: Platform.OS === 'ios' ? 24 : (Platform.OS === 'web' ? 'max(16px, env(safe-area-inset-bottom))' : 16),
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
