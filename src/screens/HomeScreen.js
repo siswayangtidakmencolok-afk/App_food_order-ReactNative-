@@ -18,6 +18,7 @@ import AnimatedLogo from '../components/AnimatedLogo';
 import Aurora from '../components/Aurora';
 import MapComponent from '../components/MapComponent';
 import ShinyText from '../components/ShinyText';
+import { GEOAPIFY_KEY } from '../config/maps';
 import { darkTheme, lightTheme } from '../config/theme';
 import { useApp } from '../context/AppContext';
 import { fetchAITrends } from '../services/qdrantService';
