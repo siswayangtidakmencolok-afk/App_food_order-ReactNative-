@@ -25,8 +25,8 @@ import PromoHubScreen from './src/screens/PromoHubScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SplashScreen from './src/screens/SplashScreen';
 
-// ── Animated Dock ──
-import AnimatedDock from './src/components/AnimatedDock';
+// ── Modern Dock ──
+import ModernDock from './src/components/ModernDock';
 
 const Tab   = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -145,10 +145,10 @@ function MainTabs() {
   return (
     <Tab.Navigator
       tabBar={props => (
-        <AnimatedDock
+        <ModernDock
           {...props}
           badges={badges}
-          accentColor={accentColor}  // ← warna dock ikut tema
+          accentColor={accentColor}
         />
       )}
       screenOptions={{
