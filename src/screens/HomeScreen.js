@@ -922,7 +922,7 @@ const HomeScreen = ({ navigation }) => {
         </View>
       </TouchableOpacity>
 
-      <View style={{ height: 30 }} />
+      <View style={{ height: 100 }} />
     </ScrollView>
   );
 };

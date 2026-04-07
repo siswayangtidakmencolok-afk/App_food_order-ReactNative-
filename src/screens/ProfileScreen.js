@@ -397,8 +397,7 @@ const ProfileScreen = () => {
         </View>
       </Animated.View>
 
-      <Text style={[styles.appVer, { color: subText }]}>FoodApp v1.0.0 (Premium OS)</Text>
-      <View style={{ height: 40 }} />
+      <View style={{ height: 100 }} />
     </ScrollView>
   );
 };

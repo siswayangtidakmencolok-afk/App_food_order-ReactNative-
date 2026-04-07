@@ -384,6 +384,7 @@ const filteredData = uniqueOrders.filter(order => {
             <Text style={{ color: theme.text, marginTop: 10 }}>Tidak ada pesanan di kategori ini.</Text>
           </View>
         }
+        ListFooterComponent={<View style={{ height: 100 }} />}
       />
       <OrderDetailModal />
     </View>

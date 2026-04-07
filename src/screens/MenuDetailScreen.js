@@ -17,7 +17,6 @@ import {
 import { supabase } from '../config/supabase';
 import { useApp } from '../context/AppContext';
 import { getViralInfoForMenuItem } from '../services/qdrantService';
-import ScrollHelper, { useScrollHelper } from '../components/ScrollHelper';
 
 // ─── Komponen Reply Item ──────────────────────────────────────
 // Menampilkan satu reply dari user
@@ -283,8 +282,6 @@ const MenuDetailScreen = ({ route }) => {
   const { isDarkMode, saveReview, session, userProfile } = useApp();
   // scrollY untuk parallax animasi gambar (harus Animated.Value)
   const animatedScrollY = useRef(new Animated.Value(0)).current;
-  // scrollRef & scrollProps dari hook untuk tombol ScrollHelper
-  const { scrollRef, scrollYValue, isAtBottom, scrollProps } = useScrollHelper();
 
   const [userRating, setUserRating]         = useState(0);
   const [reviewText, setReviewText]         = useState('');
@@ -403,15 +400,13 @@ const MenuDetailScreen = ({ route }) => {
   return (
     <View style={[styles.container, { backgroundColor: bg }]}>
       <ScrollView
-        {...scrollProps}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
         onScroll={(e) => {
           // Forward scroll event ke animated value untuk parallax
           animatedScrollY.setValue(e.nativeEvent.contentOffset.y);
-          // scrollProps.onScroll akan juga dipanggil untuk ScrollHelper logic
-          scrollProps.onScroll && scrollProps.onScroll(e);
         }}
+        scrollEventThrottle={16}
       >
         {/* Gambar parallax */}
         <Animated.Image
@@ -561,22 +556,16 @@ const MenuDetailScreen = ({ route }) => {
             ))
           )}
         </View>
-
-        <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Floating Back Button & ScrollHelper */}
-      <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }}>
-        <TouchableOpacity 
-          style={styles.floatingBackBtn} 
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.8}
-        >
-          <MaterialCommunityIcons name="arrow-left" size={24} color="#333" />
-        </TouchableOpacity>
-        
-        <ScrollHelper scrollRef={scrollRef} scrollYValue={scrollYValue} isAtBottom={isAtBottom} />
-      </View>
+      {/* Floating Back Button */}
+      <TouchableOpacity 
+        style={styles.floatingBackBtn} 
+        onPress={() => navigation.goBack()}
+        activeOpacity={0.8}
+      >
+        <MaterialCommunityIcons name="arrow-left" size={24} color="#333" />
+      </TouchableOpacity>
     </View>
   );
 };

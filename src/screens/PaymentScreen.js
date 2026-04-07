@@ -9,14 +9,12 @@ import {
   View
 } from 'react-native';
 import PinInputModal from '../components/PinInputModal';
-import ScrollHelper, { useScrollHelper } from '../components/ScrollHelper';
 import { useApp } from '../context/AppContext';
 import { processEWalletPayment } from '../services/eWallet';
 
 const PaymentScreen = ({ navigation, route }) => {
   const { total: originalTotal } = route.params;
   const { isDarkMode, cart, saveOrder, userLocation } = useApp();
-  const { scrollRef, scrollYValue, isAtBottom, scrollProps } = useScrollHelper();
   
   const bg = isDarkMode ? '#0a0a0a' : '#f5f5f5';
   const card = isDarkMode ? '#161616' : '#ffffff';
@@ -194,7 +192,6 @@ const PaymentScreen = ({ navigation, route }) => {
   return (
     <View style={{ flex: 1 }}>
       <ScrollView
-        {...scrollProps}
         style={{ flex: 1, minHeight: 0 }}
         contentContainerStyle={{ paddingBottom: 120, flexGrow: 1 }}
       >
@@ -280,8 +277,6 @@ const PaymentScreen = ({ navigation, route }) => {
 
         <View style={styles.bottomSpace} />
       </ScrollView>
-
-      <ScrollHelper scrollRef={scrollRef} scrollYValue={scrollYValue} isAtBottom={isAtBottom} />
 
       {/* ── PIN Entry Modal ── */}
       <PinInputModal
