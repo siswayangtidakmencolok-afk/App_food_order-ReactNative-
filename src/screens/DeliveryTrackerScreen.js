@@ -303,7 +303,7 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
         </View>
       </ScrollView>
 
-      <ScrollHelper scrollRef={scrollRef} scrollYValue={scrollYValue} isAtBottom={isAtBottom} />
+      <ScrollHelper scrollRef={scrollRef} isAtBottom={isAtBottom} />
     </View>
   );
 };

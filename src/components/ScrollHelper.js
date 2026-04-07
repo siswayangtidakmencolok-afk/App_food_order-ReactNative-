@@ -1,8 +1,9 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { TouchableOpacity, Platform, StyleSheet, View, Text } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { TouchableOpacity, Platform, StyleSheet, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 
-// Hook untuk dipakai di tiap screen yang butuh scroll helper
+// ─── Hook ───────────────────────────────────────────
 export const useScrollHelper = () => {
   const scrollRef = useRef(null);
   const scrollYValue = useRef(0);
@@ -13,11 +14,9 @@ export const useScrollHelper = () => {
   const handleScroll = (event) => {
     const y = event.nativeEvent.contentOffset.y;
     scrollYValue.current = y;
-
     const isNearBottom =
       contentHeightRef.current > 0 &&
-      y + layoutHeightRef.current >= contentHeightRef.current - 200;
-
+      y + layoutHeightRef.current >= contentHeightRef.current - 80;
     setIsAtBottom(isNearBottom);
   };
 
@@ -26,86 +25,75 @@ export const useScrollHelper = () => {
     onScroll: handleScroll,
     scrollEventThrottle: 16,
     onLayout: (e) => { layoutHeightRef.current = e.nativeEvent.layout.height; },
-    onContentSizeChange: (w, h) => { contentHeightRef.current = h; },
+    onContentSizeChange: (_, h) => { contentHeightRef.current = h; },
   };
 
   return { scrollRef, scrollYValue, isAtBottom, scrollProps };
 };
 
-// Komponen tombol scroll yang selalu menempel di sudut kanan layar (fixed position)
-const ScrollHelper = ({ scrollRef, scrollYValue, isAtBottom }) => {
+// ─── Komponen tombol – selalu terlihat, fixed ke pojok kanan layar ───
+const ScrollHelper = ({ scrollRef, isAtBottom }) => {
   const { isDarkMode } = useApp();
 
   const handlePress = () => {
     if (!scrollRef?.current) return;
-
-    if (isAtBottom) {
-      // Kembali ke paling atas
-      try { scrollRef.current.scrollTo({ y: 0, animated: true }); } catch (e) {
-        try { scrollRef.current.scrollToOffset({ offset: 0, animated: true }); } catch (_) {}
+    try {
+      if (isAtBottom) {
+        scrollRef.current.scrollTo({ y: 0, animated: true });
+      } else {
+        scrollRef.current.scrollToEnd({ animated: true });
       }
-    } else {
-      // Turun 400px
-      const targetY = (scrollYValue?.current || 0) + 400;
-      try { scrollRef.current.scrollTo({ y: targetY, animated: true }); } catch (e) {
-        try { scrollRef.current.scrollToOffset({ offset: targetY, animated: true }); } catch (_) {}
-      }
+    } catch (_) {
+      // FlatList fallback
+      try {
+        if (isAtBottom) {
+          scrollRef.current.scrollToOffset({ offset: 0, animated: true });
+        } else {
+          scrollRef.current.scrollToEnd({ animated: true });
+        }
+      } catch (__) {}
     }
   };
 
-  // Gaya fixed untuk web agar tombol selalu di pojok kanan layar
-  const fixedStyle = Platform.OS === 'web' ? {
-    position: 'fixed',
-    bottom: 90,
-    right: 20,
-    zIndex: 99999,
-  } : {
-    // Native: pakai absolute tapi harus di root screen (ditangani oleh parent screen)
-    position: 'absolute',
-    bottom: 90,
-    right: 20,
-    zIndex: 99999,
-  };
+  // position fixed di web agar selalu menempel di pojok kanan viewport
+  const containerStyle = Platform.OS === 'web'
+    ? { position: 'fixed', bottom: 80, right: 16, zIndex: 99999 }
+    : { position: 'absolute', bottom: 90, right: 16, zIndex: 99999 };
 
-  const buttonBg = isDarkMode
-    ? 'rgba(25, 25, 25, 0.92)'
-    : 'rgba(255, 255, 255, 0.95)';
+  const bg = isDarkMode ? 'rgba(18,18,18,0.95)' : 'rgba(255,255,255,0.97)';
+  const iconColor = isAtBottom ? '#FF6347' : '#EE4D2D';
 
   return (
-    <View style={fixedStyle} pointerEvents="box-none">
+    <View style={containerStyle} pointerEvents="box-none">
       <TouchableOpacity
-        style={[styles.button, { backgroundColor: buttonBg }]}
         onPress={handlePress}
-        activeOpacity={0.75}
+        activeOpacity={0.8}
+        style={[styles.btn, { backgroundColor: bg }]}
       >
-        <Text style={[styles.arrow, { color: '#EE4D2D' }]}>
-          {isAtBottom ? '▲' : '▼'}
-        </Text>
+        <MaterialCommunityIcons
+          name={isAtBottom ? 'chevron-up' : 'chevron-double-down'}
+          size={22}
+          color={iconColor}
+        />
       </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  button: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+  btn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 10,
-    borderWidth: 1.5,
-    borderColor: 'rgba(238, 77, 45, 0.35)',
-  },
-  arrow: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    includeFontPadding: false,
-    lineHeight: 22,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.20,
+    shadowRadius: 6,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(238, 77, 45, 0.25)',
   },
 });
 

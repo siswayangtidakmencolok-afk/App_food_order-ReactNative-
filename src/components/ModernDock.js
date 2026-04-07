@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 
+// Tab yang ingin ditampilkan (maksimal 5, sesuai screenshot)
 const TABS = [
   { name: 'Home',    icon: '🏠', label: 'Beranda' },
   { name: 'Menu',    icon: '🍔', label: 'Menu' },
@@ -10,12 +11,17 @@ const TABS = [
 ];
 
 export default function ModernDock({ state, descriptors, navigation, badges = {}, accentColor = '#FF6347' }) {
+  // Filter hanya route yang ada di TABS (buang Settings, PromoHub, dll)
+  const visibleRoutes = state.routes.filter(r => TABS.some(t => t.name === r.name));
+
   return (
-    // Outer Container: pointerEvents="box-none" ensures the transparent area doesn't capture touches
-    <View style={styles.outerContainer} pointerEvents="box-none">
-      <View style={styles.dockBox}>
-        {state.routes.map((route, index) => {
-          const tab = TABS.find(t => t.name === route.name) || TABS[0];
+    <View style={styles.wrapper}>
+      <View style={styles.bar}>
+        {visibleRoutes.map((route) => {
+          const tab = TABS.find(t => t.name === route.name);
+          if (!tab) return null;
+
+          const index = state.routes.indexOf(route);
           const isFocused = state.index === index;
           const badge = badges[route.name] || 0;
 
@@ -25,7 +31,6 @@ export default function ModernDock({ state, descriptors, navigation, badges = {}
               target: route.key,
               canPreventDefault: true,
             });
-
             if (!isFocused && !event.defaultPrevented) {
               navigation.navigate(route.name);
             }
@@ -36,25 +41,34 @@ export default function ModernDock({ state, descriptors, navigation, badges = {}
               key={route.key}
               onPress={onPress}
               style={styles.tabItem}
-              activeOpacity={0.7}
+              activeOpacity={0.65}
             >
-              <View style={[
-                styles.iconContainer,
-                isFocused && { backgroundColor: `${accentColor}30` } // 30 is hex for ~20% opacity
-              ]}>
-                <Text style={[styles.iconText, isFocused && { transform: [{ scale: 1.15 }] }]}>
+              {/* Icon + Badge */}
+              <View style={styles.iconWrap}>
+                <Text style={[styles.icon, isFocused && styles.iconFocused]}>
                   {tab.icon}
                 </Text>
-                {/* Badge Indicator */}
                 {badge > 0 && (
                   <View style={[styles.badge, { backgroundColor: accentColor }]}>
-                    <Text style={styles.badgeText}>{badge > 9 ? '9+' : badge}</Text>
+                    <Text style={styles.badgeTxt}>{badge > 9 ? '9+' : badge}</Text>
                   </View>
                 )}
               </View>
-              {/* Dot indicator for active tab */}
+
+              {/* Label */}
+              <Text
+                style={[
+                  styles.label,
+                  { color: isFocused ? accentColor : '#999' },
+                ]}
+                numberOfLines={1}
+              >
+                {tab.label}
+              </Text>
+
+              {/* Active underline dot */}
               {isFocused && (
-                <View style={[styles.activeDot, { backgroundColor: accentColor }]} />
+                <View style={[styles.activeLine, { backgroundColor: accentColor }]} />
               )}
             </TouchableOpacity>
           );
@@ -65,73 +79,77 @@ export default function ModernDock({ state, descriptors, navigation, badges = {}
 }
 
 const styles = StyleSheet.create({
-  outerContainer: {
-    position: 'absolute',
-    bottom: Platform.OS === 'web' ? 16 : 0, // Lift slightly from typical bottom cutoff bounds 
-    left: 0,
-    right: 0,
-    paddingBottom: Platform.OS === 'ios' ? 24 : (Platform.OS === 'web' ? 'max(16px, env(safe-area-inset-bottom))' : 16),
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
+  wrapper: {
+    // Full-width bar stuck to bottom — NOT floating pill
+    backgroundColor: Platform.OS === 'web' ? 'rgba(14,14,14,0.97)' : '#141414',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.07)',
+    paddingBottom: Platform.OS === 'ios' ? 20 : 6,
+    paddingTop: 6,
+    // Web safe-area
+    ...(Platform.OS === 'web' && {
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
+    }),
   },
-  dockBox: {
+  bar: {
     flexDirection: 'row',
+    justifyContent: 'space-around',
     alignItems: 'center',
-    backgroundColor: Platform.OS === 'web' ? 'rgba(20,20,20,0.85)' : '#1a1a1a',
-    backdropFilter: Platform.OS === 'web' ? 'blur(12px)' : 'none', // Web only
-    WebkitBackdropFilter: Platform.OS === 'web' ? 'blur(12px)' : 'none', // Safari Web
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 30, // Pill shape
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
   },
   tabItem: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 2,
     position: 'relative',
+    minWidth: 0,
   },
-  iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  iconWrap: {
+    position: 'relative',
+    width: 36,
+    height: 30,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconText: {
-    fontSize: 22,
+  icon: {
+    fontSize: 20,
+    opacity: 0.55,
   },
-  activeDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+  iconFocused: {
+    opacity: 1,
+    transform: [{ scale: 1.1 }],
+  },
+  label: {
+    fontSize: 10,
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  activeLine: {
     position: 'absolute',
-    bottom: -2,
+    top: 0,
+    width: 24,
+    height: 2,
+    borderRadius: 1,
+    left: '50%',
+    marginLeft: -12,
   },
   badge: {
     position: 'absolute',
-    top: 2,
-    right: 2,
-    minWidth: 16,
-    height: 16,
+    top: 0,
+    right: 0,
+    minWidth: 15,
+    height: 15,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: 3,
     borderWidth: 1.5,
-    borderColor: '#1a1a1a',
+    borderColor: '#141414',
   },
-  badgeText: {
+  badgeTxt: {
     color: '#fff',
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: 'bold',
   },
 });
