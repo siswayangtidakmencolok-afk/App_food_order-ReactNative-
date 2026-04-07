@@ -16,6 +16,7 @@ import SuccessAnimation from '../components/SuccessAnimation';
 import { darkTheme, lightTheme } from '../config/theme';
 import { useApp } from '../context/AppContext';
 import { fetchAITrends } from '../services/qdrantService';
+import PillNav from '../components/PillNav';
 
 const COL_GAP   = 10;
 const PADDING    = 14;
@@ -348,7 +349,7 @@ const MenuScreen = ({ navigation }) => {
         {...scrollProps}
         style={{ flex: 1, minHeight: 0 }}
         contentContainerStyle={{ paddingBottom: 110, flexGrow: 1 }}
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={true}
       >
         <RestaurantOpeningHeader />
 
@@ -429,6 +430,7 @@ const MenuScreen = ({ navigation }) => {
         )}
 
         <View style={{ height: 40 }} />
+        <PillNav />
       </ScrollView>
 
       {/* Tanamkan Scroll Helper */}

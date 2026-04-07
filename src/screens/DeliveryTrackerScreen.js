@@ -167,6 +167,7 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
         {...scrollProps}
         style={{ flex: 1 }} 
         contentContainerStyle={{ paddingBottom: 110 }}
+        showsVerticalScrollIndicator={true}
       >
 
         {/* Guard Logic: Hanya tampilkan card jika tab AKTIF sesuai dengan status SIMULASI */}

@@ -197,6 +197,7 @@ const PaymentScreen = ({ navigation, route }) => {
         {...scrollProps}
         style={{ flex: 1, minHeight: 0 }}
         contentContainerStyle={{ paddingBottom: 120, flexGrow: 1 }}
+        showsVerticalScrollIndicator={true}
       >
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>📋 Informasi Pemesan</Text>

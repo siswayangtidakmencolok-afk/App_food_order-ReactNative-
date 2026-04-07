@@ -22,6 +22,8 @@ import { GEOAPIFY_KEY } from '../config/maps';
 import { darkTheme, lightTheme } from '../config/theme';
 import { useApp } from '../context/AppContext';
 import { fetchAITrends } from '../services/qdrantService';
+import PillNav from '../components/PillNav';
+import ScrollHelper, { useScrollHelper } from '../components/ScrollHelper';
 
 const { width } = Dimensions.get('window');
 
@@ -409,6 +411,7 @@ const HomeScreen = ({ navigation }) => {
     userLocation, updateUserLocation 
   } = useApp();
   const theme   = isDarkMode ? darkTheme : lightTheme;
+  const { scrollRef, scrollYValue, isAtBottom, scrollProps } = useScrollHelper();
   const bg      = isDarkMode ? '#0a0a0a' : '#f5f5f5';
   const card    = isDarkMode ? '#161616' : '#ffffff';
   const textCol = isDarkMode ? '#f0f0f0' : '#1a1a1a';
@@ -570,7 +573,12 @@ const HomeScreen = ({ navigation }) => {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: bg }]} showsVerticalScrollIndicator={false}>
+    <View style={{ flex: 1 }}>
+      <ScrollView 
+        {...scrollProps}
+        style={[styles.container, { backgroundColor: bg }]} 
+        showsVerticalScrollIndicator={true}
+      >
 
       {/* ══ HERO ══ */}
       <View style={styles.hero}>
@@ -923,8 +931,11 @@ const HomeScreen = ({ navigation }) => {
       </TouchableOpacity>
 
       <View style={{ height: 30 }} />
+      <PillNav />
     </ScrollView>
-  );
+    <ScrollHelper scrollRef={scrollRef} isAtBottom={isAtBottom} />
+  </View>
+);
 };
 
 const styles = StyleSheet.create({

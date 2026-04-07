@@ -14,10 +14,10 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import ScrollHelper, { useScrollHelper } from '../components/ScrollHelper';
 import { supabase } from '../config/supabase';
 import { useApp } from '../context/AppContext';
 import { getViralInfoForMenuItem } from '../services/qdrantService';
-import ScrollHelper, { useScrollHelper } from '../components/ScrollHelper';
 
 // ─── Komponen Reply Item ──────────────────────────────────────
 // Menampilkan satu reply dari user
@@ -404,7 +404,7 @@ const MenuDetailScreen = ({ route }) => {
     <View style={[styles.container, { backgroundColor: bg }]}>
       <ScrollView
         {...scrollProps}
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={true}
         contentContainerStyle={{ paddingBottom: 100 }}
         onScroll={(e) => {
           // Forward scroll event ke animated value untuk parallax

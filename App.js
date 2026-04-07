@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, Text, View } from 'react-native';
+import './src/styles/global.css';
 
 import { darkTheme, lightTheme } from './src/config/theme';
 import { AppProvider, useApp } from './src/context/AppContext';
@@ -26,7 +27,6 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import SplashScreen from './src/screens/SplashScreen';
 
 // ── Modern Dock ──
-import ModernDock from './src/components/ModernDock';
 
 const Tab   = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -144,13 +144,7 @@ function MainTabs() {
 
   return (
     <Tab.Navigator
-      tabBar={props => (
-        <ModernDock
-          {...props}
-          badges={badges}
-          accentColor={accentColor}
-        />
-      )}
+      tabBar={() => null}
       screenOptions={{
         headerStyle:      { backgroundColor: theme.colors.primary },
         headerTintColor:  '#fff',
@@ -217,4 +211,4 @@ export default function App() {
       <AppContent />
     </AppProvider>
   );
-}
+}

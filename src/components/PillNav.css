@@ -1,0 +1,191 @@
+/* src/components/PillNav.css */
+
+.pill-nav-container {
+  /* Positioning at the absolute bottom of the screen/content */
+  position: relative; 
+  width: 100%;
+  z-index: 99;
+  display: flex;
+  justify-content: center;
+  padding-bottom: 20px; /* Safe area space */
+  margin-top: 20px; /* Space from content */
+}
+
+.pill-nav {
+  --nav-h: 54px; /* Increased slightly for mobile */
+  --logo: 38px;
+  --pill-pad-x: 16px;
+  --pill-gap: 4px;
+  width: max-content;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  background: var(--base, #000);
+  border-radius: 9999px;
+  padding: 4px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+@media (max-width: 768px) {
+  .pill-nav {
+    width: 92%; /* Slightly narrower for mobile */
+    max-width: 450px;
+    justify-content: space-between;
+    padding: 4px 8px;
+  }
+}
+
+.pill-nav-items {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: var(--nav-h);
+}
+
+.pill-logo {
+  width: var(--nav-h);
+  height: var(--nav-h);
+  border-radius: 50%;
+  background: var(--base, #000);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-right: 4px;
+}
+
+.pill-logo img {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+  display: block;
+}
+
+.pill-list {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: var(--pill-gap);
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+.pill-list > li {
+  display: flex;
+  height: 85%; /* Slightly shorter than container */
+}
+
+.pill {
+  display: inline-flex;
+  flex-direction: column; /* Stack image above label */
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0 var(--pill-pad-x);
+  background: var(--pill-bg, #fff);
+  color: var(--pill-text, #000);
+  text-decoration: none;
+  border-radius: 9999px;
+  box-sizing: border-box;
+  font-weight: 600;
+  font-size: 10px; /* Smaller for mobile stack */
+  text-transform: uppercase;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+}
+
+.pill.is-active {
+  /* Active state styles handled by GSAP scaling the circle */
+  border-color: rgba(238, 77, 45, 0.5);
+}
+
+.pill .hover-circle {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  border-radius: 50%;
+  background: var(--base, #000);
+  z-index: 1;
+  display: block;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.pill .label-stack {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 2;
+  margin-top: 2px;
+}
+
+.pill-icon {
+  font-size: 18px;
+  margin-bottom: -2px;
+  z-index: 2;
+}
+
+.pill .pill-label {
+  position: relative;
+  z-index: 2;
+  display: inline-block;
+  line-height: 1;
+  will-change: transform;
+}
+
+.pill .pill-label-hover {
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--hover-text, #fff);
+  z-index: 3;
+  display: none; /* Initially hidden, GSAP will show */
+  will-change: transform, opacity;
+}
+
+/* Ensure icons turn white on hover/active */
+.pill:hover .pill-icon,
+.pill.is-active .pill-icon {
+  color: var(--hover-text, #fff);
+}
+
+.mobile-menu-button {
+  display: none; /* We want a full dock for bottom nav */
+}
+
+/* Animations for active state dot */
+.pill.is-active::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background: #EE4D2D;
+  border-radius: 50%;
+  z-index: 5;
+}
+
+.nav-badge {
+  position: absolute;
+  top: -2px;
+  right: 2px;
+  min-width: 14px;
+  height: 14px;
+  border-radius: 7px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  font-size: 8px;
+  font-weight: bold;
+  z-index: 10;
+  border: 1px solid #000;
+}

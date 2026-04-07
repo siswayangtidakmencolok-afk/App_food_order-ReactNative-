@@ -57,8 +57,8 @@ const ScrollHelper = ({ scrollRef, isAtBottom }) => {
 
   // position fixed di web agar selalu menempel di pojok kanan viewport
   const containerStyle = Platform.OS === 'web'
-    ? { position: 'fixed', bottom: 80, right: 16, zIndex: 99999 }
-    : { position: 'absolute', bottom: 90, right: 16, zIndex: 99999 };
+    ? { position: 'fixed', bottom: 110, right: 16, zIndex: 99999 }
+    : { position: 'absolute', bottom: 120, right: 16, zIndex: 99999 };
 
   const bg = isDarkMode ? 'rgba(18,18,18,0.95)' : 'rgba(255,255,255,0.97)';
   const iconColor = isAtBottom ? '#FF6347' : '#EE4D2D';

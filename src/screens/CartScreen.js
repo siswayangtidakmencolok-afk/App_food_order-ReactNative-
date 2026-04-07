@@ -3,9 +3,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Alert, Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useApp } from '../context/AppContext';
+import PillNav from '../components/PillNav';
+import ScrollHelper, { useScrollHelper } from '../components/ScrollHelper';
 
 const CartScreen = ({ navigation }) => {
   const { cart, setCart, orderHistory, setOrderHistory } = useApp();
+  const { scrollRef, isAtBottom, scrollProps } = useScrollHelper();
 
   console.log('Cart di CartScreen:', cart);  // ← TAMBAH INI
   console.log('Jumlah item:', cart.length);   // ← TAMBAH INI
@@ -174,10 +177,13 @@ useEffect(() => {
     <MaterialCommunityIcons name="receipt" size={32} color="#fff" />
   </LinearGradient>
   <Animated.FlatList
+    {...scrollProps}
     data={cart}
     keyExtractor={item => item.id.toString()}
     renderItem={({ item, index }) => <AnimatedCartItemWrapper item={item} index={index} />}
     contentContainerStyle={styles.listContainer}
+    ListFooterComponent={<PillNav />}
+    showsVerticalScrollIndicator={true}
   />
 
       <View style={styles.footer}>
@@ -194,6 +200,8 @@ useEffect(() => {
           <Text style={styles.checkoutButtonText}>Lanjut Pembayaran →</Text>
         </TouchableOpacity>
       </View>
+
+      <ScrollHelper scrollRef={scrollRef} isAtBottom={isAtBottom} />
     </Animated.View>
   );
 };

@@ -1,0 +1,40 @@
+/* src/styles/global.css */
+/* Premium Web Scrollbar - Smooth, Thin, Modern */
+
+/* Works on most modern browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(238, 77, 45, 0.4); /* Accent color (Foodstreets Orange) */
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(238, 77, 45, 0.8);
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Firefox support (limited) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(238, 77, 45, 0.4) rgba(0, 0, 0, 0.05);
+}
+
+/* Ensure body allows scrolling */
+body {
+  overflow-y: auto !important;
+  overscroll-behavior-y: none;
+}

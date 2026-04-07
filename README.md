@@ -147,12 +147,12 @@ AplikasiPemesananMakanan/
 │   │       ├── profile.jpg
 │   │       └── settings.jpg
 │   ├── components/
-│   │   ├── Aurora.native.js
 │   │   ├── AnimatedLogo.native.js
 │   │   ├── AnimatedAvatarBorder.native.js
+│   │   ├── AnimatedAvatarBorder.web.js
+│   │   ├── Aurora.native.js
 │   │   ├── Aurora.web.js
 │   │   ├── AnimatedLogo.web.js
-│   │   ├── AnimatedAvatarBorder.web.js
 │   │   ├── AnimatedDock.native.js
 │   │   ├── AnimatedDock.web.js
 │   │   ├── CartItem.js
@@ -165,6 +165,9 @@ AplikasiPemesananMakanan/
 │   │   ├── MenuReview.js
 │   │   ├── OnboardingAnimation.js
 │   │   ├── OnboardingAnimation.native.js
+│   │   ├── ScrollHelper.js
+│   │   ├── ShinyText.native.js
+│   │   ├── ShinyText.web.js
 │   │   ├── PinInput.js
 │   │   └── SuccessAnimation.js
 │   ├── config/

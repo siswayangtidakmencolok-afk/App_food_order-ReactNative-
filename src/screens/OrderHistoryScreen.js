@@ -15,12 +15,15 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { darkTheme, lightTheme } from '../config/theme';
 import { useApp } from '../context/AppContext';
+import PillNav from '../components/PillNav';
+import ScrollHelper, { useScrollHelper } from '../components/ScrollHelper';
 
 const { width } = Dimensions.get('window');
 
 const OrderHistoryScreen = ({ navigation }) => {
   const { orderHistory, setOrderHistory, reorder, isDarkMode, clearHistory } = useApp();
   const theme = isDarkMode ? darkTheme : lightTheme;
+  const { scrollRef, isAtBottom, scrollProps } = useScrollHelper();
   const [activeTab, setActiveTab] = useState('Sedang Berjalan');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -374,9 +377,11 @@ const filteredData = uniqueOrders.filter(order => {
       </View>
 
       <FlatList
+        {...scrollProps}
         data={filteredData}
         keyExtractor={item => item.id.toString()}
         renderItem={({ item, index }) => <OrderCard order={item} index={index} />}
+        showsVerticalScrollIndicator={true}
         contentContainerStyle={styles.listContainer}
         ListEmptyComponent={
           <View style={{ padding: 40, alignItems: 'center' }}>
@@ -384,8 +389,10 @@ const filteredData = uniqueOrders.filter(order => {
             <Text style={{ color: theme.text, marginTop: 10 }}>Tidak ada pesanan di kategori ini.</Text>
           </View>
         }
+        ListFooterComponent={<PillNav />}
       />
       <OrderDetailModal />
+      <ScrollHelper scrollRef={scrollRef} isAtBottom={isAtBottom} />
     </View>
   );
 };
