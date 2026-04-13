@@ -1,17 +1,16 @@
 // src/screens/OnboardingScreen.js
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-    Animated,
-    Dimensions,
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Animated,
+  Dimensions,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import OnboardingAnimation from '../components/OnboardingAnimation';
-import { darkTheme, lightTheme } from '../config/theme';
 import { useApp } from '../context/AppContext';
 
 const { width, height } = Dimensions.get('window');
@@ -19,51 +18,164 @@ const { width, height } = Dimensions.get('window');
 const slides = [
   {
     id: '1',
-    title: 'Pesan Makanan Favoritmu',
-    subtitle: 'KUALITAS BINTANG LIMA',
-    description: 'Temukan berbagai macam menu lezat dari restoran terbaik di sekitarmu dengan mudah dan cepat.',
+    title: 'Pesan Makanan\nFavoritmu',
+    tag: 'KUALITAS BINTANG LIMA',
+    desc: 'Temukan menu lezat dari restoran terbaik di sekitarmu.',
     animationKey: 'food-loading',
   },
   {
     id: '2',
-    title: 'Pengiriman Super Cepat',
-    subtitle: 'SAMPAI DALAM 30 MENIT',
-    description: 'Kurir kami siap mengantarkan pesananmu dengan teknologi pelacakan real-time. Hangat sampai tujuan!',
+    title: 'Pengiriman\nSuper Cepat',
+    tag: 'SAMPAI DALAM 30 MENIT',
+    desc: 'Kurir kami siap antarkan pesananmu dengan pelacakan real-time.',
     animationKey: 'delivery',
   },
   {
     id: '3',
-    title: 'Promo Exclusive',
-    subtitle: 'HEMAT SETIAP HARI',
-    description: 'Dapatkan diskon dan promo menarik setiap harinya khusus untuk Sobat Kuliner FoodsStreets.',
+    title: 'Promo\nExclusive',
+    tag: 'HEMAT SETIAP HARI',
+    desc: 'Diskon dan promo menarik setiap hari khusus Sobat FoodsStreets.',
     animationKey: 'success',
-  }
+  },
 ];
 
+// ─────────────────────────────────────────
+//  Phase 1: Cinematic Intro (Wave + Brand)
+// ─────────────────────────────────────────
+function CinematicIntro({ onDone }) {
+  const waveAnim  = useRef(new Animated.Value(0)).current; // 0→1 wave cover
+  const titleAnim = useRef(new Animated.Value(0)).current;
+  const tagAnim   = useRef(new Animated.Value(0)).current;
+  const exitAnim  = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.sequence([
+      // 1. Wave rises to cover screen
+      Animated.timing(waveAnim, {
+        toValue: 1,
+        duration: 1100,
+        useNativeDriver: true,
+      }),
+      // 2. Brand text appears
+      Animated.parallel([
+        Animated.timing(titleAnim, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(tagAnim, {
+          toValue: 1,
+          duration: 800,
+          delay: 200,
+          useNativeDriver: true,
+        }),
+      ]),
+      // 3. Hold
+      Animated.delay(1300),
+      // 4. Fade out
+      Animated.timing(exitAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start(() => onDone());
+  }, []);
+
+  // Wave translates from bottom (height) → 0
+  const waveTranslateY = waveAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [height, 0],
+  });
+
+  // Title slides up + fades in
+  const titleTranslateY = titleAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [40, 0],
+  });
+  const tagTranslateY = tagAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [20, 0],
+  });
+
+  return (
+    <Animated.View style={[styles.introWrap, { opacity: exitAnim }]}>
+      {/* Dark background */}
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: '#0a0a0a' }]} />
+
+      {/* Rising Wave */}
+      <Animated.View
+        style={[StyleSheet.absoluteFill, { transform: [{ translateY: waveTranslateY }] }]}
+      >
+        <LinearGradient
+          colors={['#FF4500', '#FF6347', '#FFB347']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
+
+      {/* Brand Center */}
+      <View style={styles.introCenter}>
+        {/* Stacked Text Effect (like Monarch Bank reference) */}
+        <Animated.View
+          style={{
+            opacity: titleAnim,
+            transform: [{ translateY: titleTranslateY }],
+            alignItems: 'center',
+          }}
+        >
+          {/* Shadow layer 1 */}
+          <Text style={[styles.introTitle, styles.introTitleLayer1]}>
+            <Text style={styles.introBrand}>F</Text>oodsStreets
+          </Text>
+          {/* Shadow layer 2 */}
+          <Text style={[styles.introTitle, styles.introTitleLayer2, styles.introTitleAbs]}>
+            <Text style={styles.introBrand}>F</Text>oodsStreets
+          </Text>
+          {/* Main text */}
+          <Text style={[styles.introTitle, styles.introTitleMain, styles.introTitleAbs]}>
+            <Text style={styles.introBrand}>F</Text>oodsStreets
+          </Text>
+        </Animated.View>
+
+        <Animated.Text
+          style={[
+            styles.introTagline,
+            { opacity: tagAnim, transform: [{ translateY: tagTranslateY }] },
+          ]}
+        >
+          Pesan. Nikmati. Ulangi.
+        </Animated.Text>
+      </View>
+    </Animated.View>
+  );
+}
+
+// ─────────────────────────────────────────
+//  Phase 2: Content Slides
+// ─────────────────────────────────────────
 const OnboardingScreen = ({ onFinish }) => {
   const { isDarkMode } = useApp();
-  const theme = isDarkMode ? darkTheme : lightTheme;
+  const [phase, setPhase] = useState('intro'); // 'intro' | 'slides'
   const [currentIndex, setCurrentIndex] = useState(0);
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  const fadeAnim  = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
   const smokeAnim = useRef(new Animated.Value(1)).current;
 
   const goToNext = () => {
-    // Stage 1: Transition Out (Slide Up + Fade out + Smoke)
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: -100, duration: 400, useNativeDriver: true }),
-      Animated.timing(smokeAnim, { toValue: 0, duration: 400, useNativeDriver: true }),
+      Animated.timing(fadeAnim,  { toValue: 0, duration: 350, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: -90, duration: 350, useNativeDriver: true }),
+      Animated.timing(smokeAnim, { toValue: 0, duration: 350, useNativeDriver: true }),
     ]).start(() => {
       if (currentIndex < slides.length - 1) {
-        setCurrentIndex(currentIndex + 1);
-        slideAnim.setValue(100); // Start from bottom
-        
-        // Stage 2: Transition In (Sailing Up)
+        setCurrentIndex(i => i + 1);
+        slideAnim.setValue(90);
         Animated.parallel([
-          Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
-          Animated.timing(slideAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
-          Animated.timing(smokeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+          Animated.timing(fadeAnim,  { toValue: 1, duration: 450, useNativeDriver: true }),
+          Animated.timing(slideAnim, { toValue: 0, duration: 550, useNativeDriver: true }),
+          Animated.timing(smokeAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
         ]).start();
       } else {
         onFinish();
@@ -71,61 +183,112 @@ const OnboardingScreen = ({ onFinish }) => {
     });
   };
 
-  const currentSlide = slides[currentIndex];
+  if (phase === 'intro') {
+    return <CinematicIntro onDone={() => setPhase('slides')} />;
+  }
+
+  const slide = slides[currentIndex];
+  const bg = isDarkMode ? '#0a0a0a' : '#fff8f0';
+  const textColor = isDarkMode ? '#ffffff' : '#111111';
+  const descColor = isDarkMode ? '#aaaaaa' : '#666666';
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[styles.slidesWrap, { backgroundColor: bg }]}>
+      {/* Background gradient */}
       <LinearGradient
-        colors={isDarkMode ? ['#000', '#1a1a1a'] : ['#f8f9fa', '#fff']}
+        colors={isDarkMode ? ['#0a0a0a', '#1a0800'] : ['#fff8f0', '#ffffff']}
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Slide Content */}
-      <Animated.View style={[
-        styles.slideContainer, 
-        { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
-      ]}>
-        <OnboardingAnimation
-          name={currentSlide.animationKey}
-          style={styles.animation}
-        />
-        <View style={styles.textContainer}>
-          <Animated.Text style={[styles.subtitle, { 
-            opacity: smokeAnim, 
-            transform: [{ translateY: smokeAnim.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }]
-          }]}>
-            {currentSlide.subtitle}
-          </Animated.Text>
-          <Animated.Text style={[styles.title, { 
-            color: theme.text,
-            opacity: smokeAnim,
-            transform: [{ translateY: smokeAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }]
-          }]}>
-            {currentSlide.title}
-          </Animated.Text>
-          <Animated.Text style={[styles.description, { 
-            color: theme.textSecondary,
-            opacity: smokeAnim,
-            transform: [{ translateY: smokeAnim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }]
-          }]}>
-            {currentSlide.description}
-          </Animated.Text>
+      {/* ── Slide Content (animated) ── */}
+      <Animated.View
+        style={[
+          styles.slideContent,
+          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+        ]}
+      >
+        {/* Tag */}
+        <Animated.Text
+          style={[
+            styles.slideTag,
+            {
+              opacity: smokeAnim,
+              transform: [
+                {
+                  translateY: smokeAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [8, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          {slide.tag}
+        </Animated.Text>
+
+        {/* Icon */}
+        <View style={styles.iconWrap}>
+          <OnboardingAnimation name={slide.animationKey} style={styles.animation} />
         </View>
+
+        {/* Title */}
+        <Animated.Text
+          style={[
+            styles.slideTitle,
+            {
+              color: textColor,
+              opacity: smokeAnim,
+              transform: [
+                {
+                  translateY: smokeAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [24, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          {slide.title}
+        </Animated.Text>
+
+        {/* Description */}
+        <Animated.Text
+          style={[
+            styles.slideDesc,
+            {
+              color: descColor,
+              opacity: smokeAnim,
+              transform: [
+                {
+                  translateY: smokeAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [36, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          {slide.desc}
+        </Animated.Text>
       </Animated.View>
 
-      {/* Footer */}
+      {/* ── Fixed Footer ── */}
       <View style={styles.footer}>
         {/* Dots */}
-        <View style={styles.dotsContainer}>
+        <View style={styles.dotsRow}>
           {slides.map((_, i) => (
             <View
               key={i}
               style={[
                 styles.dot,
                 {
-                  backgroundColor: i === currentIndex ? '#FF6347' : 'rgba(128,128,128,0.2)',
-                  width: i === currentIndex ? 24 : 8,
-                }
+                  backgroundColor:
+                    i === currentIndex ? '#FF6347' : 'rgba(180,180,180,0.25)',
+                  width: i === currentIndex ? 28 : 8,
+                },
               ]}
             />
           ))}
@@ -133,18 +296,18 @@ const OnboardingScreen = ({ onFinish }) => {
 
         {/* Button */}
         <TouchableOpacity
-          activeOpacity={0.8}
+          activeOpacity={0.85}
           onPress={goToNext}
-          style={styles.buttonWrapper}
+          style={styles.btnShadow}
         >
           <LinearGradient
-            colors={['#FFB347', '#FF6347']}
+            colors={['#FF8C00', '#FF4500']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={styles.button}
+            style={styles.btn}
           >
-            <Text style={styles.buttonText}>
-              {currentIndex === slides.length - 1 ? 'Mulai Sekarang' : 'Lanjutkan'}
+            <Text style={styles.btnText}>
+              {currentIndex === slides.length - 1 ? 'Mulai Sekarang 🔥' : 'Lanjutkan →'}
             </Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -154,82 +317,126 @@ const OnboardingScreen = ({ onFinish }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  // ── Intro ──
+  introWrap: {
     flex: 1,
+    overflow: 'hidden',
   },
-  slideContainer: {
+  introCenter: {
     flex: 1,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    paddingHorizontal: 30,
-    paddingTop: height * 0.12, // Menarik konten lebih ke atas
-  },
-  animation: {
-    width: width * 0.75,
-    height: width * 0.75,
-    marginBottom: 40,
-  },
-  textContainer: {
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  subtitle: {
+  introTitle: {
+    fontSize: 36,
+    fontWeight: '300',
+    color: '#ffffff',
+    letterSpacing: 0.5,
+  },
+  introBrand: {
+    fontWeight: '900',
+    fontSize: 40,
+  },
+  // Stacked text layers (like Monarch Bank reference)
+  introTitleLayer1: {
+    opacity: 0.15,
+    marginBottom: -36,  // stack on top of each other
+  },
+  introTitleLayer2: {
+    opacity: 0.4,
+  },
+  introTitleMain: {
+    opacity: 1,
+  },
+  introTitleAbs: {
+    marginTop: -36, // stack over previous
+  },
+  introTagline: {
+    marginTop: 20,
     fontSize: 12,
+    color: 'rgba(255,255,255,0.75)',
+    letterSpacing: 4,
+    textTransform: 'uppercase',
+  },
+
+  // ── Slides ──
+  slidesWrap: {
+    flex: 1,
+  },
+  slideContent: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 28,
+    paddingTop: height * 0.1,
+  },
+  slideTag: {
+    fontSize: 11,
     fontWeight: '900',
     color: '#FF6347',
     letterSpacing: 4,
-    marginBottom: 10,
     textTransform: 'uppercase',
+    marginBottom: 20,
   },
-  title: {
+  iconWrap: {
+    marginBottom: 28,
+  },
+  animation: {
+    width: width * 0.52,
+    height: width * 0.52,
+  },
+  slideTitle: {
+    fontSize: 30,
     fontWeight: '900',
-    fontSize: 28,
-    marginBottom: 16,
     textAlign: 'center',
+    lineHeight: 40,
+    marginBottom: 14,
     letterSpacing: -0.5,
   },
-  description: {
-    fontWeight: '400',
+  slideDesc: {
+    fontSize: 15,
     textAlign: 'center',
     lineHeight: 22,
-    fontSize: 15,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
   },
+
+  // ── Footer (fixed below content) ──
   footer: {
-    width: '100%',
     alignItems: 'center',
-    paddingBottom: 60,
+    paddingHorizontal: 28,
+    paddingBottom: Platform.OS === 'ios' ? 50 : 36,
+    paddingTop: 20,
   },
-  dotsContainer: {
+  dotsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 40,
+    gap: 6,
+    marginBottom: 24,
   },
   dot: {
     height: 6,
     borderRadius: 3,
-    marginHorizontal: 4,
   },
-  buttonWrapper: {
-    width: width * 0.65,
-    maxWidth: 320,
-    borderRadius: 14,
+  btnShadow: {
+    width: width * 0.68,
+    maxWidth: 340,
+    borderRadius: 50,
     overflow: 'hidden',
-    elevation: 8,
-    shadowColor: '#FF6347',
+    elevation: 10,
+    shadowColor: '#FF4500',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
+    shadowOpacity: 0.45,
+    shadowRadius: 16,
   },
-  button: {
-    padding: 16,
+  btn: {
+    paddingVertical: 16,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  buttonText: {
-    color: '#fff',
+  btnText: {
+    color: '#ffffff',
     fontSize: 15,
     fontWeight: '900',
-    textTransform: 'uppercase',
-    letterSpacing: 2,
+    letterSpacing: 1,
   },
 });
 
