@@ -8,6 +8,7 @@ import { darkTheme, lightTheme } from './src/config/theme';
 import { AppProvider, useApp } from './src/context/AppContext';
 
 // ── Screens ──
+import AIChatBubble from './src/components/AIChatBubble';
 import GlobalToast from './src/components/GlobalToast';
 import AuthScreen from './src/screens/AuthScreen';
 import CartScreen from './src/screens/CartScreen';
@@ -218,6 +219,7 @@ function AppContent() {
     <NavigationContainer theme={theme}>
       <MainTabs />
       <GlobalToast ref={toastRef} />
+      <AIChatBubble />
     </NavigationContainer>
   );
 }
