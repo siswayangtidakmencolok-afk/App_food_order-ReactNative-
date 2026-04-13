@@ -14,7 +14,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { sendMessageToGemini } from '../services/geminiService';
+import { sendMessageToLocalAI } from '../services/localAIService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -56,7 +56,7 @@ const AIChatBubble = () => {
     setMessage('');
     setLoading(true);
 
-    const aiResponse = await sendMessageToGemini(message, chat);
+    const aiResponse = await sendMessageToLocalAI(message);
     setChat(prev => [...prev, { role: 'ai', text: aiResponse }]);
     setLoading(false);
   };
