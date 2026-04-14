@@ -1,117 +1,54 @@
 // src/components/CartItem.js
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity } from 'react-native';
 
 const CartItem = ({ item, onIncrease, onDecrease, onRemove }) => {
   return (
-    <View style={styles.container}>
-      <Image source={{ uri: item.image }} style={styles.image} />
-      <View style={styles.infoContainer}>
-        <Text style={styles.name}>{item.name}</Text>
-        <Text style={styles.price}>Rp {item.price.toLocaleString('id-ID')}</Text>
+    <View className="flex-row bg-white rounded-xl mx-4 my-2 p-3 shadow-sm elevation-2">
+      
+      <Image 
+        source={{ uri: item.image }} 
+        className="w-20 h-20 rounded-lg" 
+        resizeMode="cover" 
+      />
+      
+      <View className="flex-1 ml-3 justify-between">
+        <Text className="text-base font-bold text-gray-800">{item.name}</Text>
+        <Text className="text-sm text-[#FF6347] font-semibold mt-1">
+          Rp {item.price.toLocaleString('id-ID')}
+        </Text>
         
-        <View style={styles.quantityContainer}>
+        <View className="flex-row items-center mt-2">
+          
           <TouchableOpacity 
-            style={styles.quantityButton} 
+            className="w-8 h-8 bg-[#FF6347] rounded-md justify-center items-center" 
             onPress={() => onDecrease(item.id)}
           >
-            <Text style={styles.quantityButtonText}>-</Text>
+            <Text className="text-white text-lg font-bold">-</Text>
           </TouchableOpacity>
           
-          <Text style={styles.quantity}>{item.quantity}</Text>
+          <Text className="text-base font-bold mx-3 text-center min-w-[20px]">
+            {item.quantity}
+          </Text>
           
           <TouchableOpacity 
-            style={styles.quantityButton} 
+            className="w-8 h-8 bg-[#FF6347] rounded-md justify-center items-center" 
             onPress={() => onIncrease(item.id)}
           >
-            <Text style={styles.quantityButtonText}>+</Text>
+            <Text className="text-white text-lg font-bold">+</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={styles.removeButton} 
+            className="ml-auto px-3 py-1.5 bg-red-500 rounded-md" 
             onPress={() => onRemove(item.id)}
           >
-            <Text style={styles.removeButtonText}>Hapus</Text>
+            <Text className="text-white text-xs font-bold">Hapus</Text>
           </TouchableOpacity>
         </View>
       </View>
+
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginHorizontal: 16,
-    marginVertical: 8,
-    padding: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  image: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    resizeMode: 'cover',
-  },
-  infoContainer: {
-    flex: 1,
-    marginLeft: 12,
-    justifyContent: 'space-between',
-  },
-  name: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  price: {
-    fontSize: 14,
-    color: '#FF6347',
-    fontWeight: '600',
-    marginTop: 4,
-  },
-  quantityContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  quantityButton: {
-    width: 30,
-    height: 30,
-    backgroundColor: '#FF6347',
-    borderRadius: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  quantityButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  quantity: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginHorizontal: 12,
-    minWidth: 20,
-    textAlign: 'center',
-  },
-  removeButton: {
-    marginLeft: 'auto',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: '#ff4444',
-    borderRadius: 6,
-  },
-  removeButtonText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-});
 
 export default CartItem;

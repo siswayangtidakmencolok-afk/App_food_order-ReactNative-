@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Image, Modal,
-  ScrollView,
+  ScrollView, Platform,
   StyleSheet, Text,
   TextInput, TouchableOpacity, View
 } from 'react-native';
@@ -47,10 +47,32 @@ const FloatParticle = ({ onDone }) => {
 };
 
 // ─── Pin Card (Pinterest style) ───────────────────────────────
-const PinCard = ({ item, theme, onAddToCart, onToggleFavorite, onPress, isFavorite, tall }) => {
+const PinCard = ({ item, theme, onAddToCart, onToggleFavorite, onPress, isFavorite, tall, index, isLeftColumn }) => {
   const heartScale = useRef(new Animated.Value(1)).current;
   const cardScale  = useRef(new Animated.Value(1)).current;
+  // Efek Colliding (Bertabrakan) PPT
+  const slideAnimX = useRef(new Animated.Value(isLeftColumn ? -200 : 200)).current; 
+  const fadeAnim   = useRef(new Animated.Value(0)).current;
+  
   const imgHeight  = tall ? 240 : 160;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        delay: index * 120, // Animasi stager sedikit lebih lambat
+        useNativeDriver: Platform.OS !== 'web'
+      }),
+      Animated.spring(slideAnimX, {
+        toValue: 0,
+        friction: 5,
+        tension: 50,
+        delay: index * 120,
+        useNativeDriver: Platform.OS !== 'web'
+      })
+    ]).start();
+  }, [index, isLeftColumn]);
 
   const handleFavorite = (e) => {
     e.stopPropagation?.();
@@ -65,7 +87,7 @@ const PinCard = ({ item, theme, onAddToCart, onToggleFavorite, onPress, isFavori
   const handlePressOut = () => Animated.spring(cardScale, { toValue: 1,    friction: 4, useNativeDriver: false }).start();
 
   return (
-    <Animated.View style={[styles.pin, { backgroundColor: theme.card, transform: [{ scale: cardScale }] }]}>
+    <Animated.View style={[styles.pin, { backgroundColor: theme.card, opacity: fadeAnim, transform: [{ scale: cardScale }, { translateX: slideAnimX }] }]}>
       <GlareHover
         borderRadius={18}
         glareOpacity={0.2}
@@ -139,6 +161,8 @@ const MasonryGrid = ({ data, theme, onAddToCart, onToggleFavorite, onPress, favo
           <PinCard
             key={item.id}
             item={item}
+            index={i}
+            isLeftColumn={true}
             theme={theme}
             tall={i % 3 === 0}
             isFavorite={favorites.includes(item.id)}
@@ -155,6 +179,8 @@ const MasonryGrid = ({ data, theme, onAddToCart, onToggleFavorite, onPress, favo
           <PinCard
             key={item.id}
             item={item}
+            index={i}
+            isLeftColumn={false}
             theme={theme}
             tall={i % 3 === 1}
             isFavorite={favorites.includes(item.id)}

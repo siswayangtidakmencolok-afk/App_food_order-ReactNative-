@@ -1,10 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  View, Text, StyleSheet, TouchableOpacity,
-  Image, ScrollView, Animated, ActivityIndicator,
-  Alert, SafeAreaView, Dimensions
-} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useApp } from '../context/AppContext';
 import { createMidtransTransaction } from '../services/midtransService';
@@ -161,14 +168,14 @@ const GatewayScreen = ({ route, navigation }) => {
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.centerContent}>
         <Animated.View style={{ opacity: fadeAnim, alignItems: 'center', padding: 30 }}>
-           <MaterialCommunityIcons name="credit-card-outline" size={80} color={midtransBlue} />
-           <Text style={styles.mainTitle}>Siap Lanjut ke Pembayaran?</Text>
-           <Text style={styles.subTitle}>
-             Anda akan diarahkan ke halaman resmi Midtrans untuk memilih metode pembayaran 
-             (Transfer Bank, E-Wallet, atau QRIS).
-           </Text>
+          <MaterialCommunityIcons name="credit-card-outline" size={80} color={midtransBlue} />
+          <Text style={styles.mainTitle}>Siap Lanjut ke Pembayaran?</Text>
+          <Text style={styles.subTitle}>
+            Anda akan diarahkan ke halaman resmi Midtrans untuk memilih metode pembayaran 
+            (Transfer Bank, E-Wallet, atau QRIS).
+          </Text>
 
-           <TouchableOpacity style={[styles.payNowBtn, { backgroundColor: midtransBlue }]} onPress={handlePayNow} disabled={loading}>
+          <TouchableOpacity style={[styles.payNowBtn, { backgroundColor: midtransBlue }]} onPress={handlePayNow} disabled={loading}>
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
@@ -177,14 +184,14 @@ const GatewayScreen = ({ route, navigation }) => {
                   <MaterialCommunityIcons name="chevron-right" size={24} color="#fff" />
                 </View>
               )}
-           </TouchableOpacity>
+          </TouchableOpacity>
 
-           <View style={styles.paymentIcons}>
+          <View style={styles.paymentIcons}>
               <MaterialCommunityIcons name="bank" size={24} color="#aaa" />
               <MaterialCommunityIcons name="credit-card" size={24} color="#aaa" />
               <MaterialCommunityIcons name="wallet" size={24} color="#aaa" />
               <MaterialCommunityIcons name="qrcode-scan" size={24} color="#aaa" />
-           </View>
+          </View>
         </Animated.View>
       </ScrollView>
 

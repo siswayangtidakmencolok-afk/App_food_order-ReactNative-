@@ -221,10 +221,10 @@ const styles = StyleSheet.create({
   chatWindow: {
     position: 'absolute',
     bottom: 20,
-    right: 20,
-    width: Platform.OS === 'web' ? 380 : width * 0.9,
-    maxWidth: 400,
-    height: height * 0.55,
+    right: 15,
+    width: width > 400 ? 340 : width * 0.85,
+    height: 400,
+    maxHeight: height * 0.6,
     backgroundColor: 'rgba(30, 30, 30, 0.98)', // Minimalist Dark
     borderRadius: 24,
     overflow: 'hidden',

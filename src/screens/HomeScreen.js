@@ -147,10 +147,10 @@ const CTACard = ({ icon, title, subtitle, color, accentColor, dustColor, onPress
   const shimmerX    = useRef(new Animated.Value(-200)).current;
   const borderGlow  = useRef(new Animated.Value(0)).current;
   
-  // Lebih banyak partikel untuk efek cinematic
-  const DUST_COUNT = 18;
-  const SPARKLE_COUNT = 12;
-  const TRAIL_COUNT = 8;
+  // Mengurangi partikel agar performa ringan & efisien
+  const DUST_COUNT = 0;
+  const SPARKLE_COUNT = 0;
+  const TRAIL_COUNT = 0;
   const dustParticles = Array.from({ length: DUST_COUNT });
   const sparkleParticles = Array.from({ length: SPARKLE_COUNT });
   const trailParticles = Array.from({ length: TRAIL_COUNT });
