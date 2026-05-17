@@ -12,9 +12,9 @@ export const createMidtransTransaction = async (orderData) => {
     const serverKey = MIDTRANS_CONFIG.SERVER_KEY;
     const authHeader = `Basic ${CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(serverKey + ':'))}`;
 
-    // Gunakan CORS Proxy jika dijalankan di Web (localhost) agar tidak diblokir browser
+    // Gunakan CORS Proxy yang mendukung POST dan Authorization Header (corsproxy.io)
     const url = Platform.OS === 'web' 
-      ? `https://api.allorigins.win/raw?url=${encodeURIComponent(MIDTRANS_CONFIG.BASE_URL)}`
+      ? `https://corsproxy.io/?${encodeURIComponent(MIDTRANS_CONFIG.BASE_URL)}`
       : MIDTRANS_CONFIG.BASE_URL;
 
     // 1. Siapkan Body Request sesuai spek Midtrans Snap
