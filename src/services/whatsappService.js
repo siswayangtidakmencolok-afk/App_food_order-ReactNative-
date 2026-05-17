@@ -1,6 +1,6 @@
 // src/services/whatsappService.js
 
-const FONNTE_TOKEN = process.env.EXPO_PUBLIC_FONNTE_TOKEN;
+const FONNTE_TOKEN = '7M6tiKM5jw2gcZDnkDxi'; // Token di-hardcode agar langsung jalan di Vercel/Cloudflare
 
 /**
  * Mengirimkan Struk / Notifikasi Pesanan ke WhatsApp Pelanggan via Fonnte
