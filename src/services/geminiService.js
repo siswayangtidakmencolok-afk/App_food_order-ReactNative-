@@ -1,7 +1,8 @@
 // src/services/geminiService.js
 
 const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
-const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key=${GEMINI_API_KEY}`;
+// Menggunakan model 1.5-flash yang jauh lebih cerdas, natural, dan cepat
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 /**
  * Instruksi Sistem untuk melatih karakter "Street Chef"
@@ -37,10 +38,15 @@ export const sendMessageToGemini = async (userMessage, chatHistory = []) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        // Menggunakan fitur system_instruction bawaan model 1.5
+        system_instruction: { 
+          parts: [{ text: SYSTEM_INSTRUCTION }] 
+        },
         contents: [
+          ...history,
           {
             role: 'user',
-            parts: [{ text: `INSTRUKSI SISTEM: ${SYSTEM_INSTRUCTION}\n\nKONTEKS CHAT SEBELUMNYA: ${JSON.stringify(recentHistory)}\n\nUSER: ${userMessage}` }]
+            parts: [{ text: userMessage }]
           }
         ],
       }),
