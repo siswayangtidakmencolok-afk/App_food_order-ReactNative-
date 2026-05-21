@@ -83,4 +83,4 @@ Pastikan mode **Sandbox** sama dengan `BASE_URL` di app.
 supabase functions serve midtrans-webhook --no-verify-jwt
 ```
 
-Gunakan [Midtrans Simulator](https://simulator.sandbox.midtrans.com/) atau kirim sample notification dari dashboard.
+Gunakan [Midtrans Simulator](https://simulator.sandbox.midtrans.com/)atau kirim sample notification dari dashboard.
