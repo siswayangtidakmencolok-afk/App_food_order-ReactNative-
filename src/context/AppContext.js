@@ -1,11 +1,8 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { supabase } from '../config/supabase';
 import { sendOrderReceiptEmail } from '../services/emailService';
-<<<<<<< HEAD
 import { formatOrderRow } from '../utils/formatOrder';
-=======
 import { sendWhatsAppReceipt } from '../services/whatsappService';
->>>>>>> main
 
 const AppContext = createContext();
 
