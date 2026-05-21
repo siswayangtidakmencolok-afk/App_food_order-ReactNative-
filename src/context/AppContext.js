@@ -1,7 +1,11 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { supabase } from '../config/supabase';
 import { sendOrderReceiptEmail } from '../services/emailService';
+<<<<<<< HEAD
 import { formatOrderRow } from '../utils/formatOrder';
+=======
+import { sendWhatsAppReceipt } from '../services/whatsappService';
+>>>>>>> main
 
 const AppContext = createContext();
 
@@ -212,6 +216,11 @@ export const AppProvider = ({ children }) => {
     
     // 🔥 Tembak Email Struk Asli ke Pelanggan secara Asinkronus (Tidak mengganggu laju aplikasi)
     sendOrderReceiptEmail(newOrder, session.user.email);
+    
+    // 🔥 Tembak Pesan WhatsApp Asli ke Pelanggan
+    if (orderData.phoneNumber) {
+      sendWhatsAppReceipt(newOrder, orderData.phoneNumber);
+    }
 
     return { data: newOrder, error: null };
   };

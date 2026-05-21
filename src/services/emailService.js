@@ -4,7 +4,7 @@
 const EMAILJS_CONFIG = {
   SERVICE_ID: process.env.EXPO_PUBLIC_EMAILJS_SERVICE_ID || 'service_s9g0jjv',
   TEMPLATE_ID: process.env.EXPO_PUBLIC_EMAILJS_TEMPLATE_ID || 'template_xhj10ongit',
-  PUBLIC_KEY: process.env.EXPO_PUBLIC_EMAILJS_PUBLIC_KEY || 'exXX51FszJu4RaazP',
+  PUBLIC_KEY: process.env.EXPO_PUBLIC_EMAILJS_PUBLIC_KEY || 'yNaj9oa1bpEoIZHH1',
 };
 
 /**

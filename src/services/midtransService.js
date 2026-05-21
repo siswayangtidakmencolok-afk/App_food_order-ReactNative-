@@ -9,6 +9,7 @@ export const createMidtransTransaction = async (orderData) => {
   try {
     const useDirect = process.env.EXPO_PUBLIC_MIDTRANS_USE_DIRECT === 'true';
 
+<<<<<<< HEAD
     if (!useDirect) {
       const { data, error } = await supabase.functions.invoke('create-midtrans-snap', {
         body: {
@@ -20,6 +21,12 @@ export const createMidtransTransaction = async (orderData) => {
           customerEmail: orderData.customerEmail,
         },
       });
+=======
+    // Gunakan CORS Proxy yang mendukung POST dan Authorization Header (corsproxy.io)
+    const url = Platform.OS === 'web' 
+      ? `https://corsproxy.io/?${encodeURIComponent(MIDTRANS_CONFIG.BASE_URL)}`
+      : MIDTRANS_CONFIG.BASE_URL;
+>>>>>>> main
 
       if (error) {
         console.error('[Midtrans] Edge function error:', error);
