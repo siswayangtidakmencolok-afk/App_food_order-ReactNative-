@@ -1,17 +1,16 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert, Animated, Dimensions, Linking, Platform, ScrollView, StyleSheet,
-  Switch, Text, TextInput, TouchableOpacity, View
+    Alert, Animated, Dimensions, Linking, Platform, ScrollView, StyleSheet,
+    Switch, Text, TextInput, TouchableOpacity, View
 } from 'react-native';
-import { darkTheme, lightTheme } from '../config/theme';
-import { useApp } from '../context/AppContext';
 import GrainientBackground from '../components/GrainientBackground';
-import MetallicPaint from '../components/MetallicPaint';
-import { METALLIC_LOGO_SVG } from '../constants/assets';
 import LogoLoop from '../components/LogoLoop';
+import MetallicPaint from '../components/MetallicPaint';
+import { darkTheme, lightTheme } from '../config/theme';
+import { METALLIC_LOGO_SVG } from '../constants/assets';
+import { useApp } from '../context/AppContext';
 
 const { width } = Dimensions.get('window');
 

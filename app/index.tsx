@@ -2,18 +2,21 @@
 // Entry point utama - langsung render full app
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native';
+import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { useState, useEffect, useRef } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Text, View } from 'react-native';
 
 import { darkTheme, lightTheme } from '../src/config/theme';
 import { AppProvider, useApp } from '../src/context/AppContext';
 
 // Screens
+import AnimatedDock from '../src/components/AnimatedDock';
+import GlobalToast from '../src/components/GlobalToast';
 import AuthScreen from '../src/screens/AuthScreen';
 import CartScreen from '../src/screens/CartScreen';
 import DeliveryTrackerScreen from '../src/screens/DeliveryTrackerScreen';
+import GatewayScreen from '../src/screens/GatewayScreen';
 import HomeScreen from '../src/screens/HomeScreen';
 import InvoiceScreen from '../src/screens/InvoiceScreen';
 import MenuDetailScreen from '../src/screens/MenuDetailScreen';
@@ -24,9 +27,6 @@ import PaymentScreen from '../src/screens/PaymentScreen';
 import ProfileScreen from '../src/screens/ProfileScreen';
 import SettingsScreen from '../src/screens/SettingsScreen';
 import SplashScreen from '../src/screens/SplashScreen';
-import GatewayScreen from '../src/screens/GatewayScreen';
-import GlobalToast from '../src/components/GlobalToast';
-import AnimatedDock from '../src/components/AnimatedDock';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();

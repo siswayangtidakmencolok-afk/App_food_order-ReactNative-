@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import { useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 
 export const usePushNotifications = () => {
   const [expoPushToken, setExpoPushToken] = useState('');
@@ -30,7 +30,6 @@ export const usePushNotifications = () => {
 
   return { expoPushToken, notification };
 };
-
 async function registerForPushNotificationsAsync() {
   let token;
 
@@ -70,3 +69,4 @@ async function registerForPushNotificationsAsync() {
 
   return token;
 }
+
