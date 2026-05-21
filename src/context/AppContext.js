@@ -1,7 +1,11 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { supabase } from '../config/supabase';
 import { sendOrderReceiptEmail } from '../services/emailService';
+<<<<<<< HEAD
+import { formatOrderRow } from '../utils/formatOrder';
+=======
 import { sendWhatsAppReceipt } from '../services/whatsappService';
+>>>>>>> main
 
 const AppContext = createContext();
 
@@ -60,6 +64,57 @@ export const AppProvider = ({ children }) => {
     }
   }, [session]);
 
+  // ── REALTIME: dengar UPDATE orders dari webhook Midtrans ──
+  const orderChannelRef = useRef(null);
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    const channel = supabase
+      .channel(`orders-${session.user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `user_id=eq.${session.user.id}`,
+        },
+        (payload) => {
+          const row = payload.new;
+          setOrderHistory((prev) =>
+            prev.map((o) => {
+              if (o.id !== row.id) return o;
+              const merged = formatOrderRow({ ...o, ...row, order_items: o.items });
+              return merged;
+            }),
+          );
+
+          if (row.payment_status === 'paid') {
+            addNotification('Pembayaran berhasil! Pesanan mulai dimasak.', 'success');
+          } else if (row.payment_status === 'failed' || row.payment_status === 'expired') {
+            addNotification('Pembayaran gagal atau kedaluwarsa.', 'warning');
+          } else if (
+            row.status &&
+            row.status !== 'Pending' &&
+            notifSettings.orderUpdate
+          ) {
+            addNotification(`Status pesanan: ${row.status}`, 'info');
+          }
+        },
+      )
+      .subscribe();
+
+    orderChannelRef.current = channel;
+
+    return () => {
+      if (orderChannelRef.current) {
+        supabase.removeChannel(orderChannelRef.current);
+        orderChannelRef.current = null;
+      }
+    };
+  }, [session?.user?.id]);
+
   // ── MENU ──────────────────────────────────────────────
   const fetchMenu = async () => {
     setMenuLoading(true);
@@ -109,22 +164,7 @@ export const AppProvider = ({ children }) => {
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false });
     if (!error && data) {
-      const formatted = data.map(o => ({
-        ...o,
-        orderNumber:       o.order_number,
-        customerName:      o.customer_name,
-        phoneNumber:       o.phone_number,
-        deliveryAddress:   o.delivery_address,
-        orderNotes:        o.order_notes,
-        paymentMethod:     o.payment_method,
-        estimatedDelivery: o.estimated_delivery,
-        items: (o.order_items || []).map(item => ({
-          ...item,
-          id: item.menu_item_id,
-        })),
-        createdAt: o.created_at,
-      }));
-      setOrderHistory(formatted);
+      setOrderHistory(data.map(formatOrderRow));
     }
   };
 
@@ -137,6 +177,7 @@ export const AppProvider = ({ children }) => {
         user_id:           session.user.id,
         order_number:      orderData.orderNumber,
         status:            'Pending',
+        payment_status:    'unpaid',
         total:             orderData.total,
         customer_name:     orderData.customerName,
         phone_number:      orderData.phoneNumber,
@@ -165,18 +206,10 @@ export const AppProvider = ({ children }) => {
 
     if (itemsError) return { error: itemsError };
 
-    const newOrder = {
+    const newOrder = formatOrderRow({
       ...order,
-      orderNumber:       order.order_number,
-      customerName:      order.customer_name,
-      phoneNumber:       order.phone_number,
-      deliveryAddress:   order.delivery_address,
-      orderNotes:        order.order_notes,
-      paymentMethod:     order.payment_method,
-      estimatedDelivery: order.estimated_delivery,
-      items:     orderData.items,
-      createdAt: order.created_at,
-    };
+      order_items: orderData.items,
+    });
     setOrderHistory(prev => [newOrder, ...prev]);
     setCart([]);
     addNotification('Pesanan berhasil dibuat!', 'success');
@@ -199,7 +232,13 @@ export const AppProvider = ({ children }) => {
       .eq('id', orderId);
     
     if (!error) {
-      setOrderHistory(prev => prev.map(o => o.id === orderId ? { ...o, ...updates } : o));
+      setOrderHistory(prev => prev.map(o => {
+        if (o.id !== orderId) return o;
+        const mapped = { ...o, ...updates };
+        if (updates.payment_status) mapped.paymentStatus = updates.payment_status;
+        if (updates.midtrans_order_id) mapped.midtransOrderId = updates.midtrans_order_id;
+        return mapped;
+      }));
     }
     return { error };
   };

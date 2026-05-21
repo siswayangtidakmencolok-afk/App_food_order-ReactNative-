@@ -25,46 +25,12 @@ const OrderHistoryScreen = ({ navigation }) => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  // Simulasi update status otomatis setiap 10 detik
- // HAPUS INI (yang di luar):
-// const STATUS_FLOW = {
-//   'Pending': 'Processing',
-//   'Processing': 'Delivering',
-//   'Delivering': 'Delivered',
-//   'Delivered': 'Delivered'
-// };
-
-// GANTI DENGAN INI:
-useEffect(() => {
-  const STATUS_FLOW = {
-    'Pending': 'Processing',
-    'Processing': 'Delivering',
-    'Delivering': 'Delivered',
-    'Delivered': 'Delivered'
-  };
-
-  const updateOrderStatus = () => {
-    setOrderHistory(prevHistory => 
-      prevHistory.map(order => {
-        if (order.status !== 'Delivered') {
-          return { ...order, status: STATUS_FLOW[order.status] };
-        }
-        return order;
-      })
-    );
-  };
-
-  const interval = setInterval(() => {
-    updateOrderStatus();
-  }, 10000);
-
-  return () => clearInterval(interval);
-}, [setOrderHistory]); // ✅ Hanya setOrderHistory sebagai dependency
+  // Status diperbarui via Supabase Realtime (webhook Midtrans + update manual)
 
   const getStatusColor = (status) => {
     const colors = {
       'Pending': { bg: ['#FFF3CD', '#FFEEBA'], text: '#856404', grad: ['#FEDCC8', '#FDB398'] },
-      'Processing': { bg: ['#CCE5FF', '#B8DAFF'], text: '#004085', grad: ['#A1C4FD', '#C2E9FB'] },
+      'Preparing': { bg: ['#CCE5FF', '#B8DAFF'], text: '#004085', grad: ['#A1C4FD', '#C2E9FB'] },
       'Delivering': { bg: ['#D1ECF1', '#BEE5EB'], text: '#0C5460', grad: ['#FF9A9E', '#FAD0C4'] },
       'Delivered': { bg: ['#D4EDDA', '#C3E6CB'], text: '#155724', grad: ['#84FAB0', '#8FD3F4'] },
     };
@@ -74,7 +40,7 @@ useEffect(() => {
   const getStatusIcon = (status) => {
     return {
       'Pending': 'timer-sand',
-      'Processing': 'muffin',
+      'Preparing': 'muffin',
       'Delivering': 'truck-delivery',
       'Delivered': 'check-decagram',
     }[status] || 'package-variant';
@@ -83,7 +49,7 @@ useEffect(() => {
   const getStatusLabel = (status) => {
     return {
       'Pending': 'Menunggu',
-      'Processing': 'Dimasak',
+      'Preparing': 'Dimasak',
       'Delivering': 'Dikirim',
       'Delivered': 'Selesai',
     }[status] || status;
@@ -231,8 +197,8 @@ useEffect(() => {
               />
               <TimelineItem 
                 title="Sedang Diproses" 
-                completed={['Processing', 'Delivering', 'Delivered'].includes(selectedOrder.status)}
-                active={selectedOrder.status === 'Processing'}
+                completed={['Preparing', 'Delivering', 'Delivered'].includes(selectedOrder.status)}
+                active={selectedOrder.status === 'Preparing'}
                 theme={theme}
               />
               <TimelineItem 

@@ -8,8 +8,9 @@ import { useApp } from '../context/AppContext';
 const { width } = Dimensions.get('window');
 
 const DeliveryTrackerScreen = ({ route, navigation }) => {
-  const { order } = route.params;
-  const { isDarkMode, menuItems, userLocation, updateOrder } = useApp();
+  const { order: routeOrder } = route.params;
+  const { isDarkMode, menuItems, userLocation, updateOrder, orderHistory } = useApp();
+  const order = orderHistory.find((o) => o.id === routeOrder.id) || routeOrder;
 
   const getInitialTab = () => {
     if (order.status === 'Delivered') return 'Selesai';
@@ -44,7 +45,26 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
   const RESTAURANT_LOC = { latitude: -6.2000, longitude: 106.8400 };
   const [driverLoc, setDriverLoc] = useState(RESTAURANT_LOC);
   const [simStatus, setSimStatus] = useState(order.status);
-  const [isPreparing, setIsPreparing] = useState(true);
+  const [isPreparing, setIsPreparing] = useState(
+    order.status === 'Pending' || order.status === 'Preparing',
+  );
+
+  // Sinkron status dari Supabase Realtime
+  useEffect(() => {
+    setSimStatus(order.status);
+    if (order.status === 'Preparing') {
+      setIsPreparing(true);
+      setActiveTab('Untuk dikirim');
+    }
+    if (order.status === 'Delivering') {
+      setIsPreparing(false);
+      setActiveTab('Akan diterima');
+    }
+    if (order.status === 'Delivered') {
+      setIsPreparing(false);
+      setActiveTab('Selesai');
+    }
+  }, [order.status, order.paymentStatus]);
   const [routeCoords, setRouteCoords] = useState([]);
 
   useEffect(() => {
@@ -93,9 +113,10 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
     }, 4000);
   };
 
-  const finishOrder = () => {
+  const finishOrder = async () => {
     setSimStatus('Delivered');
     setActiveTab('Selesai');
+    await updateOrder(order.id, { status: 'Delivered' });
     Alert.alert('🎉 Pesanan Sampai!', 'Kurir sudah sampai di lokasi tujuan Anda. Selamat menikmati!');
   };
 
