@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { supabase } from '../config/supabase';
 import { sendOrderReceiptEmail } from '../services/emailService';
-import { formatOrderRow } from '../utils/formatOrder';
 import { sendWhatsAppReceipt } from '../services/whatsappService';
+import { formatOrderRow } from '../utils/formatOrder';
 
 const AppContext = createContext();
 
@@ -222,7 +222,24 @@ export const AppProvider = ({ children }) => {
     return { data: newOrder, error: null };
   };
 
+  const savePushToken = useCallback(async (token) => {
+    if (!session?.user?.id || !token) return;
+    await supabase.from('profiles').update({ expo_push_token: token }).eq('id', session.user.id);
+  }, [session?.user?.id]);
+
+  const sendOrderPush = async (userId, title, body, data = {}) => {
+    if (!userId) return;
+    try {
+      await supabase.functions.invoke('send-order-push', {
+        body: { user_id: userId, title, body, data },
+      });
+    } catch (e) {
+      console.warn('[push]', e);
+    }
+  };
+
   const updateOrder = async (orderId, updates) => {
+    const target = orderHistory.find((o) => o.id === orderId);
     const { error } = await supabase
       .from('orders')
       .update(updates)
@@ -234,8 +251,23 @@ export const AppProvider = ({ children }) => {
         const mapped = { ...o, ...updates };
         if (updates.payment_status) mapped.paymentStatus = updates.payment_status;
         if (updates.midtrans_order_id) mapped.midtransOrderId = updates.midtrans_order_id;
+        if (updates.status) mapped.status = updates.status;
         return mapped;
       }));
+
+      if (updates.status && target?.user_id) {
+        const msgs = {
+          Preparing: 'Pesanan sedang dimasak',
+          Delivering: 'Pesanan dalam perjalanan',
+          Delivered: 'Pesanan telah sampai',
+        };
+        sendOrderPush(
+          target.user_id,
+          'Update pesanan',
+          msgs[updates.status] || updates.status,
+          { orderId },
+        );
+      }
     }
     return { error };
   };
@@ -395,6 +427,7 @@ export const AppProvider = ({ children }) => {
 
       // Profile
       userProfile: profileWithStats, updateProfile, setUserProfile,
+      savePushToken,
 
       // Reviews
       saveReview,

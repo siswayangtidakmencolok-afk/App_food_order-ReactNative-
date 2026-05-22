@@ -1,14 +1,14 @@
-import './global.css';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, Text, View } from 'react-native';
+import './global.css';
 
+import * as Notifications from 'expo-notifications';
 import { darkTheme, lightTheme } from './src/config/theme';
 import { AppProvider, useApp } from './src/context/AppContext';
 import { usePushNotifications } from './src/hooks/usePushNotifications';
-import * as Notifications from 'expo-notifications';
 
 // ── Notifikasi Layar Utama ──
 Notifications.setNotificationHandler({
