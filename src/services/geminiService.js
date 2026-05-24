@@ -18,7 +18,7 @@ Kepribadian Anda:
 - Gunakan bahasa Indonesia yang luwes.
 `;
 
-export const sendMessageToGemini = async (userMessage, chatHistory = []) => {
+export const sendMessageToGemini = async (userMessage, chatHistory = [], appContextData = '') => {
   try {
     if (!GEMINI_API_KEY) {
       throw new Error('API Key Gemini tidak ditemukan. Harap cek file .env Anda.');
@@ -38,9 +38,9 @@ export const sendMessageToGemini = async (userMessage, chatHistory = []) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        // Menggunakan fitur system_instruction bawaan model 1.5
+        // Menggunakan fitur system_instruction bawaan model 1.5 dengan tambahan konteks dinamis
         system_instruction: { 
-          parts: [{ text: SYSTEM_INSTRUCTION }] 
+          parts: [{ text: `${SYSTEM_INSTRUCTION}\n\n[KONTEKS DINAMIS APLIKASI SAAT INI (REAL-TIME)]:\n${appContextData}` }] 
         },
         contents: [
           ...history,

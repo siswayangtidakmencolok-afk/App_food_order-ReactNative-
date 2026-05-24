@@ -42,11 +42,6 @@ export async function registerForPushNotificationsAsync() {
     return { token: null, status: finalStatus };
   }
 
-  try {
-    const token = (await Notifications.getExpoPushTokenAsync({ projectId: PROJECT_ID })).data;
-    return { token, status: 'granted' };
-  } catch (e) {
-    console.warn('[push] token error', e);
-    return { token: null, status: 'error' };
-  }
+  const token = (await Notifications.getExpoPushTokenAsync({ projectId: PROJECT_ID })).data;
+  return { token, status: finalStatus };
 }

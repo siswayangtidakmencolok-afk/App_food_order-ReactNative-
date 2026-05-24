@@ -14,11 +14,14 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { useApp } from '../context/AppContext';
+import { sendMessageToGemini } from '../services/geminiService';
 import { sendMessageToLocalAI } from '../services/localAIService';
 
 const { width, height } = Dimensions.get('window');
 
 const AIChatBubble = () => {
+  const { menuItems, cart, addToCart, userProfile } = useApp();
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [chat, setChat] = useState([
@@ -53,10 +56,92 @@ const AIChatBubble = () => {
 
     const userMsg = { role: 'user', text: message };
     setChat(prev => [...prev, userMsg]);
+    const inputMessage = message;
     setMessage('');
     setLoading(true);
 
-    const aiResponse = await sendMessageToLocalAI(message);
+    // Susun konteks menu secara dinamis dari database
+    const menuContext = menuItems && menuItems.length > 0 
+      ? menuItems.map(item => `- ${item.name} (${item.category}): Rp ${item.price} - ${item.description || 'Tidak ada deskripsi'}`).join('\n')
+      : '- Nasi Goreng Spesial (Makanan Utama): Rp 25000 - Nasi goreng dengan telur, ayam, dan sayuran\n- Mie Goreng (Makanan Utama): Rp 20000 - Mie goreng pedas dengan telur dan sayuran\n- Ayam Goreng Kriuk (Makanan Utama): Rp 30000 - Ayam goreng renyah dengan bumbu special\n- Es Teh Manis (Minuman): Rp 5000 - Es teh manis segar\n- Jus Jeruk (Minuman): Rp 12000 - Jus jeruk segar tanpa gula tambahan\n- Sate Ayam (Makanan Utama): Rp 28000 - Sate ayam dengan bumbu kacang';
+
+    // Susun konteks keranjang belanja saat ini
+    const cartContext = cart && cart.length > 0
+      ? cart.map(item => `- ${item.name}: ${item.quantity} porsi x Rp ${item.price}`).join('\n')
+      : 'Keranjang belanja saat ini kosong.';
+
+    // Susun profil pengguna jika masuk
+    const userContext = userProfile 
+      ? `Nama Pengguna: ${userProfile.name || 'Sobat Kuliner'}\nEmail: ${userProfile.email || '-'}`
+      : 'Pengguna belum login (Tamu).';
+
+    const appContextData = `
+=== DETAIL MENU YANG TERSEDIA DI FOODSSTREETS ===
+${menuContext}
+
+=== KERANJANG BELANJA PENGGUNA SAAT INI ===
+${cartContext}
+
+=== PROFIL PENGGUNA ===
+${userContext}
+
+=== INSTRUKSI KHUSUS PEMBELIAN ===
+Jika pengguna meminta untuk membeli, memesan, mencicipi, atau menambahkan makanan/minuman tertentu ke keranjang belanja:
+1. Anda wajib menyertakan tag aksi ini secara rahasia di bagian akhir respon Anda: [ACTION: ADD_TO_CART: Nama Menu Tepat Sesuai Daftar Menu]
+2. Contoh: Jika mereka ingin memesan Es Teh Manis, tambahkan "[ACTION: ADD_TO_CART: Es Teh Manis]" di paling akhir kalimat respon Anda.
+3. Pastikan Nama Menu TEPAT sama dengan nama menu di daftar menu yang tersedia di atas. Jangan disingkat atau diubah.
+`;
+
+    let aiResponse = '';
+    try {
+      if (process.env.EXPO_PUBLIC_GEMINI_API_KEY) {
+        const chatHistoryForGemini = chat.map(c => ({
+          role: c.role === 'user' ? 'user' : 'ai',
+          text: c.text
+        }));
+        aiResponse = await sendMessageToGemini(inputMessage, chatHistoryForGemini, appContextData);
+      } else {
+        aiResponse = await sendMessageToLocalAI(inputMessage);
+      }
+    } catch (e) {
+      console.warn('[Gemini Error, switching to Local AI]', e);
+      aiResponse = await sendMessageToLocalAI(inputMessage);
+    }
+
+    // Parsing action untuk ADD_TO_CART
+    const addToCartRegex = /\[ACTION:\s*ADD_TO_CART:\s*([^\]]+)\]/i;
+    const match = aiResponse.match(addToCartRegex);
+    if (match) {
+      const menuName = match[1].trim();
+      // Cari menu berdasarkan nama (case-insensitive)
+      let foundItem = menuItems.find(item => item.name.toLowerCase() === menuName.toLowerCase());
+      
+      // Jika tidak ditemukan di database menuItems, coba cari di data lokal
+      if (!foundItem) {
+        const localFallbackMenu = [
+          { id: 1, name: 'Nasi Goreng Spesial', price: 25000, category: 'Makanan Utama', image: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=400' },
+          { id: 2, name: 'Mie Goreng', price: 20000, category: 'Makanan Utama', image: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400' },
+          { id: 3, name: 'Ayam Goreng Kriuk', price: 30000, category: 'Makanan Utama', image: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=400' },
+          { id: 4, name: 'Es Teh Manis', price: 5000, category: 'Minuman', image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400' },
+          { id: 5, name: 'Jus Jeruk', price: 12000, category: 'Minuman', image: 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=400' },
+          { id: 6, name: 'Sate Ayam', price: 28000, category: 'Makanan Utama', image: 'https://images.unsplash.com/photo-1529563021893-cc83c992d75d?w=400' }
+        ];
+        foundItem = localFallbackMenu.find(item => item.name.toLowerCase() === menuName.toLowerCase());
+      }
+
+      if (foundItem) {
+        addToCart({
+          id: foundItem.id,
+          name: foundItem.name,
+          price: foundItem.price,
+          image: foundItem.image_url || foundItem.image,
+          category: foundItem.category
+        });
+      }
+      // Hapus tag action dari respon agar tidak terlihat oleh pengguna
+      aiResponse = aiResponse.replace(addToCartRegex, '').trim();
+    }
+
     setChat(prev => [...prev, { role: 'ai', text: aiResponse }]);
     setLoading(false);
   };
