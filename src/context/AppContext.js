@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../config/supabase';
 import { sendOrderReceiptEmail } from '../services/emailService';
 import { sendWhatsAppReceipt } from '../services/whatsappService';
@@ -53,6 +54,10 @@ export const AppProvider = ({ children }) => {
       fetchProfile();
       fetchOrders();
       fetchFavorites();
+      // Load cart
+      AsyncStorage.getItem(`@cart_${session.user.id}`).then(stored => {
+        if (stored) setCart(JSON.parse(stored));
+      }).catch(console.log);
     } else {
       setOrderHistory([]);
       setFavorites([]);
@@ -60,6 +65,13 @@ export const AppProvider = ({ children }) => {
       setCart([]);
     }
   }, [session]);
+
+  // Save cart
+  useEffect(() => {
+    if (session?.user) {
+      AsyncStorage.setItem(`@cart_${session.user.id}`, JSON.stringify(cart)).catch(console.log);
+    }
+  }, [cart, session]);
 
   // ── REALTIME: dengar UPDATE orders dari webhook Midtrans ──
   const orderChannelRef = useRef(null);

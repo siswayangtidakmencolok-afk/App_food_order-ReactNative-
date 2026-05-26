@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   floatingButtonWrap: {
     position: 'absolute',
     bottom: 80,
-    right: 15, // moved to right side as per user request
+    left: 15, // moved to left side as per user request
     zIndex: 9999,
   },
   floatingButton: {
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   menuContainer: {
     position: 'absolute',
     bottom: 80,
-    right: 15,
+    left: 15,
     borderRadius: 15,
     padding: 10,
     elevation: 8,

@@ -17,7 +17,7 @@ const MISSIONS = [
   { id: 'BUY_MIN_25K', title: 'Belanja Min. Rp 25.000', xp: 40, icon: 'cart-check', link: null },
   { id: 'FOLLOW_IG', title: 'Follow Instagram', xp: 25, icon: 'instagram', link: 'https://www.instagram.com/f.zvvn_/' },
   { id: 'FOLLOW_TIKTOK', title: 'Follow TikTok', xp: 25, icon: 'music-note', link: 'https://www.tiktok.com/@eksrovertselalu' },
-  { id: 'JOIN_DISCORD', title: 'Join Discord', xp: 25, icon: 'discord', link: 'https://discord.com/channels/@zxyninety' },
+  { id: 'JOIN_DISCORD', title: 'Join Discord', xp: 25, icon: 'chat', link: 'https://discord.com/channels/@zxyninety' },
   { id: 'VISIT_FRIEREN', title: 'Kunjungi Web Frieren', xp: 30, icon: 'web', link: 'https://siswayangtidakmencolok-afk.github.io/website-frieren/' },
   { id: 'VISIT_3D', title: 'Lihat 3D Global', xp: 30, icon: 'earth', link: 'https://globe3d-byfhaz.netlify.app/' },
 ];
