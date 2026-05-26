@@ -37,7 +37,7 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import PromoHubScreen from './src/screens/PromoHubScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SplashScreen from './src/screens/SplashScreen';
-import LuckySpinWheel from './src/components/LuckySpinWheel';
+import GameCenter from './src/components/GameCenter';
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -236,7 +236,7 @@ function AppContent() {
       <MainTabs />
       <GlobalToast ref={toastRef} />
       <AIChatBubble />
-      <LuckySpinWheel />
+      <GameCenter />
     </NavigationContainer>
   );
 }
