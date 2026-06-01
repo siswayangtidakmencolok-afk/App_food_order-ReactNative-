@@ -13,7 +13,8 @@ const MapComponent = React.memo(({
   destinationLoc = null,    // { latitude, longitude } untuk routing
   showRoute = false,
   interactive = true,
-  nearbyOrders = []        // Array dari { latitude, longitude } untuk pesanan fiktif
+  nearbyOrders = [],        // Array dari { latitude, longitude } untuk pesanan fiktif
+  driverMode = false       // Jika true, marker utama menggunakan ikon motor
 }) => {
   
   const webViewRef = useRef(null);
@@ -84,8 +85,17 @@ const MapComponent = React.memo(({
           });
         }
 
+        function createDriverIcon() {
+          return L.divIcon({
+            className: 'driver-icon',
+            html: '<div style="background-color: white; border-radius: 50%; padding: 4px; border: 2px solid #10b981; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; width: 36px; height: 36px;"><img src="https://cdn-icons-png.flaticon.com/512/3753/3753265.png" style="width: 24px; height: 24px;" /></div>',
+            iconSize: [36, 36], iconAnchor: [18, 18]
+          });
+        }
+
         // Main Marker
-        currentMarker = L.marker([${latitude}, ${longitude}], { icon: createIcon(false) }).addTo(map);
+        const mainIcon = ${driverMode ? 'createDriverIcon()' : 'createIcon(false)'};
+        currentMarker = L.marker([${latitude}, ${longitude}], { icon: mainIcon }).addTo(map);
         currentMarker.bindPopup("<b>${locationName}</b>").openPopup();
 
         // Nearby Orders (Fiktif)
@@ -136,7 +146,7 @@ const MapComponent = React.memo(({
       </script>
     </body>
     </html>
-  `, [isDarkMode, showRoute, !!destinationLoc, nearbyOrders.length]); // RELOAD HANYA JIKA THEME/ROUTE BERUBAH
+  `, [isDarkMode, showRoute, !!destinationLoc, nearbyOrders.length, driverMode]); // RELOAD HANYA JIKA THEME/ROUTE BERUBAH
 
   const handleMessage = (event) => {
     try {

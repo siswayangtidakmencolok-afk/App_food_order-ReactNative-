@@ -218,10 +218,11 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
                   longitude={driverLoc.longitude} 
                   height={220}
                   isDarkMode={isDarkMode}
-                  locationName={isPreparing ? 'Restoran' : 'E-Kurir'}
+                  locationName={isPreparing ? 'Restoran' : 'Kurir'}
                   showRoute={true}
                   destinationLoc={userLocation}
                   interactive={false}
+                  driverMode={simStatus === 'Delivering'}
                 />
                 {isPreparing && (
                   <View style={styles.prepOverlay}>
@@ -231,21 +232,33 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
                 )}
               </View>
 
-              {/* 🚚 Premium Driver Card (Maxim Style Reference) */}
+              {/* 🚚 Premium Driver Card (Gojek/Grab Style) */}
               {simStatus === 'Delivering' && (
                 <View style={styles.driverCard}>
                    <View style={styles.driverTop}>
-                      <View style={styles.maximLogo}><Text style={styles.maximLogoText}>O</Text></View>
-                      <Text style={styles.maximBrand}>maksim 🚕 • sekarang 🔔</Text>
-                      <MaterialCommunityIcons name="chevron-up" size={24} color="#333" style={{marginLeft: 'auto'}} />
+                      <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                        <View style={styles.driverAvatarWrap}>
+                          <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/512/3753/3753265.png' }} style={styles.driverAvatar} />
+                        </View>
+                        <View style={{marginLeft: 12}}>
+                          <Text style={styles.driverName}>Budi Santoso</Text>
+                          <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 2}}>
+                            <MaterialCommunityIcons name="star" size={14} color="#f59e0b" />
+                            <Text style={styles.driverRating}> 4.9</Text>
+                            <Text style={styles.driverTrips}> • 1.2rb+ perjalanan</Text>
+                          </View>
+                        </View>
+                      </View>
+                      <View style={styles.callButton}>
+                        <MaterialCommunityIcons name="phone" size={20} color="#10b981" />
+                      </View>
                    </View>
                    <View style={styles.driverMain}>
                       <View style={{flex: 1}}>
-                         <Text style={styles.arriveTime}>Dalam 2 menit akan datang</Text>
-                         <Text style={styles.motorDesc}>Motorcycle, warna biru</Text>
+                         <Text style={styles.arriveTime}>Tiba dalam 2 menit</Text>
+                         <Text style={styles.motorDesc}>Honda Vario Hijau</Text>
                       </View>
                       <View style={styles.plateBadge}>
-                         <MaterialCommunityIcons name="moped" size={20} color="#fff" />
                          <Text style={styles.plateText}>B 5987 BHU</Text>
                       </View>
                    </View>
@@ -401,35 +414,57 @@ const styles = StyleSheet.create({
   // 🚚 Driver Card Styles
   driverCard: {
     backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 15,
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 20,
     elevation: 4,
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowRadius: 10
+    shadowRadius: 10,
+    borderWidth: 1,
+    borderColor: '#f0f0f0'
   },
   driverTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    paddingBottom: 16
   },
-  maximLogo: {
-    backgroundColor: '#ffc107',
-    width: 24, height: 24,
-    borderRadius: 12,
+  driverAvatarWrap: {
+    width: 46, height: 46,
+    borderRadius: 23,
+    backgroundColor: '#e6f4ea',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8
+    borderWidth: 1,
+    borderColor: '#10b981'
   },
-  maximLogoText: {
+  driverAvatar: {
+    width: 32, height: 32
+  },
+  driverName: {
     color: '#333',
     fontWeight: 'bold',
-    fontSize: 14
+    fontSize: 16
   },
-  maximBrand: {
-    color: '#666',
-    fontSize: 12
+  driverRating: {
+    color: '#333',
+    fontWeight: 'bold',
+    fontSize: 13
+  },
+  driverTrips: {
+    color: '#888',
+    fontSize: 13
+  },
+  callButton: {
+    width: 40, height: 40,
+    borderRadius: 20,
+    backgroundColor: '#e6f4ea',
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   driverMain: {
     flexDirection: 'row',
@@ -439,26 +474,25 @@ const styles = StyleSheet.create({
   arriveTime: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#000'
+    color: '#10b981'
   },
   motorDesc: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#666',
-    marginTop: 2
+    marginTop: 4
   },
   plateBadge: {
-    backgroundColor: '#2e3a47',
-    flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: '#f1f5f9',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 14,
-    gap: 8
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0'
   },
   plateText: {
-    color: '#fff',
+    color: '#334155',
     fontWeight: '900',
-    fontSize: 15
+    fontSize: 16
   },
   notifProgress: {
     height: 4,
