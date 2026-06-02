@@ -1,45 +1,16 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Animated, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Animated, Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, PanResponder } from 'react-native';
 import MapComponent from '../components/MapComponent';
 import { GEOAPIFY_KEY } from '../config/maps';
 import { useApp } from '../context/AppContext';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const DeliveryTrackerScreen = ({ route, navigation }) => {
   const { order: routeOrder } = route.params;
-  const { isDarkMode, menuItems, userLocation, updateOrder, orderHistory } = useApp();
+  const { isDarkMode, userLocation, updateOrder, orderHistory } = useApp();
   const order = orderHistory.find((o) => o.id === routeOrder.id) || routeOrder;
-
-  const getInitialTab = () => {
-    if (order.status === 'Delivered') return 'Selesai';
-    if (order.status === 'Delivering') return 'Akan diterima';
-    return 'Untuk dikirim';
-  };
-
-  const [activeTab, setActiveTab] = useState(getInitialTab());
-
-  // ── Animation for Header Motor ──
-  const mopedAnim = useRef(new Animated.Value(0)).current;
-
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(mopedAnim, {
-          toValue: 1,
-          duration: 5000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(mopedAnim, {
-          toValue: 0,
-          duration: 5000,
-          useNativeDriver: true,
-        })
-      ])
-    ).start();
-  }, []);
 
   // ── Simulation State ──
   const RESTAURANT_LOC = { latitude: -6.2000, longitude: 106.8400 };
@@ -49,22 +20,12 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
     order.status === 'Pending' || order.status === 'Preparing',
   );
 
-  // Sinkron status dari Supabase Realtime
   useEffect(() => {
     setSimStatus(order.status);
-    if (order.status === 'Preparing') {
-      setIsPreparing(true);
-      setActiveTab('Untuk dikirim');
-    }
-    if (order.status === 'Delivering') {
-      setIsPreparing(false);
-      setActiveTab('Akan diterima');
-    }
-    if (order.status === 'Delivered') {
-      setIsPreparing(false);
-      setActiveTab('Selesai');
-    }
-  }, [order.status, order.paymentStatus]);
+    if (order.status === 'Preparing') setIsPreparing(true);
+    if (order.status === 'Delivering' || order.status === 'Delivered') setIsPreparing(false);
+  }, [order.status]);
+
   const [routeCoords, setRouteCoords] = useState([]);
 
   useEffect(() => {
@@ -90,433 +51,343 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
   };
 
   const startSimulation = (coords) => {
-    // 1. Menyiapkan (Simulasi masak selama 4 detik)
     setTimeout(() => {
       setIsPreparing(false);
       setSimStatus('Delivering');
-      setActiveTab('Akan diterima');
 
-      // 2. Drive along road (Simulasi perjalanan)
       let currentIdx = 0;
-      // Tingkatkan interval agar gerakan terlihat lebih alami dan tidak terlalu cepat
       const moveInterval = setInterval(() => {
         if (currentIdx < coords.length) {
           setDriverLoc(coords[currentIdx]);
           currentIdx++;
-
-          // Jika sudah mendekati akhir, perlambat sedikit (opsional)
         } else {
           clearInterval(moveInterval);
           setTimeout(finishOrder, 1000);
         }
-      }, 1200); // Langkah kurir lebih lambat (1.2 detik) agar tidak terlalu cepat
+      }, 1200);
     }, 4000);
   };
 
   const finishOrder = async () => {
     setSimStatus('Delivered');
-    setActiveTab('Selesai');
     await updateOrder(order.id, { status: 'Delivered' });
     Alert.alert('🎉 Pesanan Sampai!', 'Kurir sudah sampai di lokasi tujuan Anda. Selamat menikmati!');
   };
 
-  // Tampilan warna
-  const bg = isDarkMode ? '#121212' : '#f5f5f5';
-  const cardBg = isDarkMode ? '#1e1e1e' : '#fff';
-  const textPrimary = isDarkMode ? '#fff' : '#000';
-  const textSecondary = isDarkMode ? '#aaa' : '#666';
+  // ── Bottom Sheet Draggable Logic ──
+  const sheetAnim = useRef(new Animated.Value(0)).current; // 0 = expanded, 1 = collapsed
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const TABS = ['Perlu dibayar', 'Untuk dikirim', 'Akan diterima', 'Selesai'];
+  const SHEET_HEIGHT = height * 0.85;
+  const VISIBLE_WHEN_COLLAPSED = 140; // Height visible when minimized
 
-  const recommendations = useMemo(() => {
-    const pool = (menuItems || []).slice(0, 4);
-    return pool.sort(() => Math.random() - 0.5);
-  }, [menuItems]);
+  const toggleSheet = () => {
+    if (isCollapsed) {
+      Animated.spring(sheetAnim, { toValue: 0, friction: 8, useNativeDriver: true }).start();
+      setIsCollapsed(false);
+    } else {
+      Animated.spring(sheetAnim, { toValue: 1, friction: 8, useNativeDriver: true }).start();
+      setIsCollapsed(true);
+    }
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 10,
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 50 && !isCollapsed) {
+          toggleSheet();
+        } else if (gestureState.dy < -50 && isCollapsed) {
+          toggleSheet();
+        }
+      }
+    })
+  ).current;
+
+  // The bottom sheet covers 85% of screen. Collapsed state translates it down so only the top is visible.
+  const sheetTranslateY = sheetAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, SHEET_HEIGHT - VISIBLE_WHEN_COLLAPSED] 
+  });
+
+  // ── UI Helpers ──
+  const primaryColor = '#825100';
+  const primaryFixed = '#ffddb7';
+  const bgSurface = isDarkMode ? '#1e1e1e' : '#ffffff';
+  const textPrimary = isDarkMode ? '#ffffff' : '#211a13';
+  const textMuted = isDarkMode ? '#aaaaaa' : '#524536';
+  const borderCol = isDarkMode ? '#333333' : '#eee0d4';
+  const containerLow = isDarkMode ? '#2c2c2c' : '#fff1e5';
+
+  const getStepLevel = () => {
+    if (simStatus === 'Delivered') return 4;
+    if (simStatus === 'Delivering') return 3;
+    if (simStatus === 'Preparing') return 2;
+    return 1; // Pending
+  };
+  const step = getStepLevel();
+
+  const renderStep = (num, icon, label) => {
+    const isActive = step >= num;
+    const isCurrent = step === num;
+    return (
+      <View style={styles.stepItem} key={`step-${num}`}>
+        <View style={[
+          styles.stepIconWrap, 
+          isActive ? { backgroundColor: primaryColor } : { backgroundColor: borderCol },
+          isCurrent && { borderWidth: 4, borderColor: primaryFixed }
+        ]}>
+          <MaterialCommunityIcons name={icon} size={20} color={isActive ? '#fff' : textMuted} />
+        </View>
+        <Text style={[styles.stepLabel, { color: isCurrent ? primaryColor : textMuted }, isCurrent && { fontWeight: 'bold' }]}>
+          {label}
+        </Text>
+      </View>
+    );
+  };
+
+  const getStatusText = () => {
+    if (step === 4) return 'Pesanan Telah Sampai';
+    if (step === 3) return 'Sopir Sedang Menuju Lokasi';
+    if (step === 2) return 'Restoran Sedang Menyiapkan';
+    return 'Menunggu Konfirmasi';
+  };
+
+  const getSubtext = () => {
+    if (step === 4) return 'Selesai';
+    if (step === 3) return 'Tiba dalam 8 Menit';
+    if (step === 2) return 'Estimasi 15 Menit';
+    return 'Pesanan Diterima';
+  };
+
+  const subtotal = order.total || 0;
+  const deliveryFee = 12000;
+  const serviceFee = 2000;
+  const finalTotal = subtotal + deliveryFee + serviceFee;
 
   return (
-    <View style={{ flex: 1, backgroundColor: bg }}>
-      {/* ── Animated Header Container ── */}
-      <View style={styles.animatedHeaderContainer}>
-        <View style={styles.headerContent}>
-          <MaterialCommunityIcons name="moped" size={20} color="#fff" />
-          <Text style={styles.headerTitleText}>Lacak Pesanan</Text>
-        </View>
+    <View style={styles.container}>
+      {/* Map Background */}
+      <View style={styles.mapWrap}>
+        <MapComponent 
+          latitude={driverLoc.latitude} 
+          longitude={driverLoc.longitude} 
+          height={height}
+          isDarkMode={isDarkMode}
+          locationName={isPreparing ? 'Restoran' : 'Kurir'}
+          showRoute={true}
+          destinationLoc={userLocation}
+          interactive={false}
+          driverMode={simStatus === 'Delivering'}
+        />
+        {/* Gradient overlay to blend map with sheet visually */}
+        <View style={styles.mapGradient} />
+      </View>
 
-        {/* The Moving Motor Animation */}
-        <Animated.View style={[styles.mopedAnimBox, {
-          transform: [{
-            translateX: mopedAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: [60, width - 60]
-            })
-          }, {
-            scaleX: mopedAnim.interpolate({
-              inputRange: [0, 0.45, 0.55, 1],
-              outputRange: [1, 1, -1, -1] // Flip when turning
-            })
-          }]
-        }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <MaterialCommunityIcons name="moped" size={20} color="rgba(255,255,255,0.7)" />
-            <MaterialCommunityIcons name="package-variant" size={14} color="rgba(255,255,255,0.5)" style={{ marginLeft: -6, marginTop: -4 }} />
+      {/* Floating Header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={[styles.backBtn, { backgroundColor: bgSurface }]} onPress={() => navigation.goBack()}>
+          <MaterialCommunityIcons name="arrow-left" size={24} color={primaryColor} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: primaryColor }]}>Pelacakan Pesanan Anda</Text>
+        <TouchableOpacity style={[styles.helpBtn, { backgroundColor: bgSurface }]}>
+          <MaterialCommunityIcons name="help-circle-outline" size={24} color={primaryColor} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Draggable Bottom Sheet */}
+      <Animated.View 
+        style={[styles.bottomSheet, { height: SHEET_HEIGHT, transform: [{ translateY: sheetTranslateY }], backgroundColor: bgSurface }]}
+      >
+        {/* Drag Handle / Arrow Button */}
+        <TouchableOpacity 
+          activeOpacity={0.8} 
+          onPress={toggleSheet} 
+          hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}
+          {...panResponder.panHandlers} 
+          style={styles.dragHandleWrap}
+        >
+          <View style={styles.dragHandle} />
+          <MaterialCommunityIcons name={isCollapsed ? "chevron-up" : "chevron-down"} size={32} color={textMuted} style={{ marginTop: 12 }} />
+        </TouchableOpacity>
+
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetContent}>
+          
+          {/* Status Header */}
+          <View style={styles.statusHeader}>
+            <View style={styles.statusRow}>
+              <Text style={styles.statusBadge}>STATUS PENGIRIMAN</Text>
+              <Text style={[styles.statusMain, { color: primaryColor }]}>{getStatusText()}</Text>
+            </View>
+            <Text style={[styles.statusTime, { color: textPrimary }]}>{getSubtext()}</Text>
           </View>
-        </Animated.View>
-      </View>
 
-      {/* ── Tabs ala Shopee ── */}
-      <View style={{ backgroundColor: cardBg, flexDirection: 'row', borderBottomWidth: 1, borderColor: isDarkMode ? '#333' : '#eee' }}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8 }}>
-          {TABS.map(tab => (
-            <TouchableOpacity key={tab} onPress={() => setActiveTab(tab)} style={[styles.tab, activeTab === tab && styles.activeTab]}>
-              <Text style={[styles.tabText, { color: activeTab === tab ? '#EE4D2D' : textSecondary }, activeTab === tab && { fontWeight: 'bold' }]}>{tab}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+          {/* Timeline */}
+          <View style={styles.timelineContainer}>
+            <View style={[styles.timelineLine, { backgroundColor: borderCol }]}>
+              <View style={[styles.timelineProgress, { backgroundColor: primaryColor, width: `${(step - 1) * 33.33}%` }]} />
+            </View>
+            {renderStep(1, 'receipt', 'Pesanan\nDiterima')}
+            {renderStep(2, 'pot-steam', 'Sedang\nDimasak')}
+            {renderStep(3, 'moped', 'Dalam\nPerjalanan')}
+            {renderStep(4, 'check-circle', 'Selesai')}
+          </View>
 
-      {/* ── Floating Back Button ── */}
-      <TouchableOpacity
-        style={styles.floatingBack}
-        onPress={() => navigation.navigate('CartMain')}
-      >
-        <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
-      </TouchableOpacity>
+          {/* Courier Card */}
+          {step >= 3 && (
+            <View style={[styles.courierCard, { backgroundColor: containerLow }]}>
+              <View style={styles.courierAvatarWrap}>
+                <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/512/3753/3753265.png' }} style={styles.courierAvatar} />
+                <View style={styles.verifiedBadge}>
+                  <MaterialCommunityIcons name="check-decagram" size={12} color="#fff" />
+                </View>
+              </View>
+              <View style={styles.courierInfo}>
+                <Text style={[styles.courierName, { color: textPrimary }]}>Budi Darmawan</Text>
+                <View style={styles.courierRatingRow}>
+                  <MaterialCommunityIcons name="star" size={16} color="#785831" />
+                  <Text style={[styles.courierRating, { color: textMuted }]}>4.9 • Honda Vario (B 1234 ABC)</Text>
+                </View>
+              </View>
+              <View style={styles.courierActions}>
+                <TouchableOpacity style={[styles.actionBtn, { borderColor: borderCol }]}>
+                  <MaterialCommunityIcons name="chat" size={20} color={primaryColor} />
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.actionBtn, { borderColor: borderCol }]}>
+                  <MaterialCommunityIcons name="phone" size={20} color={primaryColor} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
 
-      <ScrollView 
-        style={{ flex: 1 }} 
-        contentContainerStyle={{ paddingBottom: 110 }}
-        showsVerticalScrollIndicator={false}
-      >
-
-        {/* Guard Logic: Hanya tampilkan card jika tab AKTIF sesuai dengan status SIMULASI */}
-        {(activeTab === 'Untuk dikirim' && isPreparing) ||
-          (activeTab === 'Akan diterima' && simStatus === 'Delivering') ||
-          (activeTab === 'Selesai' && simStatus === 'Delivered') ? (
-
-          <View>
-            <View style={styles.banner}>
-              <MaterialCommunityIcons name="shield-check-outline" size={16} color="#EE4D2D" />
-              <Text style={styles.bannerText}>Jaminan makanan segar & tepat waktu</Text>
+          {/* Order Details */}
+          <View style={[styles.orderDetails, { borderTopColor: borderCol }]}>
+            <View style={styles.detailHeader}>
+              <Text style={[styles.detailTitle, { color: textPrimary }]}>Detail Pesanan</Text>
+              <Text style={[styles.orderNumber, { color: primaryColor }]}>#{order.order_number || 'QB-88291'}</Text>
             </View>
 
-            <View style={[styles.orderCard, { backgroundColor: cardBg }]}>
-              {/* Header */}
-              <View style={styles.cardHeader}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <View style={styles.mallBadge}><Text style={styles.mallBadgeText}>Mall</Text></View>
-                  <Text style={[styles.storeName, { color: textPrimary }]}>FoodsStreets Official</Text>
-                </View>
-                <Text style={styles.statusText}>
-                  {isPreparing ? 'Menyiapkan' : (simStatus === 'Delivered' ? 'Selesai' : 'Sedang Dijalan')}
-                </Text>
-              </View>
-
-              {/* Map Routing Real-time - Persegi & Lebih Tinggi */}
-              <View style={styles.mapContainer}>
-                <MapComponent 
-                  latitude={driverLoc.latitude} 
-                  longitude={driverLoc.longitude} 
-                  height={220}
-                  isDarkMode={isDarkMode}
-                  locationName={isPreparing ? 'Restoran' : 'Kurir'}
-                  showRoute={true}
-                  destinationLoc={userLocation}
-                  interactive={false}
-                  driverMode={simStatus === 'Delivering'}
+            {(order.items || []).map((item, idx) => (
+              <View key={idx} style={styles.itemRow}>
+                {/* Fallback image added to handle CORS missing images without completely breaking */}
+                <Image 
+                  source={{ uri: item.image || 'https://via.placeholder.com/48' }} 
+                  style={styles.itemImage} 
+                  defaultSource={{ uri: 'https://via.placeholder.com/48' }}
                 />
-                {isPreparing && (
-                  <View style={styles.prepOverlay}>
-                    <MaterialCommunityIcons name="silverware-fork-knife" size={20} color="#EE4D2D" />
-                    <Text style={styles.prepText}>Proses Memasak...</Text>
+                <View style={styles.itemInfo}>
+                  <View style={styles.itemNameRow}>
+                    <Text style={[styles.itemName, { color: textPrimary }]} numberOfLines={1}>{item.name}</Text>
+                    <Text style={[styles.itemPrice, { color: textPrimary }]}>Rp {(item.price * item.quantity).toLocaleString('id-ID')}</Text>
                   </View>
-                )}
-              </View>
-
-              {/* 🚚 Premium Driver Card (Gojek/Grab Style) */}
-              {simStatus === 'Delivering' && (
-                <View style={styles.driverCard}>
-                   <View style={styles.driverTop}>
-                      <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                        <View style={styles.driverAvatarWrap}>
-                          <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/512/3753/3753265.png' }} style={styles.driverAvatar} />
-                        </View>
-                        <View style={{marginLeft: 12}}>
-                          <Text style={styles.driverName}>Budi Santoso</Text>
-                          <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 2}}>
-                            <MaterialCommunityIcons name="star" size={14} color="#f59e0b" />
-                            <Text style={styles.driverRating}> 4.9</Text>
-                            <Text style={styles.driverTrips}> • 1.2rb+ perjalanan</Text>
-                          </View>
-                        </View>
-                      </View>
-                      <View style={styles.callButton}>
-                        <MaterialCommunityIcons name="phone" size={20} color="#10b981" />
-                      </View>
-                   </View>
-                   <View style={styles.driverMain}>
-                      <View style={{flex: 1}}>
-                         <Text style={styles.arriveTime}>Tiba dalam 2 menit</Text>
-                         <Text style={styles.motorDesc}>Honda Vario Hijau</Text>
-                      </View>
-                      <View style={styles.plateBadge}>
-                         <Text style={styles.plateText}>B 5987 BHU</Text>
-                      </View>
-                   </View>
-                   {/* Progress bar fiktif gaya notifikasi */}
-                   <View style={styles.notifProgress}>
-                      <View style={styles.notifProgressActive} />
-                      <View style={styles.notifProgressDot} />
-                   </View>
-                </View>
-              )}
-
-              {/* Information */}
-              <View style={styles.infoRow}>
-                <MaterialCommunityIcons name="map-marker-radius" size={20} color="#EE4D2D" />
-                <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text style={[styles.infoTitle, { color: textPrimary }]}>Alamat Tujuan</Text>
-                  <Text style={[styles.infoSub, { color: textSecondary }]} numberOfLines={1}>{userLocation.address}</Text>
+                  <Text style={[styles.itemDesc, { color: textMuted }]}>{item.quantity}x</Text>
                 </View>
               </View>
+            ))}
 
-              {/* Items */}
-              {order.items.map((item, index) => (
-                <View key={index} style={styles.itemRow}>
-                  <Image source={{ uri: item.image }} style={styles.itemImage} />
-                  <View style={styles.itemDetails}>
-                    <Text style={[styles.itemName, { color: textPrimary }]}>{item.name}</Text>
-                    <View style={styles.priceRow}>
-                      <Text style={{ color: textSecondary }}>x{item.quantity}</Text>
-                      <Text style={{ color: '#EE4D2D', fontWeight: 'bold' }}>Rp {item.price.toLocaleString('id-ID')}</Text>
-                    </View>
-                  </View>
-                </View>
-              ))}
-
-              <View style={styles.divider} />
-              <View style={styles.totalRow}>
-                <Text style={{ color: textSecondary }}>Total Pesanan:</Text>
-                <Text style={styles.totalValue}>Rp {order.total.toLocaleString('id-ID')}</Text>
+            <View style={[styles.summaryBox, { borderBottomColor: borderCol }]}>
+              <View style={styles.summaryRow}>
+                <Text style={[styles.summaryLabel, { color: textMuted }]}>Subtotal</Text>
+                <Text style={[styles.summaryValue, { color: textPrimary }]}>Rp {subtotal.toLocaleString('id-ID')}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={[styles.summaryLabel, { color: textMuted }]}>Ongkos Kirim</Text>
+                <Text style={[styles.summaryValue, { color: textPrimary }]}>Rp {deliveryFee.toLocaleString('id-ID')}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={[styles.summaryLabel, { color: textMuted }]}>Biaya Layanan</Text>
+                <Text style={[styles.summaryValue, { color: textPrimary }]}>Rp {serviceFee.toLocaleString('id-ID')}</Text>
               </View>
             </View>
-          </View>
-        ) : (
-          <View style={styles.emptyContainer}>
-            <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/512/7486/7486744.png' }} style={styles.emptyIcon} />
-            <Text style={{ color: textSecondary, marginTop: 15 }}>Tidak ada pesanan di tab ini</Text>
-          </View>
-        )}
 
-        {/* Rekomendasi */}
-        <View style={styles.recomSection}>
-          <Text style={[styles.recomTitle, { color: textPrimary }]}>Mungkin Anda suka ini</Text>
-          <View style={styles.recomGrid}>
-            {recommendations.map(item => (
-              <TouchableOpacity 
-                key={item.id} 
-                style={[styles.recomCard, { backgroundColor: cardBg }]}
-                onPress={() => navigation.navigate('Menu', { screen: 'MenuDetail', params: { item } })}
-              >
-                <Image source={{ uri: item.image }} style={styles.recomImage} />
-                <View style={{ padding: 10 }}>
-                  <Text style={[styles.recomName, { color: textPrimary }]} numberOfLines={1}>{item.name}</Text>
-                  <Text style={styles.recomPrice}>Rp {item.price.toLocaleString('id-ID')}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
+            <View style={styles.totalRow}>
+              <Text style={[styles.totalLabel, { color: textPrimary }]}>Total Pembayaran</Text>
+              <Text style={[styles.totalValue, { color: primaryColor }]}>Rp {finalTotal.toLocaleString('id-ID')}</Text>
+            </View>
           </View>
 
-          <TouchableOpacity
-            style={[styles.reorderBtn, { backgroundColor: '#EE4D2D' }]}
-            onPress={() => navigation.navigate('Menu')}
-          >
-            <Text style={styles.reorderBtnText}>Pesan Lainnya</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+          {/* Bottom Buttons */}
+          <View style={styles.bottomButtons}>
+            <TouchableOpacity style={[styles.btnPrimary, { backgroundColor: primaryColor }]}>
+              <Text style={styles.btnPrimaryText}>Hubungi CS</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.btnSecondary, { borderColor: primaryColor }]}>
+              <Text style={[styles.btnSecondaryText, { color: primaryColor }]}>Batalkan</Text>
+            </TouchableOpacity>
+          </View>
+
+        </ScrollView>
+      </Animated.View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  tab: { paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 3, borderBottomColor: 'transparent' },
-  activeTab: { borderBottomColor: '#EE4D2D' },
-  tabText: { fontSize: 14, fontWeight: '500' },
-  banner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF5F5', padding: 12, marginBottom: 1 },
-  bannerText: { color: '#EE4D2D', fontSize: 12, marginLeft: 8, fontWeight: '500' },
-  orderCard: { padding: 16, borderBottomWidth: 1, borderColor: '#eee' },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  mallBadge: { backgroundColor: '#d0011b', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 2, marginRight: 6 },
-  mallBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
-  storeName: { fontSize: 15, fontWeight: 'bold' },
-  statusText: { fontSize: 14, color: '#EE4D2D', fontWeight: 'bold' },
-  mapContainer: { height: 220, borderRadius: 15, overflow: 'hidden', marginBottom: 20, position: 'relative' },
-  prepOverlay: {
-    position: 'absolute', top: 15, right: 15, backgroundColor: 'rgba(255,255,255,0.95)',
-    padding: 10, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 8, elevation: 5
-  },
-  prepText: { fontSize: 12, fontWeight: 'bold', color: '#EE4D2D' },
-  infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, padding: 12, backgroundColor: '#f9f9f9', borderRadius: 10 },
-  infoTitle: { fontSize: 13, fontWeight: 'bold' },
-  infoSub: { fontSize: 12 },
-  itemRow: { flexDirection: 'row', marginBottom: 15 },
-  itemImage: { width: 60, height: 60, borderRadius: 8 },
-  itemDetails: { flex: 1, marginLeft: 15, justifyContent: 'center' },
-  itemName: { fontSize: 14, fontWeight: '600', marginBottom: 5 },
-  priceRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  divider: { height: 1, backgroundColor: '#eee', marginVertical: 15 },
+  container: { flex: 1, backgroundColor: '#fff8f4' },
+  mapWrap: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  mapGradient: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 120, backgroundColor: 'transparent' },
+  
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 50, zIndex: 50 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.1, shadowRadius: 4 },
+  headerTitle: { fontSize: 16, fontWeight: '700', backgroundColor: 'rgba(255, 255, 255, 0.9)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, overflow: 'hidden' },
+  helpBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.1, shadowRadius: 4 },
+  
+  bottomSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopLeftRadius: 30, borderTopRightRadius: 30, shadowColor: '#000', shadowOffset: {width: 0, height: -4}, shadowOpacity: 0.15, shadowRadius: 24, elevation: 20 },
+  dragHandleWrap: { width: '100%', alignItems: 'center', paddingTop: 20, paddingBottom: 10 },
+  dragHandle: { width: 50, height: 5, backgroundColor: '#d1d5db', borderRadius: 3 },
+  sheetContent: { paddingHorizontal: 20, paddingBottom: 60 },
+  
+  statusHeader: { marginBottom: 24 },
+  statusRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  statusBadge: { fontSize: 12, fontWeight: '600', color: '#524536', letterSpacing: 1 },
+  statusMain: { fontSize: 14, fontWeight: '700' },
+  statusTime: { fontSize: 24, fontWeight: '700' },
+  
+  timelineContainer: { flexDirection: 'row', justifyContent: 'space-between', position: 'relative', marginBottom: 32 },
+  timelineLine: { position: 'absolute', top: 20, left: '10%', right: '10%', height: 2 },
+  timelineProgress: { height: '100%' },
+  stepItem: { width: '25%', alignItems: 'center' },
+  stepIconWrap: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 8, zIndex: 2 },
+  stepLabel: { fontSize: 10, textAlign: 'center', lineHeight: 14 },
+  
+  courierCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, marginBottom: 24 },
+  courierAvatarWrap: { position: 'relative', width: 56, height: 56, borderRadius: 28, borderWidth: 2, borderColor: '#fff' },
+  courierAvatar: { width: '100%', height: '100%', borderRadius: 28 },
+  verifiedBadge: { position: 'absolute', bottom: -2, right: -2, backgroundColor: '#fed3a1', borderRadius: 10, padding: 2, borderWidth: 1, borderColor: '#fff' },
+  courierInfo: { flex: 1, marginLeft: 12 },
+  courierName: { fontSize: 16, fontWeight: '600' },
+  courierRatingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  courierRating: { fontSize: 12, marginLeft: 4 },
+  courierActions: { flexDirection: 'row', gap: 8 },
+  actionBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+  
+  orderDetails: { borderTopWidth: 1, paddingTop: 24 },
+  detailHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  detailTitle: { fontSize: 16, fontWeight: '600' },
+  orderNumber: { fontSize: 12, fontWeight: '700' },
+  
+  itemRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16 },
+  itemImage: { width: 48, height: 48, borderRadius: 8, backgroundColor: '#eee' },
+  itemInfo: { flex: 1, marginLeft: 12 },
+  itemNameRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  itemName: { fontSize: 14, fontWeight: '500', flex: 1 },
+  itemPrice: { fontSize: 14, fontWeight: '600', marginLeft: 8 },
+  itemDesc: { fontSize: 12 },
+  
+  summaryBox: { borderBottomWidth: 1, paddingBottom: 16, marginBottom: 16, gap: 8 },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  summaryLabel: { fontSize: 14 },
+  summaryValue: { fontSize: 14 },
+  
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  totalValue: { fontSize: 18, fontWeight: 'bold', color: '#EE4D2D' },
-  emptyContainer: { alignItems: 'center', paddingVertical: 80 },
-  emptyIcon: { width: 100, height: 100, opacity: 0.5 },
-  recomSection: { padding: 16 },
-  recomTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 15 },
-  recomGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  recomCard: { width: (width - 48) / 2, borderRadius: 12, marginBottom: 15, overflow: 'hidden', elevation: 2 },
-  recomImage: { width: '100%', height: 160 },
-  recomName: { fontSize: 13, fontWeight: '600', marginBottom: 5 },
-  recomPrice: { fontSize: 14, fontWeight: 'bold', color: '#EE4D2D' },
-  floatingBack: {
-    position: 'absolute', top: 60, left: 20, zIndex: 100,
-    width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center', alignItems: 'center'
-  },
-  reorderBtn: {
-    marginTop: 30, marginBottom: 20, padding: 16, borderRadius: 12, alignItems: 'center'
-  },
-  reorderBtnText: {
-    color: '#fff', fontSize: 16, fontWeight: 'bold'
-  },
-  animatedHeaderContainer: {
-    backgroundColor: '#EE4D2D',
-    height: 50,
-    justifyContent: 'center',
-    position: 'relative',
-    overflow: 'hidden'
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    zIndex: 10
-  },
-  headerTitleText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 8
-  },
-  mopedAnimBox: {
-    position: 'absolute',
-    bottom: 5,
-    opacity: 0.8
-  },
-  // 🚚 Driver Card Styles
-  driverCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    borderWidth: 1,
-    borderColor: '#f0f0f0'
-  },
-  driverTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    paddingBottom: 16
-  },
-  driverAvatarWrap: {
-    width: 46, height: 46,
-    borderRadius: 23,
-    backgroundColor: '#e6f4ea',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#10b981'
-  },
-  driverAvatar: {
-    width: 32, height: 32
-  },
-  driverName: {
-    color: '#333',
-    fontWeight: 'bold',
-    fontSize: 16
-  },
-  driverRating: {
-    color: '#333',
-    fontWeight: 'bold',
-    fontSize: 13
-  },
-  driverTrips: {
-    color: '#888',
-    fontSize: 13
-  },
-  callButton: {
-    width: 40, height: 40,
-    borderRadius: 20,
-    backgroundColor: '#e6f4ea',
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  driverMain: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between'
-  },
-  arriveTime: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#10b981'
-  },
-  motorDesc: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4
-  },
-  plateBadge: {
-    backgroundColor: '#f1f5f9',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e2e8f0'
-  },
-  plateText: {
-    color: '#334155',
-    fontWeight: '900',
-    fontSize: 16
-  },
-  notifProgress: {
-    height: 4,
-    backgroundColor: '#eee',
-    borderRadius: 2,
-    marginTop: 15,
-    position: 'relative'
-  },
-  notifProgressActive: {
-    width: '40%',
-    height: '100%',
-    backgroundColor: '#ddd',
-    borderRadius: 2
-  },
-  notifProgressDot: {
-    width: 14, height: 14,
-    borderRadius: 7,
-    backgroundColor: '#EE4D2D',
-    position: 'absolute',
-    right: '60%',
-    top: -5,
-    borderWidth: 2,
-    borderColor: '#fff'
-  }
+  totalLabel: { fontSize: 16, fontWeight: '600' },
+  totalValue: { fontSize: 20, fontWeight: '700' },
+  
+  bottomButtons: { flexDirection: 'row', gap: 12, marginTop: 32 },
+  btnPrimary: { flex: 1, paddingVertical: 14, borderRadius: 8, alignItems: 'center' },
+  btnPrimaryText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  btnSecondary: { flex: 1, paddingVertical: 14, borderRadius: 8, borderWidth: 1, alignItems: 'center', backgroundColor: '#fff' },
+  btnSecondaryText: { fontWeight: '700', fontSize: 16 },
 });
 
 export default DeliveryTrackerScreen;
