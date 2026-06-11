@@ -1,171 +1,183 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
-  Alert,
-  FlatList,
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
   Image,
   Dimensions,
-  Animated
+  FlatList,
+  Modal
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { darkTheme, lightTheme } from '../config/theme';
 import { useApp } from '../context/AppContext';
+import { lightTheme, darkTheme } from '../config/theme';
 
 const { width } = Dimensions.get('window');
 
 const OrderHistoryScreen = ({ navigation }) => {
-  const { orderHistory, setOrderHistory, reorder, isDarkMode, clearHistory } = useApp();
+  const { orderHistory, reorder, isDarkMode } = useApp();
   const theme = isDarkMode ? darkTheme : lightTheme;
-  const [activeTab, setActiveTab] = useState('Sedang Berjalan');
+  const [activeTab, setActiveTab] = useState('Semua');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  // Status diperbarui via Supabase Realtime (webhook Midtrans + update manual)
-
-  const getStatusColor = (status) => {
-    const colors = {
-      'Pending': { bg: ['#FFF3CD', '#FFEEBA'], text: '#856404', grad: ['#FEDCC8', '#FDB398'] },
-      'Preparing': { bg: ['#CCE5FF', '#B8DAFF'], text: '#004085', grad: ['#A1C4FD', '#C2E9FB'] },
-      'Delivering': { bg: ['#D1ECF1', '#BEE5EB'], text: '#0C5460', grad: ['#FF9A9E', '#FAD0C4'] },
-      'Delivered': { bg: ['#D4EDDA', '#C3E6CB'], text: '#155724', grad: ['#84FAB0', '#8FD3F4'] },
-    };
-    return colors[status] || colors['Pending'];
+  const colors = {
+    primary: '#825100',
+    primaryFixed: '#ffddb7',
+    onPrimary: '#ffffff',
+    surface: isDarkMode ? '#1e1e1e' : '#fff8f4',
+    background: isDarkMode ? '#121212' : '#fcf9f8',
+    onSurface: isDarkMode ? '#ffffff' : '#211a13',
+    onSurfaceVariant: isDarkMode ? '#aaaaaa' : '#524536',
+    outlineVariant: isDarkMode ? '#333333' : '#d6c3b0',
+    secondaryFixed: '#ffddb7',
+    onSecondaryFixedVariant: '#5e411c',
+    secondaryContainer: '#fed3a1',
+    onSecondaryContainer: '#795931',
+    successBg: isDarkMode ? '#1a3b2b' : '#d1fae5',
+    successText: isDarkMode ? '#34d399' : '#047857',
   };
 
-  const getStatusIcon = (status) => {
-    return {
-      'Pending': 'timer-sand',
-      'Preparing': 'muffin',
-      'Delivering': 'truck-delivery',
-      'Delivered': 'check-decagram',
-    }[status] || 'package-variant';
-  };
+  const tabs = ['Semua', 'Berlangsung', 'Selesai', 'Dibatalkan'];
 
-  const getStatusLabel = (status) => {
-    return {
-      'Pending': 'Menunggu',
-      'Preparing': 'Dimasak',
-      'Delivering': 'Dikirim',
-      'Delivered': 'Selesai',
-    }[status] || status;
-  };
+  const uniqueOrders = orderHistory.filter(
+    (order, index, self) => index === self.findIndex(o => o.id === order.id)
+  );
+
+  const filteredData = uniqueOrders.filter(order => {
+    if (activeTab === 'Semua') return true;
+    if (activeTab === 'Berlangsung') return ['Pending', 'Preparing', 'Delivering'].includes(order.status);
+    if (activeTab === 'Selesai') return order.status === 'Delivered';
+    if (activeTab === 'Dibatalkan') return order.status === 'Cancelled';
+    return true;
+  });
+
+  const dataWithPromo = [];
+  filteredData.forEach((order, index) => {
+    dataWithPromo.push({ type: 'order', data: order });
+    if (index === 0) {
+      dataWithPromo.push({ type: 'promo', id: 'promo-1' });
+    }
+  });
 
   const handleReorder = (order) => {
-    Alert.alert(
-      'Pesan Ulang',
-      `Tambahkan ke keranjang?`,
-      [
-        { text: 'Batal', style: 'cancel' },
-        {
-          text: 'Ya',
-          onPress: () => {
-            reorder(order);
-            navigation.navigate('CartMain');
-          }
-        }
-      ]
-    );
+    reorder(order);
+    navigation.navigate('Cart');
   };
 
-  const OrderCard = ({ order, index }) => {
-    const statusStyle = getStatusColor(order.status);
-    const fadeAnim = useRef(new Animated.Value(0)).current;
+  const getStatusDisplay = (status) => {
+    if (['Pending', 'Preparing', 'Delivering'].includes(status)) {
+      return { label: 'Proses', bg: colors.secondaryFixed, text: colors.onSecondaryFixedVariant };
+    }
+    if (status === 'Delivered') {
+      return { label: 'Selesai', bg: colors.successBg, text: colors.successText };
+    }
+    if (status === 'Cancelled') {
+      return { label: 'Batal', bg: '#fee2e2', text: '#991b1b' };
+    }
+    return { label: status, bg: colors.outlineVariant, text: colors.onSurfaceVariant };
+  };
 
-    useEffect(() => {
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 500,
-        delay: index * 100,
-        useNativeDriver: true,
-      }).start();
-    }, [index]);
+  const OrderCard = ({ order }) => {
+    const statusDisp = getStatusDisplay(order.status);
+    const dateObj = new Date(order.createdAt);
+    const dateStr = !isNaN(dateObj.getTime()) ? dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Tanggal tidak valid';
+    const timeStr = !isNaN(dateObj.getTime()) ? dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '';
+    
+    const firstItem = order.items && order.items.length > 0 ? order.items[0] : null;
+    const itemName = firstItem ? firstItem.name : 'Pesanan Custom';
+    const itemImage = firstItem && firstItem.image ? firstItem.image : 'https://via.placeholder.com/80';
+    const totalItems = order.items ? order.items.reduce((acc, item) => acc + (item.quantity || 1), 0) : 0;
+    
+    const isCompleted = order.status === 'Delivered' || order.status === 'Cancelled';
 
     return (
-      <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: fadeAnim.interpolate({ inputRange:[0,1], outputRange:[20,0] }) }] }}>
-      <TouchableOpacity 
-        style={[styles.orderCard, { backgroundColor: theme.card }]}
-        onPress={() => {
-          setSelectedOrder(order);
-          setModalVisible(true);
-        }}
-      >
-        <LinearGradient
-          colors={statusStyle.grad}
-          start={{x:0, y:0}}
-          end={{x:1, y:0}}
-          style={styles.cardHeaderGrad}
-        >
-          <View style={styles.cardHeaderTop}>
-            <View style={styles.orderIdBox}>
-              <Text style={styles.orderIdTxt}>#{order.orderNumber.slice(-6)}</Text>
-            </View>
-            <View style={[styles.statusTag, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-              <MaterialCommunityIcons name={getStatusIcon(order.status)} size={14} color="#fff" />
-              <Text style={styles.statusTagTxt}>{getStatusLabel(order.status)}</Text>
+      <View style={[styles.orderCard, { backgroundColor: colors.surface, borderColor: colors.outlineVariant }]}>
+        <View style={[styles.cardHeader, { borderBottomColor: isDarkMode ? '#333' : 'rgba(214, 195, 176, 0.3)' }]}>
+          <View style={styles.cardHeaderLeft}>
+            <MaterialCommunityIcons name="silverware-fork-knife" size={18} color={colors.primary} />
+            <View style={{ marginLeft: 8 }}>
+              <Text style={[styles.restaurantName, { color: colors.onSurface }]}>FoodsStreets Official</Text>
+              <Text style={[styles.orderDateTime, { color: colors.onSurfaceVariant }]}>{dateStr} • {timeStr}</Text>
             </View>
           </View>
-        </LinearGradient>
+          <View style={[styles.statusBadge, { backgroundColor: statusDisp.bg }]}>
+            <Text style={[styles.statusText, { color: statusDisp.text }]}>{statusDisp.label}</Text>
+          </View>
+        </View>
 
         <View style={styles.cardBody}>
-          <View style={styles.itemsSection}>
-            <View style={styles.thumbnails}>
-              {order.items?.slice(0, 3).map((item, i) => (
-                 <Image key={i} source={{ uri: item.image }} style={[styles.miniThumb, { left: i * 15, zIndex: 3 - i }]} />
-              ))}
-              {order.items?.length > 3 && (
-                <View style={[styles.moreThumb, { left: 45 }]}>
-                    <Text style={styles.moreThumbTxt}>+{order.items.length - 3}</Text>
-                </View>
-              )}
-            </View>
-            <View style={styles.orderInfoSide}>
-                <Text style={[styles.mainItemName, { color: theme.text }]} numberOfLines={1}>
-                  {order.items?.[0]?.name || 'Pesanan'}
-                </Text>
-                <Text style={[styles.orderDateTxt, { color: theme.textSecondary }]}>
-                  {new Date(order.createdAt).toLocaleDateString('id-ID', { day:'numeric', month:'short' })} • {order.paymentMethod}
-                </Text>
-            </View>
+          <View style={[styles.itemImageWrap, isCompleted && { opacity: 0.7 }]}>
+            <Image source={{ uri: itemImage }} style={[styles.itemImage, isCompleted ? { tintColor: isDarkMode ? undefined : 'gray' } : {}]} />
           </View>
-
-          <View style={styles.cardFooter}>
-            <View>
-              <Text style={[styles.totalLabelTxt, { color: theme.textSecondary }]}>Total Bayar</Text>
-              <Text style={[styles.totalPriceTxt, { color: theme.primary }]}>Rp {order.total.toLocaleString('id-ID')}</Text>
-            </View>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-                {order.status !== 'Delivered' && (
-                  <TouchableOpacity
-                    style={[styles.actionBtn, { backgroundColor: '#FF6347' }]}
-                    onPress={() => navigation.navigate('DeliveryTracker', { order })}
-                  >
-                    <MaterialCommunityIcons name="map-marker-path" size={16} color="#fff" />
-                    <Text style={styles.actionBtnTxt}>Lacak</Text>
-                  </TouchableOpacity>
-                )}
-                {order.status === 'Delivered' && (
-                  <TouchableOpacity
-                    style={[styles.actionBtn, { backgroundColor: theme.success }]}
-                    onPress={() => handleReorder(order)}
-                  >
-                    <MaterialCommunityIcons name="refresh" size={16} color="#fff" />
-                    <Text style={styles.actionBtnTxt}>Ulang</Text>
-                  </TouchableOpacity>
-                )}
+          <View style={styles.itemInfo}>
+            <Text style={[styles.itemName, { color: colors.onSurface }]} numberOfLines={1}>{itemName}</Text>
+            <Text style={[styles.itemCount, { color: colors.onSurfaceVariant }]}>{totalItems} Item</Text>
+            
+            <View style={styles.priceRow}>
+              <View>
+                <Text style={[styles.totalLabel, { color: colors.onSurfaceVariant }]}>Total Bayar</Text>
+                <Text style={[styles.totalPrice, { color: colors.onSurface }]}>Rp {(order.total || 0).toLocaleString('id-ID')}</Text>
+              </View>
             </View>
           </View>
         </View>
-      </TouchableOpacity>
-      </Animated.View>
+
+        <View style={[styles.cardFooter, { borderTopColor: isDarkMode ? '#333' : 'rgba(214, 195, 176, 0.3)' }]}>
+          {isCompleted ? (
+            <TouchableOpacity 
+              style={[styles.btnOutline, { borderColor: colors.primary }]}
+              onPress={() => handleReorder(order)}
+            >
+              <Text style={[styles.btnOutlineText, { color: colors.primary }]}>Beli Lagi</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity 
+              style={[styles.btnOutline, { borderColor: colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 }]}
+              onPress={() => navigation.navigate('Cart', { screen: 'DeliveryTracker', params: { order } })}
+            >
+              <MaterialCommunityIcons name="map-marker-outline" size={16} color={colors.primary} />
+              <Text style={[styles.btnOutlineText, { color: colors.primary }]}>Lacak</Text>
+            </TouchableOpacity>
+          )}
+          <View style={{ width: 12 }} />
+          <TouchableOpacity 
+            style={[styles.btnSolid, { backgroundColor: colors.primary }]}
+            onPress={() => {
+              setSelectedOrder(order);
+              setModalVisible(true);
+            }}
+          >
+            <Text style={[styles.btnSolidText, { color: colors.onPrimary }]}>Detail</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     );
   };
 
-  // Modal Detail
+  const PromoCard = () => (
+    <TouchableOpacity style={[styles.promoCard, { borderColor: colors.outlineVariant }]}>
+      <Image 
+        source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCKXqaYbK5m2LpgXD1aW7QSRpdIJ5cdCqzvxNMHL5sLojuEWYNJHVK5DCNt6BHstI8LaTqy8G3HWVRYid-78TzabohDALuXe-IsoG34NNNiYHOLelNouE1BwieQKeey-WgeoKSqw1qd94IfErHgECQIBYuhsuFL5E9xmAuaydebouYEwc_X2aYSplNVwYU0hwojsrou1T8pyJWRiMyeH4neyntHO_ncJfMniWtVlVA-SkFJWnYsk8bGdIyb3nw2AYi0CAQZU7P7QIie' }}
+        style={styles.promoImage}
+      />
+      <View style={styles.promoOverlay}>
+        <View style={[styles.promoBadge, { backgroundColor: colors.secondaryContainer }]}>
+          <Text style={[styles.promoBadgeText, { color: colors.onSecondaryContainer }]}>PROMO KILAT</Text>
+        </View>
+        <Text style={styles.promoTitle}>Dapatkan Cashback 50% Untuk Pesanan Berikutnya!</Text>
+        <Text style={styles.promoSub}>S&K Berlaku</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderItem = ({ item }) => {
+    if (item.type === 'promo') return <PromoCard />;
+    return <OrderCard order={item.data} />;
+  };
+
   const OrderDetailModal = () => {
     if (!selectedOrder) return null;
 
@@ -177,181 +189,124 @@ const OrderHistoryScreen = ({ navigation }) => {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>
-                Detail Pesanan
-              </Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Text style={styles.closeButton}>✕</Text>
+              <Text style={[styles.modalTitle, { color: colors.onSurface }]}>Detail Pesanan</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeBtn}>
+                <MaterialCommunityIcons name="close" size={24} color={colors.onSurfaceVariant} />
               </TouchableOpacity>
             </View>
 
-            {/* Timeline */}
-            <View style={styles.timeline}>
-              <TimelineItem 
-                title="Menunggu Konfirmasi" 
-                completed={true}
-                active={selectedOrder.status === 'Pending'}
-                theme={theme}
-              />
-              <TimelineItem 
-                title="Sedang Diproses" 
-                completed={['Preparing', 'Delivering', 'Delivered'].includes(selectedOrder.status)}
-                active={selectedOrder.status === 'Preparing'}
-                theme={theme}
-              />
-              <TimelineItem 
-                title="Dalam Pengiriman" 
-                completed={['Delivering', 'Delivered'].includes(selectedOrder.status)}
-                active={selectedOrder.status === 'Delivering'}
-                theme={theme}
-              />
-              <TimelineItem 
-                title="Pesanan Selesai" 
-                completed={selectedOrder.status === 'Delivered'}
-                active={selectedOrder.status === 'Delivered'}
-                isLast={true}
-                theme={theme}
-              />
-            </View>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: '80%' }}>
+              <View style={[styles.modalInfoBox, { backgroundColor: colors.background, borderColor: colors.outlineVariant }]}>
+                <Text style={[styles.modalInfoTitle, { color: colors.onSurfaceVariant }]}>Order ID</Text>
+                <Text style={[styles.modalInfoValue, { color: colors.onSurface }]}>#{selectedOrder.orderNumber || (selectedOrder.id ? selectedOrder.id.slice(0,8) : 'ORD')}</Text>
+                
+                <View style={styles.divider} />
+                
+                <Text style={[styles.modalInfoTitle, { color: colors.onSurfaceVariant }]}>Status</Text>
+                <Text style={[styles.modalInfoValue, { color: colors.primary }]}>{selectedOrder.status}</Text>
+              </View>
 
-            <View style={[styles.divider, { backgroundColor: theme.border, marginVertical: 16 }]} />
+              <Text style={[styles.modalSectionTitle, { color: colors.onSurface }]}>Daftar Pesanan</Text>
+              {(selectedOrder.items || []).map((item, index) => (
+                <View key={index.toString()} style={styles.modalItemRow}>
+                  <Text style={[styles.modalItemName, { color: colors.onSurface }]}>
+                    {item.quantity}x {item.name || 'Item'}
+                  </Text>
+                  <Text style={[styles.modalItemPrice, { color: colors.onSurfaceVariant }]}>
+                    Rp {((item.price || 0) * (item.quantity || 1)).toLocaleString('id-ID')}
+                  </Text>
+                </View>
+              ))}
 
-            {/* Items */}
-            <Text style={[styles.modalSectionTitle, { color: theme.text }]}>
-              Daftar Pesanan
-            </Text>
-            {(selectedOrder.items || []).map((item, index) => (
-            <View key={index} style={styles.modalItem}>
-              <Text style={[styles.modalItemName, { color: theme.text }]}>
-                {item.quantity}x {item.name || 'Item'}
-              </Text>
-              <Text style={[styles.modalItemPrice, { color: theme.textSecondary }]}>
-                Rp {((item.price || 0) * (item.quantity || 1)).toLocaleString('id-ID')}
-              </Text>
-            </View>
-            ))}
+              <View style={[styles.divider, { backgroundColor: colors.outlineVariant, marginVertical: 16 }]} />
 
-            <View style={[styles.divider, { backgroundColor: theme.border, marginVertical: 16 }]} />
-
-            <View style={styles.modalTotal}>
-              <Text style={[styles.modalTotalLabel, { color: theme.text }]}>
-                Total:
-              </Text>
-              <Text style={styles.modalTotalValue}>
-                Rp {selectedOrder.total.toLocaleString('id-ID')}
-              </Text>
-            </View>
-
-            {selectedOrder.status === 'Delivered' && (
-              <TouchableOpacity 
-                style={[styles.modalReorderButton, { backgroundColor: theme.success }]}
-                onPress={() => {
-                  setModalVisible(false);
-                  handleReorder(selectedOrder);
-                }}
-              >
-                <Text style={styles.modalReorderButtonText}>
-                  🔄 Pesan Lagi
+              <View style={styles.modalTotalRow}>
+                <Text style={[styles.modalTotalLabel, { color: colors.onSurface }]}>Total Pembayaran</Text>
+                <Text style={[styles.modalTotalValue, { color: colors.primary }]}>
+                  Rp {(selectedOrder.total || 0).toLocaleString('id-ID')}
                 </Text>
-              </TouchableOpacity>
-            )}
+              </View>
+
+              {selectedOrder.status === 'Delivered' && (
+                <TouchableOpacity 
+                  style={[styles.modalReorderBtn, { backgroundColor: colors.primary }]}
+                  onPress={() => {
+                    setModalVisible(false);
+                    handleReorder(selectedOrder);
+                  }}
+                >
+                  <Text style={[styles.modalReorderBtnText, { color: colors.onPrimary }]}>Pesan Ulang</Text>
+                </TouchableOpacity>
+              )}
+            </ScrollView>
           </View>
         </View>
       </Modal>
     );
   };
 
-  const TimelineItem = ({ title, completed, active, isLast, theme }) => (
-    <View style={styles.timelineItem}>
-      <View style={styles.timelineIconContainer}>
-        <View style={[
-          styles.timelineIcon,
-          { borderColor: theme.border },
-          completed && { backgroundColor: theme.success, borderColor: theme.success },
-          active && !completed && { backgroundColor: theme.primary, borderColor: theme.primary }
-        ]}>
-          {completed && <Text style={styles.checkmark}>✓</Text>}
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.appBar, { backgroundColor: colors.surface, borderBottomColor: colors.outlineVariant }]}>
+        <View style={styles.appBarLeft}>
+          <TouchableOpacity style={styles.iconBtn}>
+            <MaterialCommunityIcons name="menu" size={24} color={colors.primary} />
+          </TouchableOpacity>
+          <Text style={[styles.appBarTitle, { color: colors.primary }]}>QuickBite</Text>
         </View>
-        {!isLast && (
-          <View style={[
-            styles.timelineLine,
-            { backgroundColor: theme.border },
-            completed && { backgroundColor: theme.success }
-          ]} />
-        )}
-      </View>
-      <Text style={[
-        styles.timelineTitle,
-        { color: theme.textSecondary },
-        (completed || active) && { color: theme.text, fontWeight: '600' }
-      ]}>
-        {title}
-      </Text>
-    </View>
-  );
-
-  // Dedup by id dulu sebelum filter
-const uniqueOrders = orderHistory.filter(
-  (order, index, self) => index === self.findIndex(o => o.id === order.id)
-);
-
-const filteredData = uniqueOrders.filter(order => {
-    if (activeTab === 'Sedang Berjalan') return order.status !== 'Delivered';
-    return order.status === 'Delivered';
-  });
-
-  if (orderHistory.length === 0) {
-    return (
-      <View style={[styles.emptyContainer, { backgroundColor: theme.background }]}>
-        <Text style={styles.emptyIcon}>📋</Text>
-        <Text style={[styles.emptyText, { color: theme.text }]}>
-          Belum Ada Riwayat
-        </Text>
-        <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>
-          Pesanan yang dibuat akan muncul di sini
-        </Text>
-        <TouchableOpacity 
-          style={[styles.menuButton, { backgroundColor: theme.primary }]}
-          onPress={() => navigation.navigate('Menu')}
-        >
-          <Text style={styles.menuButtonText}>Mulai Pesan</Text>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Cart')}>
+          <MaterialCommunityIcons name="cart-outline" size={24} color={colors.primary} />
         </TouchableOpacity>
       </View>
-    );
-  }
 
-  return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* ── TABS ── */}
-      <View style={{ flexDirection: 'row', backgroundColor: theme.card, elevation: 2 }}>
-        {['Sedang Berjalan', 'Selesai'].map(tab => (
-          <TouchableOpacity 
-            key={tab} 
-            style={[styles.tabBtn, activeTab === tab && { borderBottomColor: theme.primary }]}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text style={[styles.tabTxt, { color: activeTab === tab ? theme.primary : theme.textSecondary, fontWeight: activeTab === tab ? 'bold' : 'normal' }]}>
-              {tab}
-            </Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.tabsWrapper}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsContainer}>
+            {tabs.map(tab => {
+              const isActive = activeTab === tab;
+              return (
+                <TouchableOpacity 
+                  key={tab} 
+                  style={[
+                    styles.tabButton, 
+                    isActive ? { backgroundColor: colors.primary, borderColor: colors.primary } : { backgroundColor: colors.surface, borderColor: colors.outlineVariant }
+                  ]}
+                  onPress={() => setActiveTab(tab)}
+                >
+                  <Text style={[styles.tabButtonText, { color: isActive ? colors.onPrimary : colors.onSurfaceVariant }]}>{tab}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>Riwayat Pesanan</Text>
+          <TouchableOpacity style={styles.filterBtn}>
+            <MaterialCommunityIcons name="filter-variant" size={18} color={colors.primary} />
+            <Text style={[styles.filterBtnText, { color: colors.primary }]}>Filter</Text>
           </TouchableOpacity>
-        ))}
-      </View>
+        </View>
 
-      <FlatList
-        data={filteredData}
-        keyExtractor={item => item.id.toString()}
-        renderItem={({ item, index }) => <OrderCard order={item} index={index} />}
-        contentContainerStyle={styles.listContainer}
-        ListEmptyComponent={
-          <View style={{ padding: 40, alignItems: 'center' }}>
-            <Text style={{ fontSize: 40, color: theme.textSecondary }}>📭</Text>
-            <Text style={{ color: theme.text, marginTop: 10 }}>Tidak ada pesanan di kategori ini.</Text>
+        {dataWithPromo.length > 0 ? (
+          <FlatList
+            data={dataWithPromo}
+            keyExtractor={(item, index) => item.type === 'promo' ? 'promo-' + index : item.data.id.toString() + '-' + index}
+            renderItem={renderItem}
+            scrollEnabled={false}
+            contentContainerStyle={styles.listContainer}
+          />
+        ) : (
+          <View style={styles.emptyContainer}>
+            <MaterialCommunityIcons name="receipt" size={60} color={colors.outlineVariant} />
+            <Text style={[styles.emptyText, { color: colors.onSurface }]}>Belum ada pesanan</Text>
+            <Text style={[styles.emptySub, { color: colors.onSurfaceVariant }]}>Pesanan Anda akan muncul di sini</Text>
           </View>
-        }
-        ListFooterComponent={<View style={{ height: 100 }} />}
-      />
+        )}
+      </ScrollView>
+
       <OrderDetailModal />
     </View>
   );
@@ -361,137 +316,238 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  tabBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
-    alignItems: 'center',
-  },
-  tabTxt: {
-    fontSize: 14,
-  },
-  tabTxt: {
-    fontSize: 14,
-  },
-  listContainer: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  orderCard: {
-    borderRadius: 20,
-    marginBottom: 20,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 15,
-    elevation: 8,
-  },
-  cardHeaderGrad: {
-    padding: 15,
-  },
-  cardHeaderTop: {
+  appBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    height: 56,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
-  orderIdBox: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  orderIdTxt: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 12,
-  },
-  statusTag: {
+  appBarLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+  },
+  iconBtn: {
+    padding: 8,
+  },
+  appBarTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+    marginLeft: 4,
+  },
+  scrollContent: {
+    paddingTop: 16,
+    paddingBottom: 100,
+  },
+  tabsWrapper: {
+    marginBottom: 16,
+  },
+  tabsContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+  },
+  tabButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginRight: 8,
+  },
+  tabButtonText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  filterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  filterBtnText: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  listContainer: {
+    paddingHorizontal: 16,
+  },
+  orderCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 16,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    marginBottom: 16,
+  },
+  cardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  restaurantName: {
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  orderDateTime: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  statusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 20,
+    borderRadius: 4,
   },
-  statusTagTxt: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: 'bold',
+  statusText: {
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   cardBody: {
-    padding: 15,
-  },
-  itemsSection: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 16,
   },
-  thumbnails: {
+  itemImageWrap: {
     width: 80,
-    height: 40,
-    position: 'relative',
-    marginRight: 10,
+    height: 80,
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginRight: 16,
   },
-  miniThumb: {
-    width: 40, height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#fff',
-    position: 'absolute',
+  itemImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
-  moreThumb: {
-    width: 40, height: 40,
-    borderRadius: 20,
-    backgroundColor: '#333',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'absolute',
-  },
-  moreThumbTxt: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  orderInfoSide: {
+  itemInfo: {
     flex: 1,
+    justifyContent: 'center',
   },
-  mainItemName: {
+  itemName: {
     fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 2,
+    fontWeight: '600',
+    marginBottom: 4,
   },
-  orderDateTxt: {
+  itemCount: {
     fontSize: 12,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginTop: 8,
+  },
+  totalLabel: {
+    fontSize: 12,
+  },
+  totalPrice: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: 2,
   },
   cardFooter: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 12,
+    paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
   },
-  totalLabelTxt: {
-    fontSize: 10,
-  },
-  totalPriceTxt: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  actionBtn: {
-    flexDirection: 'row',
+  btnOutline: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 12,
   },
-  actionBtnTxt: {
+  btnOutlineText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  btnSolid: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  btnSolidText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  promoCard: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    aspectRatio: 2.21,
+    marginBottom: 16,
+  },
+  promoImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  promoOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  promoBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  promoBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
     color: '#fff',
+  },
+  promoTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+    maxWidth: '80%',
+    lineHeight: 24,
+  },
+  promoSub: {
+    color: 'rgba(255,255,255,0.8)',
     fontSize: 12,
-    fontWeight: 'bold',
+    marginTop: 8,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingTop: 60,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 16,
+  },
+  emptySub: {
+    fontSize: 14,
+    marginTop: 8,
   },
   modalOverlay: {
     flex: 1,
@@ -499,10 +555,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     padding: 24,
-    maxHeight: '85%',
+    maxHeight: '90%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -511,54 +567,39 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
   },
-  closeButton: {
-    fontSize: 24,
-    color: '#666',
+  closeBtn: {
+    padding: 4,
   },
-  timeline: {
+  modalInfoBox: {
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
     marginBottom: 20,
   },
-  timelineItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+  modalInfoTitle: {
+    fontSize: 12,
+    marginBottom: 4,
   },
-  timelineIconContainer: {
-    alignItems: 'center',
-    marginRight: 12,
+  modalInfoValue: {
+    fontSize: 16,
+    fontWeight: '600',
   },
-  timelineIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkmark: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  timelineLine: {
-    width: 2,
-    height: 30,
-  },
-  timelineTitle: {
-    fontSize: 14,
-    marginTop: 2,
+  divider: {
+    height: 1,
+    marginVertical: 12,
   },
   modalSectionTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
     marginBottom: 12,
   },
-  modalItem: {
+  modalItemRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   modalItemName: {
     fontSize: 14,
@@ -568,62 +609,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  divider: { height: 1, backgroundColor: '#eee' },
-  modalTotal: {
+  modalTotalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 15,
+    marginBottom: 20,
   },
   modalTotalLabel: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   modalTotalValue: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#FF6347',
+    fontSize: 20,
+    fontWeight: '700',
   },
-  modalReorderButton: {
-    padding: 16,
-    borderRadius: 15,
+  modalReorderBtn: {
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: 'center',
-    marginTop: 20,
   },
-  modalReorderButtonText: {
-    color: '#fff',
+  modalReorderBtnText: {
     fontSize: 16,
-    fontWeight: 'bold',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  emptyIcon: {
-    fontSize: 80,
-    marginBottom: 16,
-  },
-  emptyText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 16,
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  menuButton: {
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 15,
-  },
-  menuButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
 });
 

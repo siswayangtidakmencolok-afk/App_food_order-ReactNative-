@@ -1,46 +1,33 @@
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  Alert,
+  Animated,
+  Dimensions,
+  Linking,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Image,
+} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-    Alert, Animated, Dimensions, Linking, Platform, ScrollView, StyleSheet,
-    Switch, Text, TextInput, TouchableOpacity, View
-} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+
 import GrainientBackground from '../components/GrainientBackground';
 import LogoLoop from '../components/LogoLoop';
-import MetallicPaint from '../components/MetallicPaint';
 import { darkTheme, lightTheme } from '../config/theme';
-import { METALLIC_LOGO_SVG } from '../constants/assets';
 import { useApp } from '../context/AppContext';
 
 const { width } = Dimensions.get('window');
 
-// ─── Stat Card Keren ────────────────────────────────────────────────
-const StatCard = ({ icon, value, label, isDark, delay = 0 }) => {
-  const scaleAnim = useRef(new Animated.Value(0)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.spring(scaleAnim, { toValue: 1, friction: 5, tension: 60, delay, useNativeDriver: Platform.OS !== 'web' }),
-      Animated.timing(opacityAnim, { toValue: 1, duration: 400, delay, useNativeDriver: Platform.OS !== 'web' }),
-    ]).start();
-  }, []);
-
-  return (
-    <Animated.View style={[
-      styles.statCard,
-      { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#fff' },
-      { transform: [{ scale: scaleAnim }], opacity: opacityAnim }
-    ]}>
-      <MaterialCommunityIcons name={icon} size={28} color={isDark ? '#ddd' : '#EE4D2D'} style={{ marginBottom: 6 }} />
-      <Text style={[styles.statValue, { color: isDark ? '#fff' : '#333' }]} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
-      <Text style={[styles.statLabel, { color: isDark ? '#aaa' : '#888' }]} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>
-    </Animated.View>
-  );
-};
-
-const AnimatedSection = ({ children, delay = 0 }) => {
+const AnimatedSection = ({ children, delay = 0, style }) => {
   const anim = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     Animated.timing(anim, {
       toValue: 1,
@@ -51,93 +38,55 @@ const AnimatedSection = ({ children, delay = 0 }) => {
   }, [anim, delay]);
 
   return (
-    <Animated.View style={{ 
-      opacity: anim, 
-      transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }] 
-    }}>
+    <Animated.View style={[{
+      opacity: anim,
+      transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }]
+    }, style]}>
       {children}
     </Animated.View>
   );
 };
 
-const Section = ({ title, icon, children, cardCol, textCol }) => (
-  <View style={[styles.section, { backgroundColor: cardCol }]}>
-    <View style={styles.sectionHeader}>
-      <MaterialCommunityIcons name={icon} size={20} color="#EE4D2D" style={{ marginRight: 10 }} />
-      <Text style={[styles.sectionTitle, { color: textCol }]}>{title}</Text>
-    </View>
-    {children}
-  </View>
-);
-
-const ProfileScreen = () => {
+const ProfileScreen = ({ navigation }) => {
   const {
     userProfile, updateProfile, isDarkMode,
     toggleDarkMode, orderHistory, favorites,
     clearCart, signOut
   } = useApp();
 
-  const theme   = isDarkMode ? darkTheme : lightTheme;
-  const bg      = isDarkMode ? '#121212' : '#f5f5f5';
-  const card    = isDarkMode ? '#1e1e1e' : '#ffffff';
-  const textCol = isDarkMode ? '#f0f0f0' : '#1a1a1a';
-  const subText = isDarkMode ? '#888888' : '#888888';
-  const border  = isDarkMode ? '#2a2a2a' : '#eeeeee';
-
   const [isEditing, setIsEditing] = useState(false);
   const [tempProfile, setTempProfile] = useState({
     name:  userProfile?.name  || '',
-    email: userProfile?.email || '',
     phone: userProfile?.phone || '',
   });
 
-  const editAnim = useRef(new Animated.Value(0)).current;
-
-  // ── 4 animasi section — TIDAK boleh di dalam loop ──
-  const anim0 = useRef(new Animated.Value(0)).current;
-  const anim1 = useRef(new Animated.Value(0)).current;
-  const anim2 = useRef(new Animated.Value(0)).current;
-  const anim3 = useRef(new Animated.Value(0)).current;
-
-  const runSectionAnims = () => {
-    // Reset semua dulu
-    anim0.setValue(0); anim1.setValue(0); anim2.setValue(0); anim3.setValue(0);
-
-    // Jalankan satu per satu dengan delay
-    [anim0, anim1, anim2, anim3].forEach((anim, i) => {
-      Animated.timing(anim, {
-        toValue: 1,
-        duration: 500,
-        delay: i * 120,
-        useNativeDriver: Platform.OS !== 'web',
-      }).start();
-    });
+  // Colors mapped from HTML Tailwind config
+  const colors = {
+    background: isDarkMode ? '#121212' : '#fcf9f8',
+    surface: isDarkMode ? '#1e1e1e' : '#fff8f4',
+    surfaceContainerLowest: isDarkMode ? '#1a1a1a' : '#ffffff',
+    surfaceContainerLow: isDarkMode ? '#252525' : '#fff1e6',
+    onSurface: isDarkMode ? '#ffffff' : '#211a14',
+    onSurfaceVariant: isDarkMode ? '#aaaaaa' : '#524536',
+    primary: '#815200',
+    primaryFixed: '#ffddb7',
+    onPrimaryFixed: '#2a1700',
+    secondaryContainer: '#fed3a1',
+    onSecondaryContainer: '#785931',
+    tertiaryFixed: '#c7e7ff',
+    tertiary: '#00628a',
+    outlineVariant: isDarkMode ? '#333333' : '#d6c3b0',
+    errorContainer: isDarkMode ? '#4a0005' : '#ffdad6',
+    onErrorContainer: isDarkMode ? '#ffb4ab' : '#93000a',
+    error: '#ba1a1a',
   };
-
-  // Trigger animasi tiap kali tab Profil dibuka
-  useFocusEffect(
-    useCallback(() => {
-      runSectionAnims();
-    }, [])
-  );
-
-  const animStyle = (anim) => ({
-    opacity: anim,
-    transform: [{
-      translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] })
-    }]
-  });
 
   const handleEditToggle = () => {
     if (!isEditing) {
       setTempProfile({
         name:  userProfile?.name  || '',
-        email: userProfile?.email || '',
         phone: userProfile?.phone || '',
       });
-      Animated.spring(editAnim, { toValue: 1, friction: 5, useNativeDriver: false }).start();
-    } else {
-      Animated.timing(editAnim, { toValue: 0, duration: 200, useNativeDriver: false }).start();
     }
     setIsEditing(prev => !prev);
   };
@@ -153,7 +102,6 @@ const ProfileScreen = () => {
     });
     if (!error) {
       setIsEditing(false);
-      Animated.timing(editAnim, { toValue: 0, duration: 200, useNativeDriver: false }).start();
     }
   };
 
@@ -165,332 +113,520 @@ const ProfileScreen = () => {
   };
 
   if (!userProfile) return (
-    <View style={[styles.loadingContainer, { backgroundColor: bg }]}>
-      <Text style={{ color: subText }}>Memuat profil...</Text>
+    <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+      <Text style={{ color: colors.onSurfaceVariant }}>Memuat profil...</Text>
     </View>
   );
 
   const totalOrders = orderHistory.length;
   const totalSpent  = orderHistory.reduce((s, o) => s + (o.total || 0), 0);
-
-  const getLoyaltyTier = () => {
-    if (totalSpent > 1000000) return { title: 'Gold Member',   color: '#FFD700', icon: 'crown' };
-    if (totalSpent > 300000)  return { title: 'Silver Member', color: '#C0C0C0', icon: 'medal' };
-    return                           { title: 'Bronze Member', color: '#cd7f32', icon: 'star'  };
-  };
-  const tier = getLoyaltyTier();
-
   const initials = (userProfile.name || 'U').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
+  const getLoyaltyTier = () => {
+    if (totalSpent > 1000000) return 'Gold Member';
+    if (totalSpent > 300000)  return 'Silver Member';
+    return 'Bronze Member';
+  };
+
   return (
-    <ScrollView style={[styles.container, { backgroundColor: bg }]} showsVerticalScrollIndicator={false}>
-
-      {/* ══ HERO GRADIENT ══ */}
-      <View style={[styles.hero]}>
-        <GrainientBackground 
-          color1={isDarkMode ? "#FF2A00" : "#FF3D00"} // Strong Red/Orange
-          color2={isDarkMode ? "#FF6200" : "#FF8C00"} // Vibrant Orange
-          color3={isDarkMode ? "#0A0A0A" : "#D84315"} // Pitch Black / Deep Red
-        />
-        <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
-          </View>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* TopAppBar */}
+      <View style={[styles.appBar, { backgroundColor: colors.surface, borderBottomColor: colors.outlineVariant }]}>
+        <View style={styles.appBarLeft}>
+          <Text style={[styles.appBarTitle, { color: colors.primary }]}>Profile</Text>
         </View>
-
-        <Text style={styles.heroName}>{userProfile.name || 'Guest'}</Text>
-        <Text style={styles.heroEmail}>{userProfile.email || '—'}</Text>
-
-        <View style={styles.badgesRow}>
-          <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-            <MaterialCommunityIcons name="clock-outline" size={12} color="#fff" />
-            <Text style={styles.badgeTxt}>Member Aktif</Text>
-          </View>
-          <View style={[styles.badge, { backgroundColor: tier.color + '40', borderColor: tier.color, borderWidth: 1 }]}>
-            <MaterialCommunityIcons name={tier.icon} size={12} color={tier.color} />
-            <Text style={[styles.badgeTxt, { color: isDarkMode ? tier.color : '#fff', fontWeight: 'bold' }]}>{tier.title}</Text>
-          </View>
-        </View>
-
-        {/* STATS — 3 kolom animasi muncul satu per satu */}
-        <View style={styles.statsRow}>
-          <StatCard icon="shopping" value={totalOrders}                       label="Pesanan"       isDark={isDarkMode} delay={0}   />
-          <StatCard icon="wallet"   value={`${(totalSpent/1000).toFixed(0)}k`} label="Total Belanja" isDark={isDarkMode} delay={150} />
-          <StatCard icon="heart"    value={favorites.length}                   label="Favorit"       isDark={isDarkMode} delay={300} />
-        </View>
+        <TouchableOpacity style={styles.iconBtn}>
+          <MaterialCommunityIcons name="cog" size={24} color={colors.primary} />
+        </TouchableOpacity>
       </View>
 
-      {/* Space untuk stats overlap */}
-      <View style={{ height: 50 }} />
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        
+        {/* User Header Section with Background Animation */}
+        <AnimatedSection delay={0}>
+          <View style={styles.heroSection}>
+            <View style={styles.grainientWrap}>
+              <GrainientBackground 
+                color1={isDarkMode ? "#FF2A00" : "#FF3D00"}
+                color2={isDarkMode ? "#FF6200" : "#FF8C00"}
+                color3={isDarkMode ? "#0A0A0A" : "#D84315"}
+              />
+            </View>
+            
+            <View style={styles.heroContent}>
+              <View style={styles.avatarWrap}>
+                <View style={[styles.avatar, { borderColor: colors.primaryFixed }]}>
+                  <Text style={styles.avatarInitials}>{initials}</Text>
+                </View>
+                <TouchableOpacity style={[styles.editBadge, { backgroundColor: colors.primary, borderColor: colors.surface }]} onPress={handleEditToggle}>
+                  <MaterialCommunityIcons name="pencil" size={14} color="#fff" />
+                </TouchableOpacity>
+              </View>
 
-      {/* ══ SECTION 0 — Informasi Profil ══ */}
-      <Animated.View style={animStyle(anim0)}>
-        <Section icon="account" title="Informasi Profil" cardCol={card} textCol={textCol}>
-          <View style={styles.sectionHeaderBtn}>
-            <TouchableOpacity
-              onPress={handleEditToggle}
-              style={[styles.editBtn, { backgroundColor: isEditing ? border : theme.primary + '20' }]}
+              <Text style={[styles.heroName, { color: '#fff' }]}>{userProfile.name || 'Guest'}</Text>
+              <Text style={[styles.heroEmail, { color: 'rgba(255,255,255,0.8)' }]}>{userProfile.email}</Text>
+
+              <View style={styles.badgeRow}>
+                <View style={[styles.badge, { backgroundColor: colors.primaryFixed }]}>
+                  <Text style={[styles.badgeTxt, { color: colors.onPrimaryFixed }]}>Member Aktif</Text>
+                </View>
+                <View style={[styles.badge, { backgroundColor: colors.secondaryContainer }]}>
+                  <Text style={[styles.badgeTxt, { color: colors.onSecondaryContainer }]}>{getLoyaltyTier()}</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </AnimatedSection>
+
+        {/* Shopping Stats Bento Grid */}
+        <AnimatedSection delay={100} style={styles.statsGrid}>
+          <View style={[styles.statBox, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
+            <MaterialCommunityIcons name="shopping-outline" size={24} color={colors.primary} style={styles.statIcon} />
+            <Text style={[styles.statValue, { color: colors.onSurface }]}>{totalOrders}</Text>
+            <Text style={[styles.statLabel, { color: colors.onSurfaceVariant }]}>Pesanan</Text>
+          </View>
+          <View style={[styles.statBox, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
+            <MaterialCommunityIcons name="cash-multiple" size={24} color={colors.primary} style={styles.statIcon} />
+            <Text style={[styles.statValue, { color: colors.onSurface }]}>{(totalSpent / 1000000).toFixed(1)}M</Text>
+            <Text style={[styles.statLabel, { color: colors.onSurfaceVariant }]}>Belanja</Text>
+          </View>
+          <View style={[styles.statBox, { backgroundColor: colors.surfaceContainerLow, borderColor: colors.outlineVariant }]}>
+            <MaterialCommunityIcons name="cards-heart" size={24} color={colors.error} style={styles.statIcon} />
+            <Text style={[styles.statValue, { color: colors.onSurface }]}>{favorites.length}</Text>
+            <Text style={[styles.statLabel, { color: colors.onSurfaceVariant }]}>Favorit</Text>
+          </View>
+        </AnimatedSection>
+
+        {/* Informational Cards */}
+        <AnimatedSection delay={200} style={styles.sectionBlock}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <MaterialCommunityIcons name="account" size={20} color={colors.primary} />
+              <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>Informasi Profil</Text>
+            </View>
+            {isEditing ? (
+              <TouchableOpacity onPress={handleSave}>
+                <Text style={[styles.sectionActionBtn, { color: colors.primary, fontWeight: 'bold' }]}>Simpan</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={handleEditToggle}>
+                <Text style={[styles.sectionActionBtn, { color: colors.primary }]}>Edit Profil</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <View style={[styles.cardBlock, { backgroundColor: colors.surfaceContainerLowest, borderColor: colors.outlineVariant }]}>
+            <View style={[styles.cardRow, { borderBottomColor: colors.outlineVariant, borderBottomWidth: 1 }]}>
+              <MaterialCommunityIcons name="badge-account-horizontal-outline" size={22} color={colors.onSurfaceVariant} style={styles.cardRowIcon} />
+              <View style={styles.cardRowContent}>
+                <Text style={[styles.cardRowLabel, { color: colors.onSurfaceVariant }]}>Nama Lengkap</Text>
+                {isEditing ? (
+                  <TextInput
+                    style={[styles.inputField, { color: colors.onSurface, borderColor: colors.outlineVariant }]}
+                    value={tempProfile.name}
+                    onChangeText={v => setTempProfile(p => ({ ...p, name: v }))}
+                  />
+                ) : (
+                  <Text style={[styles.cardRowValue, { color: colors.onSurface }]}>{userProfile.name}</Text>
+                )}
+              </View>
+            </View>
+            <View style={styles.cardRow}>
+              <MaterialCommunityIcons name="phone-outline" size={22} color={colors.onSurfaceVariant} style={styles.cardRowIcon} />
+              <View style={styles.cardRowContent}>
+                <Text style={[styles.cardRowLabel, { color: colors.onSurfaceVariant }]}>Nomor Telepon</Text>
+                {isEditing ? (
+                  <TextInput
+                    style={[styles.inputField, { color: colors.onSurface, borderColor: colors.outlineVariant }]}
+                    value={tempProfile.phone}
+                    onChangeText={v => setTempProfile(p => ({ ...p, phone: v }))}
+                    keyboardType="phone-pad"
+                  />
+                ) : (
+                  <Text style={[styles.cardRowValue, { color: colors.onSurface }]}>{userProfile.phone || '-'}</Text>
+                )}
+              </View>
+            </View>
+          </View>
+        </AnimatedSection>
+
+        {/* App Settings */}
+        <AnimatedSection delay={300} style={styles.sectionBlock}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <MaterialCommunityIcons name="cog" size={20} color={colors.primary} />
+              <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>Pengaturan Aplikasi</Text>
+            </View>
+          </View>
+
+          <View style={[styles.cardBlock, { backgroundColor: colors.surfaceContainerLowest, borderColor: colors.outlineVariant }]}>
+            <View style={[styles.cardRow, { borderBottomColor: colors.outlineVariant, borderBottomWidth: 1, alignItems: 'center' }]}>
+              <View style={styles.cardRowContentHorizontal}>
+                <MaterialCommunityIcons name="weather-night" size={22} color={colors.onSurfaceVariant} style={styles.cardRowIcon} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.cardRowValue, { color: colors.onSurface, fontWeight: '600' }]}>Mode Gelap (Dark Mode)</Text>
+                  <Text style={[styles.cardRowLabel, { color: colors.onSurfaceVariant }]}>Beralih ke tampilan gelap yang elegan</Text>
+                </View>
+              </View>
+              <Switch
+                value={isDarkMode}
+                onValueChange={toggleDarkMode}
+                trackColor={{ false: '#d6c3b0', true: colors.primary }}
+                thumbColor={'#fff'}
+              />
+            </View>
+            <TouchableOpacity 
+              style={[styles.cardRow, { alignItems: 'center' }]}
+              onPress={() => Alert.alert('Info', 'Notifikasi segera hadir!')}
             >
-              <Text style={[styles.editBtnTxt, { color: isEditing ? subText : theme.primary }]}>
-                {isEditing ? 'Batal' : 'Edit Profil'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {[
-            { label: 'Nama Lengkap', key: 'name',  icon: 'account-outline' },
-            { label: 'Nomor Telepon', key: 'phone', icon: 'phone-outline' },
-          ].map(field => (
-            <View key={field.key} style={styles.infoRow}>
-              <View style={styles.infoLeft}>
-                <View style={[styles.infoIconBox, { backgroundColor: isDarkMode ? '#2c2c2c' : '#f0f0f0' }]}>
-                  <MaterialCommunityIcons name={field.icon} size={18} color={subText} />
-                </View>
-                <View>
-                  <Text style={[styles.infoLabel, { color: subText }]}>{field.label}</Text>
-                  {isEditing ? (
-                    <TextInput
-                      style={[styles.inputField, { color: textCol, borderColor: border }]}
-                      value={tempProfile[field.key]}
-                      onChangeText={v => setTempProfile(p => ({ ...p, [field.key]: v }))}
-                    />
-                  ) : (
-                    <Text style={[styles.infoValue, { color: textCol }]}>{userProfile[field.key] || '—'}</Text>
-                  )}
+              <View style={styles.cardRowContentHorizontal}>
+                <MaterialCommunityIcons name="bell-outline" size={22} color={colors.onSurfaceVariant} style={styles.cardRowIcon} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.cardRowValue, { color: colors.onSurface, fontWeight: '600' }]}>Pemberitahuan</Text>
+                  <Text style={[styles.cardRowLabel, { color: colors.onSurfaceVariant }]}>Kelola notifikasi pesanan dan promosi</Text>
                 </View>
               </View>
-            </View>
-          ))}
-
-          <View style={styles.infoRow}>
-            <View style={styles.infoLeft}>
-              <View style={[styles.infoIconBox, { backgroundColor: isDarkMode ? '#2c2c2c' : '#f0f0f0' }]}>
-                <MaterialCommunityIcons name="email-outline" size={18} color={subText} />
-              </View>
-              <View>
-                <Text style={[styles.infoLabel, { color: subText }]}>Email</Text>
-                <Text style={[styles.infoValue, { color: subText, fontStyle: 'italic' }]}>{userProfile.email || '—'}</Text>
-              </View>
-            </View>
-          </View>
-
-          {isEditing && (
-            <TouchableOpacity style={[styles.saveBtn, { backgroundColor: theme.primary }]} onPress={handleSave}>
-              <Text style={styles.saveBtnTxt}>Simpan Perubahan</Text>
+              <MaterialCommunityIcons name="chevron-right" size={20} color={colors.outlineVariant} />
             </TouchableOpacity>
-          )}
-        </Section>
-      </Animated.View>
-
-      {/* ══ SECTION 1 — Pengaturan ══ */}
-      <Animated.View style={animStyle(anim1)}>
-        <Section icon="cog" title="Pengaturan Aplikasi" cardCol={card} textCol={textCol}>
-          <View style={styles.settingRow}>
-            <View style={styles.settingLeft}>
-              <View style={[styles.settingIconBox, { backgroundColor: isDarkMode ? '#3a3a3a' : '#ffe4e1' }]}>
-                <MaterialCommunityIcons
-                  name={isDarkMode ? 'weather-night' : 'weather-sunny'}
-                  size={20}
-                  color={isDarkMode ? '#fff' : '#EE4D2D'}
-                />
-              </View>
-              <View>
-                <Text style={[styles.settingName, { color: textCol }]}>Mode Gelap (Dark Mode)</Text>
-                <Text style={[styles.settingDesc, { color: subText }]}>Beralih ke tampilan gelap yang elegan</Text>
-              </View>
-            </View>
-            <Switch
-              value={isDarkMode}
-              onValueChange={toggleDarkMode}
-              trackColor={{ false: '#ddd', true: '#EE4D2D' }}
-              thumbColor={'#fff'}
-            />
           </View>
+        </AnimatedSection>
 
-          <View style={[styles.divider, { backgroundColor: border }]} />
- 
-          <TouchableOpacity
-            style={styles.settingRow}
-            onPress={() => Alert.alert('Info', 'Notifikasi akan segera hadir!')}
-          >
-            <View style={styles.settingLeft}>
-              <View style={[styles.settingIconBox, { backgroundColor: isDarkMode ? '#3a3a3a' : '#e0f7fa' }]}>
-                <MaterialCommunityIcons name="bell-outline" size={20} color={isDarkMode ? '#fff' : '#00acc1'} />
-              </View>
-              <View>
-                <Text style={[styles.settingName, { color: textCol }]}>Pemberitahuan</Text>
-                <Text style={[styles.settingDesc, { color: subText }]}>Kelola notifikasi pesanan dan promosi</Text>
-              </View>
+        {/* Social Media Slider (Using LogoLoop as requested) */}
+        <AnimatedSection delay={400} style={styles.sectionBlock}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <MaterialCommunityIcons name="share-variant-outline" size={20} color={colors.primary} />
+              <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>Find Me Everywhere</Text>
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={subText} />
-          </TouchableOpacity>
-        </Section>
-      </Animated.View>
-
-      {/* ══ SECTION 2 — Kontak & Sosial (Looping) ══ */}
-      <Animated.View style={animStyle(anim2)}>
-        <Section icon="food" title="Find Me Everywhere" cardCol={card} textCol={textCol}>
-          <View style={{ height: 80, justifyContent: 'center', marginVertical: 10 }}>
+          </View>
+          
+          <View style={{ height: 60, justifyContent: 'center' }}>
             <LogoLoop
               speed={140}
               logoHeight={45}
-              gap={50}
+              gap={40}
               fadeOut={true}
-              fadeOutColor={card}
+              fadeOutColor={colors.background}
               scaleOnHover={true}
               logos={[
-                { node: <MaterialCommunityIcons name="github" size={32} color={isDarkMode ? "#fff" : "#000"} />, title: "GitHub", href: 'https://github.com/siswayangtidakmencolok-afk' },
-                { node: <MaterialCommunityIcons name="whatsapp" size={32} color="#25D366" />, title: "WhatsApp", href: 'https://wa.me/qr/RKCJNQUSIH6VF1' },
-                { node: <MaterialCommunityIcons name="instagram" size={32} color="#E1306C" />, title: "Instagram", href: 'https://www.instagram.com/f.zvvn_/' },
-                { node: <MaterialCommunityIcons name="facebook" size={32} color="#1877F2" />, title: "Facebook", href: 'https://www.facebook.com/share/1QzXJnQtXt/' },
-                { node: <MaterialCommunityIcons name="twitter" size={32} color={isDarkMode ? "#fff" : "#000"} />, title: "X", href: 'https://x.com/www.x.com/zxyninety1' },
-                { node: <MaterialCommunityIcons name="telegram" size={32} color="#229ED9" />, title: "Telegram", href: 'https://t.me/Art_zwn' },
-                { node: <MaterialCommunityIcons name="discord" size={32} color="#5865F2" />, title: "Discord", href: 'https://discord.com/channels/@zxyninety' },
+                { node: <MaterialCommunityIcons name="github" size={30} color={isDarkMode ? "#fff" : "#211a14"} />, title: "GitHub", href: 'https://github.com/siswayangtidakmencolok-afk' },
+                { node: <MaterialCommunityIcons name="whatsapp" size={30} color="#25D366" />, title: "WhatsApp", href: 'https://wa.me/qr/RKCJNQUSIH6VF1' },
+                { node: <MaterialCommunityIcons name="instagram" size={30} color="#E1306C" />, title: "Instagram", href: 'https://www.instagram.com/f.zvvn_/' },
+                { node: <MaterialCommunityIcons name="facebook" size={30} color="#1877F2" />, title: "Facebook", href: 'https://www.facebook.com/share/1QzXJnQtXt/' },
+                { node: <MaterialCommunityIcons name="twitter" size={30} color={isDarkMode ? "#fff" : "#211a14"} />, title: "X", href: 'https://x.com/www.x.com/zxyninety1' },
+                { node: <MaterialCommunityIcons name="telegram" size={30} color="#229ED9" />, title: "Telegram", href: 'https://t.me/Art_zwn' },
+                { node: <MaterialCommunityIcons name="discord" size={30} color="#5865F2" />, title: "Discord", href: 'https://discord.com/channels/@zxyninety' },
               ]}
             />
           </View>
-        </Section>
-      </Animated.View>
- 
-      {/* ══ SECTION 3 — Project Lainnya & Zona Bahaya ══ */}
-      <Animated.View style={animStyle(anim3)}>
-        <Section icon="rocket-launch-outline" title="Project Lainnya" cardCol={card} textCol={textCol}>
-          {[
-            { label: 'Globe 3D',            url: 'https://globe3d-byfhaz.netlify.app/',                                    icon: 'earth' },
-            { label: 'World Clock & Timer', url: 'https://worldclockandtimer.netlify.app/',                                icon: 'clock-outline' },
-            { label: 'Teacher Absence',     url: 'https://teacher-absence-byfhaz.up.railway.app/',                        icon: 'account-clock-outline' },
-            { label: 'Student Registration',url: 'https://student-registration-sage-delta.vercel.app/',                   icon: 'account-plus-outline' },
-            { label: 'Frieren Website',     url: 'https://siswayangtidakmencolok-afk.github.io/website-frieren/',         icon: 'cards-heart-outline' },
-          ].map((project, index) => (
-            <View key={project.label}>
-              <TouchableOpacity style={styles.projectRow} onPress={() => Linking.openURL(project.url)}>
-                <View style={styles.projectLeft}>
-                  <MaterialCommunityIcons name={project.icon} size={20} color={theme.primary} style={{ marginRight: 12 }} />
-                  <Text style={[styles.projectName, { color: textCol }]}>{project.label}</Text>
-                </View>
-                <MaterialCommunityIcons name="arrow-top-right" size={18} color={subText} />
-              </TouchableOpacity>
-              {index < 4 && <View style={[styles.divider, { backgroundColor: border }]} />}
+        </AnimatedSection>
+
+        {/* My Projects List */}
+        <AnimatedSection delay={500} style={styles.sectionBlock}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <MaterialCommunityIcons name="rocket-launch-outline" size={20} color={colors.primary} />
+              <Text style={[styles.sectionTitle, { color: colors.onSurface }]}>Project Lainnya</Text>
             </View>
-          ))}
-        </Section>
- 
-        {/* Zona Bahaya */}
-        <View style={[styles.section, { backgroundColor: card }]}>
-          <TouchableOpacity style={styles.dangerRow} onPress={() => {
+          </View>
+
+          <View style={styles.projectGrid}>
+            {[
+              { label: 'Globe 3D',            url: 'https://globe3d-byfhaz.netlify.app/',                                    icon: 'earth', color: colors.tertiary, bg: colors.tertiaryFixed },
+              { label: 'World Clock & Timer', url: 'https://worldclockandtimer.netlify.app/',                                icon: 'clock-outline', color: colors.primary, bg: colors.primaryFixed },
+              { label: 'Teacher Absence',     url: 'https://teacher-absence-byfhaz.up.railway.app/',                        icon: 'account-group', color: '#785831', bg: colors.secondaryContainer },
+              { label: 'Student Registration',url: 'https://student-registration-sage-delta.vercel.app/',                   icon: 'account-plus-outline', color: '#00628a', bg: '#c7e7ff' },
+            ].map((project, index) => (
+              <TouchableOpacity 
+                key={index} 
+                style={[styles.projectCard, { backgroundColor: colors.surfaceContainerLowest, borderColor: colors.outlineVariant }]}
+                onPress={() => Linking.openURL(project.url)}
+              >
+                <View style={styles.projectCardLeft}>
+                  <View style={[styles.projectIconBox, { backgroundColor: project.bg }]}>
+                    <MaterialCommunityIcons name={project.icon} size={20} color={project.color} />
+                  </View>
+                  <Text style={[styles.projectName, { color: colors.onSurface }]}>{project.label}</Text>
+                </View>
+                <MaterialCommunityIcons name="open-in-new" size={18} color={colors.outlineVariant} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </AnimatedSection>
+
+        {/* Logout Action */}
+        <AnimatedSection delay={600} style={styles.logoutSection}>
+          <TouchableOpacity 
+            style={[styles.logoutBtn, { backgroundColor: colors.errorContainer }]}
+            onPress={handleSignOut}
+          >
+            <MaterialCommunityIcons name="logout" size={20} color={colors.onErrorContainer} />
+            <Text style={[styles.logoutBtnTxt, { color: colors.onErrorContainer }]}>Logout Account</Text>
+          </TouchableOpacity>
+          <Text style={[styles.logoutNote, { color: colors.onSurfaceVariant }]}>
+            Kosongkan Keranjang Belanja sebelum Logout.
+          </Text>
+
+          {/* Secret Clear Cart (Hidden under text, or you can add a real button) */}
+          <TouchableOpacity onPress={() => {
             Alert.alert('Kosongkan Keranjang', 'Hapus semua item?', [
               { text: 'Batal', style: 'cancel' },
               { text: 'Hapus', style: 'destructive', onPress: () => { clearCart(); Alert.alert('Berhasil', 'Keranjang dikosongkan'); } }
             ]);
-          }}>
-            <MaterialCommunityIcons name="cart-remove" size={20} color="#ff4444" style={{ marginRight: 12 }} />
-            <Text style={styles.dangerTxt}>Kosongkan Keranjang Belanja</Text>
+          }} style={{ padding: 10, alignSelf: 'center', marginTop: 10 }}>
+            <Text style={{ fontSize: 10, color: colors.onSurfaceVariant, textDecorationLine: 'underline' }}>Kosongkan Keranjang</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.dangerRow} onPress={handleSignOut}>
-            <MaterialCommunityIcons name="logout" size={20} color="#ff4444" style={{ marginRight: 12 }} />
-            <Text style={styles.dangerTxt}>Keluar dari Akun</Text>
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
+        </AnimatedSection>
 
-      {/* ══ FOOTER LOGO ══ */}
-      <View style={styles.footerLogoContainer}>
-        <MetallicPaint
-          imageSrc={METALLIC_LOGO_SVG}
-          seed={44.24}
-          scale={4}
-          patternSharpness={1.5}
-          noiseScale={0.5}
-          speed={0.8}
-          liquid={0.8}
-          mouseAnimation={false}
-          brightness={2.0}
-          contrast={0.6}
-          refraction={0.015}
-          blur={0.01}
-          chromaticSpread={2.5}
-          fresnel={1.2}
-          angle={24}
-          waveAmplitude={1.2}
-          distortion={1.2}
-          contour={0.3}
-          lightColor="#ff8b4d"
-          darkColor="#111111"
-          tintColor="#ff7b00"
-          style={{ height: 260 }}
-        />
-        <Text style={[styles.footerTagline, { color: isDarkMode ? '#444' : '#ccc' }]}>
-          © 2026 FoodsStrets • Premium Street Food
-        </Text>
-      </View>
-
-      <View style={{ height: 80 }} />
-    </ScrollView>
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </View>
   );
 };
 
-
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  hero: { paddingTop: 40, paddingBottom: 80, alignItems: 'center', borderBottomLeftRadius: 35, borderBottomRightRadius: 35 },
-  avatarContainer: { width: 90, height: 90, borderRadius: 45, backgroundColor: 'rgba(255,255,255,0.3)', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
-  avatarText: { fontSize: 32, fontWeight: 'bold', color: '#EE4D2D' },
-  heroName: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginBottom: 4 },
-  heroEmail: { fontSize: 13, color: '#f0f0f0', marginBottom: 16 },
-  badgesRow: { flexDirection: 'row', gap: 8 },
-  badge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, gap: 4 },
-  badgeTxt: { fontSize: 11, color: '#fff' },
-  statsRow: { flexDirection: 'row', gap: 12, position: 'absolute', bottom: -50, width: '100%', paddingHorizontal: 20 },
-  statCard: { flex: 1, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 6, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 4 },
-  statValue: { fontSize: 18, fontWeight: 'bold' },
-  statLabel: { fontSize: 11, marginTop: 4, textAlign: 'center' },
-  section: { marginHorizontal: 16, marginTop: 16, borderRadius: 16, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, borderBottomWidth: 1, borderBottomColor: 'transparent' },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold' },
-  sectionHeaderBtn: { position: 'absolute', top: -5, right: 0, zIndex: 10 },
-  editBtn: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20 },
-  editBtnTxt: { fontSize: 12, fontWeight: 'bold' },
-  infoRow: { marginBottom: 16 },
-  infoLeft: { flexDirection: 'row', alignItems: 'center' },
-  infoIconBox: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  infoLabel: { fontSize: 12, marginBottom: 4 },
-  infoValue: { fontSize: 14, fontWeight: '500' },
-  inputField: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, fontSize: 14, width: width - 120 },
-  saveBtn: { padding: 14, borderRadius: 12, alignItems: 'center', marginTop: 8 },
-  saveBtnTxt: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
-  settingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
-  settingLeft: { flexDirection: 'row', alignItems: 'center' },
-  settingIconBox: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  settingName: { fontSize: 14, fontWeight: '600', marginBottom: 4 },
-  settingDesc: { fontSize: 11 },
-  divider: { height: 1, marginVertical: 4 },
-  socialRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
-  socialLeft: { flexDirection: 'row', alignItems: 'center' },
-  socialIconBox: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  socialName: { fontSize: 14, fontWeight: '500' },
-  projectRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
-  projectLeft: { flexDirection: 'row', alignItems: 'center' },
-  projectName: { fontSize: 14, fontWeight: '500' },
-  dangerRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
-  dangerTxt: { fontSize: 14, fontWeight: 'bold', color: '#ff4444' },
-  appVer: { textAlign: 'center', marginTop: 20, fontSize: 12 },
-
-  // Footer Logo
-  footerLogoContainer: {
-    paddingVertical: 10,
-    marginTop: 20,
+  container: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  appBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    height: 56,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  appBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  iconBtn: {
+    padding: 8,
+    marginRight: -8,
+  },
+  appBarTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+  },
+  scrollContent: {
+    paddingTop: 24,
+    paddingHorizontal: 16,
+  },
+  heroSection: {
+    alignItems: 'center',
+    marginBottom: 24,
+    borderRadius: 24,
+    overflow: 'hidden',
+    position: 'relative',
+    paddingVertical: 30,
+  },
+  grainientWrap: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  heroContent: {
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  avatarWrap: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  avatar: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 4,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  avatarInitials: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#815200',
+  },
+  editBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroName: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  heroEmail: {
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  badge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 16,
+  },
+  badgeTxt: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 24,
+  },
+  statBox: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+  },
+  statIcon: {
+    marginBottom: 8,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+  },
+  statLabel: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  sectionBlock: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  sectionActionBtn: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  cardBlock: {
+    borderWidth: 1,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  cardRow: {
+    flexDirection: 'row',
+    padding: 16,
+    gap: 16,
+  },
+  cardRowIcon: {
+    marginTop: 2,
+  },
+  cardRowContent: {
+    flex: 1,
+  },
+  cardRowContentHorizontal: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    flex: 1,
+  },
+  cardRowLabel: {
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  cardRowValue: {
+    fontSize: 14,
+  },
+  inputField: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    fontSize: 14,
+    marginTop: 4,
+  },
+  projectGrid: {
+    flexDirection: 'column',
+    gap: 12,
+  },
+  projectCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderWidth: 1,
+    borderRadius: 16,
+  },
+  projectCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  projectIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  projectName: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  logoutSection: {
+    marginTop: 8,
+  },
+  logoutBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 16,
   },
-  footerTagline: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 2,
-    marginTop: -40,
-    opacity: 0.6,
-    textAlign: 'center'
+  logoutBtnTxt: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  logoutNote: {
+    fontSize: 12,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 16,
   },
 });
 

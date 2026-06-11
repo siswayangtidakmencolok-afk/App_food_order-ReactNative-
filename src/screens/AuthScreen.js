@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -9,13 +9,19 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  Dimensions,
+  Image
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../config/supabase';
+
+const { width, height } = Dimensions.get('window');
 
 // ─── State tampilan setelah daftar ───────────────────────────
 const VerificationSentScreen = ({ email, onBackToLogin }) => (
-  <View style={styles.container}>
+  <View style={styles.verificationContainer}>
     <Text style={{ fontSize: 72, marginBottom: 16 }}>📧</Text>
     <Text style={[styles.title, { marginBottom: 8 }]}>Cek Email Kamu!</Text>
     <Text style={[styles.subtitle, { textAlign: 'center', lineHeight: 22 }]}>
@@ -34,7 +40,14 @@ const VerificationSentScreen = ({ email, onBackToLogin }) => (
         style={[styles.button, { marginTop: 20 }]}
         onPress={onBackToLogin}
       >
-        <Text style={styles.buttonText}>Sudah Verifikasi? Login</Text>
+        <LinearGradient
+          colors={['#EE4D2D', '#b22204']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradientBtn}
+        >
+          <Text style={styles.buttonText}>Sudah Verifikasi? Login</Text>
+        </LinearGradient>
       </TouchableOpacity>
 
       <Text style={styles.resendNote}>
@@ -69,7 +82,6 @@ const AuthScreen = () => {
     setLoading(false);
 
     if (error) {
-      // Pesan error yang lebih ramah
       if (error.message.includes('Email not confirmed')) {
         Alert.alert(
           'Email Belum Diverifikasi',
@@ -105,7 +117,6 @@ const AuthScreen = () => {
       password,
       options: {
         data: { name: name.trim() },
-        // URL yang dibuka setelah klik link verifikasi
         emailRedirectTo: 'aplikasipemesananmakanan://auth/callback',
       },
     });
@@ -120,21 +131,16 @@ const AuthScreen = () => {
       return;
     }
 
-    // Cek apakah Supabase minta konfirmasi email
     if (data?.user && !data.session) {
-      // Email konfirmasi dikirim
       setSentToEmail(email.trim().toLowerCase());
       setVerificationSent(true);
-    } else if (data?.session) {
-      // Jika Supabase config tidak minta konfirmasi, langsung masuk
-      // (otomatis ditangani AppContext)
     }
   };
 
   // ── Forgot Password ──
   const handleForgotPassword = async () => {
     if (!email.trim()) {
-      Alert.alert('Info', 'Masukkan email kamu dulu, lalu klik "Lupa Password".');
+      Alert.alert('Info', 'Masukkan email kamu dulu, lalu klik "Lupa password?".');
       return;
     }
     setLoading(true);
@@ -150,7 +156,24 @@ const AuthScreen = () => {
     }
   };
 
-  // ── Tampilkan halaman verifikasi terkirim ──
+  const handleOAuthLogin = async (provider) => {
+    if (provider === 'Google') {
+      try {
+        setLoading(true);
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+        });
+        if (error) throw error;
+      } catch (error) {
+        Alert.alert('Login Gagal', error.message);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      Alert.alert('Info', `Fitur Login dengan ${provider} belum dikonfigurasi.`);
+    }
+  };
+
   if (verificationSent) {
     return (
       <VerificationSentScreen
@@ -166,131 +189,175 @@ const AuthScreen = () => {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: '#fcf9f8' }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         <View style={styles.container}>
-          {/* Hero */}
-          <Text style={{ fontSize: 64, marginBottom: 8 }}>🍔</Text>
-          <Text style={styles.title}>FoodsStreets</Text>
-          <Text style={styles.subtitle}>
-            {mode === 'login' ? 'Selamat datang kembali!' : 'Buat akun baru'}
-          </Text>
+          
+          {/* Header & Logo */}
+          <View style={styles.header}>
+            <View style={styles.logoWrap}>
+              <LinearGradient
+                colors={['#EE4D2D', '#b22204']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.logoGradient}
+              >
+                <MaterialCommunityIcons name="silverware-fork-knife" size={40} color="#fff" />
+              </LinearGradient>
+            </View>
+            <Text style={styles.appName}>FoodsStreets</Text>
+            
+            <Text style={styles.welcomeTitle}>
+              {mode === 'login' ? 'Selamat Datang Kembali' : 'Buat Akun Baru'}
+            </Text>
+            <Text style={styles.welcomeSubtitle}>
+              {mode === 'login' ? 'Masuk untuk melanjutkan petualangan kuliner Anda' : 'Daftar sekarang dan nikmati makanan favorit Anda'}
+            </Text>
+          </View>
 
-          {/* Card */}
-          <View style={styles.card}>
-
-            {/* Nama — hanya saat register */}
+          {/* Form Section */}
+          <View style={styles.formSection}>
+            
+            {/* Nama (Only Register) */}
             {mode === 'register' && (
-              <View style={styles.inputWrap}>
+              <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Nama Lengkap</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Fhazwan Athar Raamadhan"
-                  placeholderTextColor="#bbb"
-                  value={name}
-                  onChangeText={setName}
-                  autoCapitalize="words"
-                />
+                <View style={styles.inputWrap}>
+                  <MaterialCommunityIcons name="account" size={20} color="#847464" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Nama Anda"
+                    placeholderTextColor="#a0a0a0"
+                    value={name}
+                    onChangeText={setName}
+                    autoCapitalize="words"
+                  />
+                </View>
               </View>
             )}
 
-            {/* Email */}
-            <View style={styles.inputWrap}>
+            {/* Email Input */}
+            <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Email</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="email@contoh.com"
-                placeholderTextColor="#bbb"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
+              <View style={styles.inputWrap}>
+                <MaterialCommunityIcons name="email" size={20} color="#847464" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="contoh@email.com"
+                  placeholderTextColor="#a0a0a0"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
             </View>
 
-            {/* Password */}
-            <View style={styles.inputWrap}>
-              <Text style={styles.inputLabel}>Password</Text>
-              <View style={styles.passwordRow}>
+            {/* Password Input */}
+            <View style={styles.inputGroup}>
+              <View style={styles.passwordLabelRow}>
+                <Text style={styles.inputLabel}>Kata Sandi</Text>
+                {mode === 'login' && (
+                  <TouchableOpacity onPress={handleForgotPassword}>
+                    <Text style={styles.forgotPass}>Lupa password?</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              <View style={styles.inputWrap}>
+                <MaterialCommunityIcons name="lock" size={20} color="#847464" style={styles.inputIcon} />
                 <TextInput
-                  style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                  style={[styles.input, { paddingRight: 40 }]}
                   placeholder="Min. 6 karakter"
-                  placeholderTextColor="#bbb"
+                  placeholderTextColor="#a0a0a0"
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
                 />
                 <TouchableOpacity
-                  onPress={() => setShowPassword(s => !s)}
-                  style={styles.eyeBtn}
+                  style={styles.eyeIconWrap}
+                  onPress={() => setShowPassword(!showPassword)}
                 >
-                  <Text style={{ fontSize: 18 }}>{showPassword ? '🙈' : '👁️'}</Text>
+                  <MaterialCommunityIcons 
+                    name={showPassword ? "eye-off" : "eye"} 
+                    size={20} 
+                    color="#847464" 
+                  />
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* Lupa password — hanya saat login */}
-            {mode === 'login' && (
-              <TouchableOpacity onPress={handleForgotPassword} style={{ alignSelf: 'flex-end', marginBottom: 16, marginTop: -4 }}>
-                <Text style={styles.forgotTxt}>Lupa password?</Text>
-              </TouchableOpacity>
-            )}
-
-            {/* Submit Button */}
+            {/* Primary Action Button */}
             <TouchableOpacity
               style={[styles.button, loading && { opacity: 0.7 }]}
               onPress={mode === 'login' ? handleLogin : handleRegister}
               disabled={loading}
+              activeOpacity={0.8}
             >
-              {loading
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.buttonText}>
-                    {mode === 'login' ? '🚀 Masuk' : '✨ Daftar Sekarang'}
+              <LinearGradient
+                colors={['#EE4D2D', '#b22204']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientBtn}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>
+                    {mode === 'login' ? 'Masuk' : 'Daftar'}
                   </Text>
-              }
+                )}
+              </LinearGradient>
             </TouchableOpacity>
 
-            {/* Divider */}
-            <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerTxt}>atau</Text>
-              <View style={styles.dividerLine} />
-            </View>
+          </View>
 
-            {/* Switch mode */}
-            <TouchableOpacity
-              onPress={() => {
-                setMode(mode === 'login' ? 'register' : 'login');
-                setPassword('');
-                setName('');
-              }}
-              style={styles.switchBtn}
-            >
-              <Text style={styles.switchText}>
-                {mode === 'login'
-                  ? 'Belum punya akun? Daftar di sini'
-                  : 'Sudah punya akun? Masuk'}
+          {/* Divider */}
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>
+              atau {mode === 'login' ? 'masuk' : 'daftar'} dengan
+            </Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Social Login Options */}
+          <View style={styles.socialRow}>
+            <TouchableOpacity style={styles.socialBtn} onPress={() => handleOAuthLogin('Google')} activeOpacity={0.7}>
+              <Image 
+                source={{ uri: 'https://cdn-icons-png.flaticon.com/512/3002/3002219.png' }} 
+                style={styles.socialIcon} 
+              />
+              <Text style={styles.socialBtnText}>Google</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.socialBtn} onPress={() => handleOAuthLogin('Apple')} activeOpacity={0.7}>
+              <MaterialCommunityIcons name="apple" size={24} color="#000" />
+              <Text style={styles.socialBtnText}>Apple</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Footer Link */}
+          <View style={styles.footerWrap}>
+            <Text style={styles.footerText}>
+              {mode === 'login' ? 'Belum punya akun? ' : 'Sudah punya akun? '}
+            </Text>
+            <TouchableOpacity onPress={() => {
+              setMode(mode === 'login' ? 'register' : 'login');
+              setPassword('');
+              setName('');
+            }}>
+              <Text style={styles.footerLink}>
+                {mode === 'login' ? 'Daftar di sini' : 'Masuk'}
               </Text>
             </TouchableOpacity>
           </View>
 
-          {/* Info verifikasi email — tampil saat register */}
-          {mode === 'register' && (
-            <View style={styles.infoBox}>
-              <Text style={styles.infoTxt}>
-                📧 Setelah daftar, kamu akan menerima email verifikasi dari FoodsStreets.
-                Klik link di email sebelum login.
-              </Text>
-            </View>
-          )}
-
-          <Text style={styles.version}>FoodsStreets v1.0.0</Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -298,47 +365,207 @@ const AuthScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  verificationContainer: {
     flex: 1,
-    backgroundColor: '#FF6347',
+    backgroundColor: '#fcf9f8',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 60,
-    paddingBottom: 40,
+    padding: 24,
   },
-  title:       { fontSize: 34, fontWeight: '900', color: '#fff', marginBottom: 4, letterSpacing: 0.5 },
-  subtitle:    { fontSize: 15, color: 'rgba(255,255,255,0.85)', marginBottom: 28 },
-  card:        { backgroundColor: '#fff', borderRadius: 24, padding: 24, width: '100%', maxWidth: 420, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 16, elevation: 8 },
-
-  inputWrap:   { marginBottom: 14 },
-  inputLabel:  { fontSize: 13, fontWeight: '700', color: '#555', marginBottom: 6 },
-  input:       { backgroundColor: '#f7f7f7', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, borderWidth: 1, borderColor: '#e8e8e8', color: '#1a1a1a' },
-
-  passwordRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  eyeBtn:      { paddingHorizontal: 10, paddingVertical: 10 },
-
-  forgotTxt:   { fontSize: 13, color: '#FF6347', fontWeight: '600' },
-
-  button:      { backgroundColor: '#FF6347', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 4, marginBottom: 16, shadowColor: '#FF6347', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 8, elevation: 4 },
-  buttonText:  { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-
-  dividerRow:  { flexDirection: 'row', alignItems: 'center', marginBottom: 14, gap: 8 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: '#eee' },
-  dividerTxt:  { fontSize: 12, color: '#bbb' },
-
-  switchBtn:   { alignItems: 'center', paddingVertical: 4 },
-  switchText:  { textAlign: 'center', color: '#FF6347', fontSize: 14, fontWeight: '700' },
-
-  // Info box
-  infoBox:     { marginTop: 20, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 12, padding: 14, width: '100%', maxWidth: 420 },
-  infoTxt:     { color: '#fff', fontSize: 12, lineHeight: 18, textAlign: 'center' },
-
-  // Verification screen
-  verifyInfo:  { fontSize: 14, lineHeight: 26, color: '#444', textAlign: 'center' },
-  resendNote:  { fontSize: 12, color: '#aaa', textAlign: 'center', marginTop: 12 },
-
-  version:     { color: 'rgba(255,255,255,0.5)', fontSize: 11, marginTop: 24 },
+  container: {
+    width: '100%',
+    maxWidth: 400,
+    alignSelf: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 40,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  logoWrap: {
+    marginBottom: 24,
+    transform: [{ rotate: '3deg' }],
+    shadowColor: '#EE4D2D',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  logoGradient: {
+    width: 80,
+    height: 80,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  appName: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#825100',
+    letterSpacing: -0.5,
+  },
+  welcomeTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#211a13',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  welcomeSubtitle: {
+    fontSize: 14,
+    color: '#524536',
+    textAlign: 'center',
+    paddingHorizontal: 16,
+  },
+  formSection: {
+    marginBottom: 30,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#524536',
+    marginBottom: 6,
+    paddingLeft: 4,
+  },
+  passwordLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingLeft: 4,
+    paddingRight: 4,
+    marginBottom: 6,
+  },
+  forgotPass: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#EE4D2D',
+  },
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff8f4',
+    borderWidth: 1,
+    borderColor: '#d6c3b0',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  inputIcon: {
+    paddingLeft: 12,
+  },
+  input: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: '#1b1c1c',
+  },
+  eyeIconWrap: {
+    padding: 12,
+    position: 'absolute',
+    right: 0,
+  },
+  button: {
+    marginTop: 16,
+    borderRadius: 12,
+    shadowColor: '#EE4D2D',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  gradientBtn: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#d6c3b0',
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    fontSize: 12,
+    color: '#847464',
+    fontWeight: '500',
+  },
+  socialRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 16,
+    marginBottom: 40,
+  },
+  socialBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff8f4',
+    borderWidth: 1,
+    borderColor: '#d6c3b0',
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
+  },
+  socialIcon: {
+    width: 20,
+    height: 20,
+  },
+  socialBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#211a13',
+  },
+  footerWrap: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 'auto',
+  },
+  footerText: {
+    fontSize: 14,
+    color: '#524536',
+  },
+  footerLink: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#EE4D2D',
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    maxWidth: 420,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  title: { fontSize: 32, fontWeight: '800', color: '#1b1c1c' },
+  subtitle: { fontSize: 16, color: '#524536' },
+  verifyInfo: { fontSize: 14, lineHeight: 26, color: '#444', textAlign: 'center' },
+  resendNote: { fontSize: 12, color: '#aaa', textAlign: 'center', marginTop: 12 },
 });
 
 export default AuthScreen;
