@@ -156,8 +156,22 @@ const AuthScreen = () => {
     }
   };
 
-  const handleOAuthLogin = (provider) => {
-    Alert.alert('Info', `Fitur Login dengan ${provider} akan segera hadir! Saat ini proyek Anda baru mengonfigurasi Login dengan Email & Password via Supabase.`);
+  const handleOAuthLogin = async (provider) => {
+    if (provider === 'Google') {
+      try {
+        setLoading(true);
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+        });
+        if (error) throw error;
+      } catch (error) {
+        Alert.alert('Login Gagal', error.message);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      Alert.alert('Info', `Fitur Login dengan ${provider} belum dikonfigurasi.`);
+    }
   };
 
   if (verificationSent) {
