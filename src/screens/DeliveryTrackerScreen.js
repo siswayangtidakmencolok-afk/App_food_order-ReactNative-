@@ -83,11 +83,13 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
 
   const toggleSheet = () => {
     if (isCollapsed) {
-      Animated.spring(sheetAnim, { toValue: 0, friction: 8, useNativeDriver: true }).start();
-      setIsCollapsed(false);
+      Animated.spring(sheetAnim, { toValue: 0, tension: 50, friction: 7, useNativeDriver: true }).start(() => {
+        setIsCollapsed(false);
+      });
     } else {
-      Animated.spring(sheetAnim, { toValue: 1, friction: 8, useNativeDriver: true }).start();
-      setIsCollapsed(true);
+      Animated.spring(sheetAnim, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }).start(() => {
+        setIsCollapsed(true);
+      });
     }
   };
 
@@ -108,6 +110,11 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
   const sheetTranslateY = sheetAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, SHEET_HEIGHT - VISIBLE_WHEN_COLLAPSED] 
+  });
+
+  const arrowRotation = sheetAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg']
   });
 
   // ── UI Helpers ──
@@ -168,11 +175,11 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
   return (
     <View style={styles.container}>
       {/* Map Background */}
-      <View style={styles.mapWrap}>
+      <View style={[styles.mapWrap, { bottom: VISIBLE_WHEN_COLLAPSED }]}>
         <MapComponent 
           latitude={driverLoc.latitude} 
           longitude={driverLoc.longitude} 
-          height={height}
+          height={height - VISIBLE_WHEN_COLLAPSED}
           isDarkMode={isDarkMode}
           locationName={isPreparing ? 'Restoran' : 'Kurir'}
           showRoute={true}
@@ -203,12 +210,15 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
         <TouchableOpacity 
           activeOpacity={0.8} 
           onPress={toggleSheet} 
+          accessibilityLabel="toggle-sheet"
           hitSlop={{ top: 20, bottom: 20, left: 40, right: 40 }}
           {...panResponder.panHandlers} 
           style={styles.dragHandleWrap}
         >
           <View style={styles.dragHandle} />
-          <MaterialCommunityIcons name={isCollapsed ? "chevron-up" : "chevron-down"} size={32} color={textMuted} style={{ marginTop: 12 }} />
+          <Animated.View style={{ transform: [{ rotate: arrowRotation }], marginTop: 12 }}>
+            <MaterialCommunityIcons name="chevron-down" size={32} color={textMuted} />
+          </Animated.View>
         </TouchableOpacity>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetContent}>
@@ -324,7 +334,7 @@ const DeliveryTrackerScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff8f4' },
-  mapWrap: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  mapWrap: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 140 },
   mapGradient: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 120, backgroundColor: 'transparent' },
   
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingTop: 50, zIndex: 50 },
