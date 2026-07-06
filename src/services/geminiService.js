@@ -1,69 +1,169 @@
 // src/services/geminiService.js
+// Model: gemini-2.0-flash — lebih cepat, lebih cerdas, konteks panjang
 
 const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
-// Menggunakan model 1.5-flash yang jauh lebih cerdas, natural, dan cepat
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 /**
- * Instruksi Sistem untuk melatih karakter "Street Chef"
+ * System Instruction — Karakter "Street Chef"
+ * Dirancang untuk jawaban yang spesifik, nyambung, dan kontekstual
  */
 const SYSTEM_INSTRUCTION = `
-Anda adalah "Street Chef", asisten AI yang cerdas, ramah, dan profesional di aplikasi "FoodsStreets".
-Kepribadian Anda:
-- Gaul tapi sopan, menggunakan panggilan seperti "Sobat Kuliner" atau "Pelanggan Setia".
-- Memiliki keahlian tinggi tentang menu makanan, bahan masakan, dan rekomendasi rasa.
-- Selalu memberikan emoji makanan yang relevan (🍔, 🍕, 🛵, 👨‍🍳).
-- Tugas utama Anda adalah membantu pengguna memilih menu, menjelaskan detail makanan, dan memberikan bantuan umum seputar aplikasi FoodsStreets.
-- Jika ditanya hal di luar makanan atau aplikasi, arahkan kembali dengan sopan ke topik kuliner.
-- Gunakan bahasa Indonesia yang luwes.
+Kamu adalah "Street Chef" 👨‍🍳 — asisten AI kuliner cerdas di aplikasi FoodsStreets.
+
+=== KEPRIBADIAN ===
+- Gaul, hangat, dan to-the-point. Hindari basa-basi berlebihan.
+- Panggil user dengan nama mereka jika tersedia di konteks, atau "Sobat Kuliner".
+- Pakai emoji makanan secukupnya — jangan berlebihan, 1-2 per balasan sudah cukup.
+- Bahasa Indonesia natural dan luwes, bukan formal kaku.
+
+=== CARA MENJAWAB ===
+- SELALU baca konteks menu, keranjang, dan profil user yang diberikan SEBELUM menjawab.
+- Jika user tanya "ada apa?" atau "rekomendasiin dong" — sebutkan spesifik nama menu dari daftar yang tersedia, bukan generik.
+- Jika user menyebut makanan yang ADA di daftar menu → langsung rekomendasikan dengan harga dan kategorinya.
+- Jika user menyebut makanan yang TIDAK ada → jujur bilang belum tersedia, tawarkan alternatif dari menu yang ada.
+- Jika keranjang user sudah ada item → akui itu dan beri saran pelengkap yang relevan.
+- Jawaban singkat dan padat untuk pertanyaan singkat. Jawaban detail untuk pertanyaan detail.
+- Jangan ulangi greeting "Halo" di setiap balasan — hanya di pesan pertama saja.
+
+=== TINDAKAN KHUSUS ===
+- Jika user minta tambahkan ke keranjang, pesan, atau beli sesuatu → sertakan tag tersembunyi di AKHIR balasan: [ACTION: ADD_TO_CART: Nama Menu Persis Sesuai Daftar]
+- Nama menu harus PERSIS sama dengan yang ada di daftar — huruf besar/kecil diabaikan tapi ejaan harus tepat.
+- Satu balasan maksimal SATU tag ADD_TO_CART — pilihkan yang paling relevan.
+
+=== BATASAN ===
+- Jika ditanya hal di luar kuliner/aplikasi → jawab singkat dan arahkan kembali ke topik makanan.
+- Jangan buat harga atau info menu karangan — hanya gunakan data dari konteks yang diberikan.
+- Jangan sebut merek kompetitor.
 `;
 
+/**
+ * Kirim pesan ke Gemini dengan konteks lengkap aplikasi
+ * @param {string} userMessage - Pesan dari user
+ * @param {Array} chatHistory - Riwayat chat [{role, text}]
+ * @param {string} appContextData - Konteks dinamis: menu, keranjang, profil
+ * @returns {Promise<string>} - Balasan dari AI
+ */
 export const sendMessageToGemini = async (userMessage, chatHistory = [], appContextData = '') => {
   try {
     if (!GEMINI_API_KEY) {
-      throw new Error('API Key Gemini tidak ditemukan. Harap cek file .env Anda.');
+      throw new Error('EXPO_PUBLIC_GEMINI_API_KEY belum diset di .env');
     }
 
-    // Ambil 5-10 pesan terakhir saja agar tidak overload
-    const recentHistory = chatHistory.slice(-10);
+    // Ambil 12 pesan terakhir untuk konteks yang lebih panjang
+    const recentHistory = chatHistory.slice(-12);
 
-    const history = recentHistory.map(msg => ({
-      role: msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: msg.text }]
-    }));
+    // Filter: pastikan history bergantian user-model dengan benar
+    // Gemini butuh urutan yang valid (user lalu model, dst)
+    const validHistory = [];
+    let lastRole = null;
+    for (const msg of recentHistory) {
+      const role = msg.role === 'user' ? 'user' : 'model';
+      // Skip duplikat peran yang sama berturutan
+      if (role === lastRole) continue;
+      validHistory.push({ role, parts: [{ text: msg.text || '' }] });
+      lastRole = role;
+    }
+
+    // Pastikan history tidak dimulai dari 'model'
+    if (validHistory.length > 0 && validHistory[0].role === 'model') {
+      validHistory.shift();
+    }
+
+    const systemWithContext = appContextData
+      ? `${SYSTEM_INSTRUCTION}\n\n=== KONTEKS REAL-TIME SAAT INI ===\n${appContextData}`
+      : SYSTEM_INSTRUCTION;
+
+    const requestBody = {
+      system_instruction: {
+        parts: [{ text: systemWithContext }],
+      },
+      contents: [
+        ...validHistory,
+        {
+          role: 'user',
+          parts: [{ text: userMessage }],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.75,        // Sedikit kreatif tapi tetap akurat
+        topK: 40,
+        topP: 0.92,
+        maxOutputTokens: 512,     // Cukup untuk jawaban detail tanpa bertele-tele
+        candidateCount: 1,
+      },
+      safetySettings: [
+        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+      ],
+    };
 
     const response = await fetch(API_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        // Menggunakan fitur system_instruction bawaan model 1.5 dengan tambahan konteks dinamis
-        system_instruction: { 
-          parts: [{ text: `${SYSTEM_INSTRUCTION}\n\n[KONTEKS DINAMIS APLIKASI SAAT INI (REAL-TIME)]:\n${appContextData}` }] 
-        },
-        contents: [
-          ...history,
-          {
-            role: 'user',
-            parts: [{ text: userMessage }]
-          }
-        ],
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
     });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('[Gemini HTTP Error]', response.status, errText);
+      // Fallback ke model lama jika 2.0-flash tidak tersedia
+      if (response.status === 404 || response.status === 400) {
+        return sendMessageToGeminiLegacy(userMessage, chatHistory, appContextData);
+      }
+      throw new Error(`HTTP ${response.status}`);
+    }
 
     const data = await response.json();
 
-    if (data.candidates && data.candidates.length > 0) {
+    if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
       return data.candidates[0].content.parts[0].text;
-    } else {
-      // Tampilkan error teknis ke UI agar kita bisa diagnosa
-      const errMsg = data.error?.message || JSON.stringify(data);
-      console.error('[Gemini Error]', data);
-      return `Maaf, ada kendala teknis: ${errMsg.substring(0, 50)}... 👨‍🍳`;
     }
+
+    // Handle safety block
+    if (data.candidates?.[0]?.finishReason === 'SAFETY') {
+      return 'Maaf, pertanyaan itu tidak bisa saya jawab. Coba tanya tentang menu atau makanan ya! 🍽️';
+    }
+
+    const errMsg = data.error?.message || 'Response tidak valid';
+    console.error('[Gemini Error]', data);
+    return `Hmm, ada gangguan teknis sebentar. Coba lagi ya! 🛵`;
+
   } catch (error) {
     console.error('[Gemini Service Error]', error);
-    return `Koneksi terputus: ${error.message}. Coba lagi ya! 🛵`;
+    return `Koneksi ke dapur AI terputus sebentar. Coba lagi! 👨‍🍳`;
+  }
+};
+
+/**
+ * Fallback ke model 1.5-flash jika 2.0-flash tidak tersedia
+ */
+const sendMessageToGeminiLegacy = async (userMessage, chatHistory, appContextData) => {
+  const LEGACY_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+  const recentHistory = chatHistory.slice(-10).map(msg => ({
+    role: msg.role === 'user' ? 'user' : 'model',
+    parts: [{ text: msg.text || '' }],
+  }));
+
+  try {
+    const res = await fetch(LEGACY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: {
+          parts: [{ text: `${SYSTEM_INSTRUCTION}\n\n${appContextData}` }],
+        },
+        contents: [
+          ...recentHistory,
+          { role: 'user', parts: [{ text: userMessage }] },
+        ],
+        generationConfig: { temperature: 0.75, maxOutputTokens: 512 },
+      }),
+    });
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || 'Maaf, tidak bisa menjawab saat ini. 🍽️';
+  } catch {
+    return 'Koneksi ke dapur AI terputus. Coba lagi! 👨‍🍳';
   }
 };

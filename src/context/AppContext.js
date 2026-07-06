@@ -38,6 +38,16 @@ export const AppProvider = ({ children }) => {
     reviewReply: true,
   });
 
+  // ── Persist + restore theme settings ─────────────────
+  useEffect(() => {
+    AsyncStorage.multiGet(['@isDarkMode', '@accentColor', '@textSize']).then(pairs => {
+      const map = Object.fromEntries(pairs.map(([k, v]) => [k, v]));
+      if (map['@isDarkMode'] !== null) setIsDarkMode(map['@isDarkMode'] === 'true');
+      if (map['@accentColor']) setAccentColor(map['@accentColor']);
+      if (map['@textSize'])    setTextSize(map['@textSize']);
+    }).catch(() => {});
+  }, []);
+
   // ── AUTH LISTENER ─────────────────────────────────────
   useEffect(() => {
     // Cek session yang sudah ada dulu (persistent session)
@@ -388,18 +398,26 @@ export const AppProvider = ({ children }) => {
   };
 
   // ── UI ────────────────────────────────────────────────
-  const toggleDarkMode = () => setIsDarkMode(prev => !prev);
+  const toggleDarkMode = () => {
+    setIsDarkMode(prev => {
+      const next = !prev;
+      AsyncStorage.setItem('@isDarkMode', String(next)).catch(() => {});
+      return next;
+    });
+  };
 
   // ── SETTINGS ACTIONS ──────────────────────────────────
   // Ganti warna aksen tema
   const changeAccentColor = (color) => {
     setAccentColor(color);
+    AsyncStorage.setItem('@accentColor', color).catch(() => {});
     addNotification('Tema warna diperbarui ✨', 'success');
   };
 
   // Ganti ukuran teks
   const changeTextSize = (size) => {
     setTextSize(size);
+    AsyncStorage.setItem('@textSize', size).catch(() => {});
     addNotification('Ukuran teks diperbarui', 'success');
   };
 
