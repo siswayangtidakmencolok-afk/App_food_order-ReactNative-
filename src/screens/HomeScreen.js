@@ -8,22 +8,22 @@ import * as Location from 'expo-location';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert,
-  Animated, Dimensions, Image, Platform, ScrollView,
-  StyleSheet, Text,
-  TextInput,
-  TouchableOpacity, View
+    ActivityIndicator, Alert,
+    Animated, Dimensions, Image, Platform, ScrollView,
+    StyleSheet, Text,
+    TextInput,
+    TouchableOpacity, View
 } from 'react-native';
 import AnimatedLogo from '../components/AnimatedLogo';
 import Aurora from '../components/Aurora';
 import MapComponent from '../components/MapComponent';
+import MetallicPaint from '../components/MetallicPaint';
 import ShinyText from '../components/ShinyText';
 import { GEOAPIFY_KEY } from '../config/maps';
 import { darkTheme, lightTheme } from '../config/theme';
+import { METALLIC_LOGO_SVG } from '../constants/assets';
 import { useApp } from '../context/AppContext';
 import { fetchAITrends } from '../services/qdrantService';
-import MetallicPaint from '../components/MetallicPaint';
-import { METALLIC_LOGO_SVG } from '../constants/assets';
 
 const { width } = Dimensions.get('window');
 
@@ -653,7 +653,7 @@ const HomeScreen = ({ navigation }) => {
           color={isDarkMode ? '#065f46' : '#10b981'}
           accentColor={isDarkMode ? '#047857' : '#059669'}
           dustColor="#34d399"
-          onPress={() => navigation.navigate('History')}
+          onPress={() => navigation.navigate('OrderHistory')}
           delay={300}
         />
       </View>

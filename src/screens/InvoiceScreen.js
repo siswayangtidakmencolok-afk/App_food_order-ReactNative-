@@ -1,17 +1,16 @@
 // src/screens/InvoiceScreen.js
-import {
-  Alert,
-  Animated,
-  Dimensions,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from 'react-native';
-import React, { useEffect, useRef } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import React, { useEffect, useRef } from 'react';
+import {
+    Animated,
+    Dimensions,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
 
 const InvoiceScreen = ({ navigation, route }) => {
   const { order } = route.params;
@@ -56,7 +55,7 @@ const InvoiceScreen = ({ navigation, route }) => {
         {/* Invoice Card */}
         <View style={styles.invoiceCard}>
           <View style={styles.invoiceHeader}>
-            <TouchableOpacity onPress={() => navigation.navigate('CartMain')} style={styles.headerBackBtn}>
+            <TouchableOpacity onPress={() => navigation.navigate('Cart')} style={styles.headerBackBtn}>
               <MaterialCommunityIcons name="arrow-left" size={24} color="#333" />
             </TouchableOpacity>
             <View style={{ flex: 1, alignItems: 'center' }}>

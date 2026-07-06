@@ -9,6 +9,9 @@ const PROJECT_ID =
   'b248a3c8-04f5-4a61-9c86-c4d32a0db833';
 
 export function configurePushHandler() {
+  // setNotificationHandler tidak tersedia / tidak berguna di web
+  if (Platform.OS === 'web') return;
+
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
@@ -19,6 +22,9 @@ export function configurePushHandler() {
 }
 
 export async function registerForPushNotificationsAsync() {
+  // Push token tidak tersedia di web
+  if (Platform.OS === 'web') return { token: null, status: 'unsupported' };
+
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('orders', {
       name: 'Pesanan',
@@ -28,7 +34,7 @@ export async function registerForPushNotificationsAsync() {
     });
   }
 
-  if (!Device.isDevice && Platform.OS !== 'web') {
+  if (!Device.isDevice) {
     return { token: null, status: 'unsupported' };
   }
 

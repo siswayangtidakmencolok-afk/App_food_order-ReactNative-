@@ -2,7 +2,6 @@
 // WebGL aurora effect — hanya berjalan di web (pakai ogl library)
 // Di native otomatis pakai Aurora.native.js sebagai fallback
 
-import { Color, Mesh, Program, Renderer, Triangle } from 'ogl';
 import { useEffect, useRef } from 'react';
 
 const VERT = `#version 300 es
@@ -92,62 +91,91 @@ export default function Aurora({
     const ctn = ctnRef.current;
     if (!ctn) return;
 
-    const renderer = new Renderer({ alpha: true, premultipliedAlpha: true, antialias: true });
-    const gl = renderer.gl;
-    gl.clearColor(0, 0, 0, 0);
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    gl.canvas.style.backgroundColor = 'transparent';
-    gl.canvas.style.position = 'absolute';
-    gl.canvas.style.top = '0';
-    gl.canvas.style.left = '0';
-    gl.canvas.style.width = '100%';
-    gl.canvas.style.height = '100%';
+    let animId, cancelled = false;
+    let rendererInstance = null;
 
-    const geometry = new Triangle(gl);
-    if (geometry.attributes.uv) delete geometry.attributes.uv;
+    const init = async () => {
+      let Color, Mesh, Program, Renderer, Triangle;
+      try {
+        ({ Color, Mesh, Program, Renderer, Triangle } = await import('ogl'));
+      } catch {
+        return; // ogl tidak tersedia, fallback div transparan cukup
+      }
+      if (cancelled || !ctnRef.current) return;
 
-    const toRGB = hex => { const c = new Color(hex); return [c.r, c.g, c.b]; };
+      let renderer;
+      try {
+        renderer = new Renderer({ alpha: true, premultipliedAlpha: true, antialias: true });
+      } catch {
+        return; // WebGL tidak tersedia
+      }
+      rendererInstance = renderer;
 
-    const program = new Program(gl, {
-      vertex: VERT,
-      fragment: FRAG,
-      uniforms: {
-        uTime:       { value: 0 },
-        uAmplitude:  { value: amplitude },
-        uColorStops: { value: colorStops.map(toRGB) },
-        uResolution: { value: [ctn.offsetWidth, ctn.offsetHeight] },
-        uBlend:      { value: blend },
-      },
-    });
+      const gl = renderer.gl;
+      gl.clearColor(0, 0, 0, 0);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      gl.canvas.style.backgroundColor = 'transparent';
+      gl.canvas.style.position = 'absolute';
+      gl.canvas.style.top = '0';
+      gl.canvas.style.left = '0';
+      gl.canvas.style.width = '100%';
+      gl.canvas.style.height = '100%';
 
-    const mesh = new Mesh(gl, { geometry, program });
-    ctn.appendChild(gl.canvas);
+      const geometry = new Triangle(gl);
+      if (geometry.attributes.uv) delete geometry.attributes.uv;
 
-    const resize = () => {
-      renderer.setSize(ctn.offsetWidth, ctn.offsetHeight);
-      program.uniforms.uResolution.value = [ctn.offsetWidth, ctn.offsetHeight];
-    };
-    window.addEventListener('resize', resize);
-    resize();
+      const toRGB = hex => { const c = new Color(hex); return [c.r, c.g, c.b]; };
 
-    let animId;
-    const update = t => {
+      const program = new Program(gl, {
+        vertex: VERT,
+        fragment: FRAG,
+        uniforms: {
+          uTime:       { value: 0 },
+          uAmplitude:  { value: amplitude },
+          uColorStops: { value: colorStops.map(toRGB) },
+          uResolution: { value: [ctn.offsetWidth, ctn.offsetHeight] },
+          uBlend:      { value: blend },
+        },
+      });
+
+      const mesh = new Mesh(gl, { geometry, program });
+      ctn.appendChild(gl.canvas);
+
+      const resize = () => {
+        if (!ctnRef.current) return;
+        renderer.setSize(ctn.offsetWidth, ctn.offsetHeight);
+        program.uniforms.uResolution.value = [ctn.offsetWidth, ctn.offsetHeight];
+      };
+      window.addEventListener('resize', resize);
+      resize();
+
+      const update = t => {
+        if (cancelled) return;
+        animId = requestAnimationFrame(update);
+        const p = propsRef.current;
+        program.uniforms.uTime.value       = t * 0.001 * (p.speed ?? 1);
+        program.uniforms.uAmplitude.value  = p.amplitude ?? 1;
+        program.uniforms.uBlend.value      = p.blend ?? 0.5;
+        program.uniforms.uColorStops.value = (p.colorStops ?? colorStops).map(toRGB);
+        renderer.render({ scene: mesh });
+      };
       animId = requestAnimationFrame(update);
-      const p = propsRef.current;
-      program.uniforms.uTime.value      = t * 0.001 * (p.speed ?? 1);
-      program.uniforms.uAmplitude.value = p.amplitude ?? 1;
-      program.uniforms.uBlend.value     = p.blend ?? 0.5;
-      program.uniforms.uColorStops.value = (p.colorStops ?? colorStops).map(toRGB);
-      renderer.render({ scene: mesh });
+
+      // simpan cleanup resize
+      rendererInstance._cleanup = () => {
+        window.removeEventListener('resize', resize);
+        if (ctn && gl.canvas.parentNode === ctn) ctn.removeChild(gl.canvas);
+        gl.getExtension('WEBGL_lose_context')?.loseContext();
+      };
     };
-    animId = requestAnimationFrame(update);
+
+    init();
 
     return () => {
+      cancelled = true;
       cancelAnimationFrame(animId);
-      window.removeEventListener('resize', resize);
-      if (ctn && gl.canvas.parentNode === ctn) ctn.removeChild(gl.canvas);
-      gl.getExtension('WEBGL_lose_context')?.loseContext();
+      rendererInstance?._cleanup?.();
     };
   }, []);
 

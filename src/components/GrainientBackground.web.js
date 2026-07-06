@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { Renderer, Program, Mesh, Triangle } from 'ogl';
+// src/components/GrainientBackground.web.js
+import { useEffect, useRef } from 'react';
 
 const hexToRgb = hex => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -127,86 +127,104 @@ const GrainientBackground = ({
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const renderer = new Renderer({
-      webgl: 2,
-      alpha: true,
-      antialias: false,
-      dpr: Math.min(window.devicePixelRatio || 1, 2)
-    });
+    // ── Coba inisialisasi OGL/WebGL secara lazy ──
+    let renderer, raf = 0, ro;
+    let cancelled = false;
 
-    const gl = renderer.gl;
-    const canvas = gl.canvas;
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.display = 'block';
-
-    const container = containerRef.current;
-    container.appendChild(canvas);
-
-    const geometry = new Triangle(gl);
-    const program = new Program(gl, {
-      vertex,
-      fragment,
-      uniforms: {
-        iTime: { value: 0 },
-        iResolution: { value: new Float32Array([1, 1]) },
-        uTimeSpeed: { value: timeSpeed },
-        uColorBalance: { value: colorBalance },
-        uWarpStrength: { value: warpStrength },
-        uWarpFrequency: { value: warpFrequency },
-        uWarpSpeed: { value: warpSpeed },
-        uWarpAmplitude: { value: warpAmplitude },
-        uBlendAngle: { value: blendAngle },
-        uBlendSoftness: { value: blendSoftness },
-        uRotationAmount: { value: rotationAmount },
-        uNoiseScale: { value: noiseScale },
-        uGrainAmount: { value: grainAmount },
-        uGrainScale: { value: grainScale },
-        uGrainAnimated: { value: grainAnimated ? 1.0 : 0.0 },
-        uContrast: { value: contrast },
-        uGamma: { value: gamma },
-        uSaturation: { value: saturation },
-        uCenterOffset: { value: new Float32Array([centerX, centerY]) },
-        uZoom: { value: zoom },
-        uColor1: { value: new Float32Array(hexToRgb(color1)) },
-        uColor2: { value: new Float32Array(hexToRgb(color2)) },
-        uColor3: { value: new Float32Array(hexToRgb(color3)) }
+    const init = async () => {
+      let Renderer, Program, Mesh, Triangle;
+      try {
+        ({ Renderer, Program, Mesh, Triangle } = await import('ogl'));
+      } catch {
+        // ogl gagal load — tidak apa-apa, fallback CSS sudah ditampilkan
+        return;
       }
-    });
+      if (cancelled || !containerRef.current) return;
 
-    const mesh = new Mesh(gl, { geometry, program });
+      const container = containerRef.current;
+      let glCtx;
+      try {
+        renderer = new Renderer({ webgl: 2, alpha: true, antialias: false, dpr: Math.min(window.devicePixelRatio || 1, 2) });
+        glCtx = renderer.gl;
+      } catch {
+        // WebGL2 tidak tersedia — fallback CSS gradient cukup
+        return;
+      }
 
-    const setSize = () => {
-      const rect = container.getBoundingClientRect();
-      const width = Math.max(1, Math.floor(rect.width));
-      const height = Math.max(1, Math.floor(rect.height));
-      renderer.setSize(width, height);
-      const res = program.uniforms.iResolution.value;
-      res[0] = gl.drawingBufferWidth;
-      res[1] = gl.drawingBufferHeight;
-    };
+      const canvas = glCtx.canvas;
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.display = 'block';
+      container.appendChild(canvas);
 
-    const ro = new ResizeObserver(setSize);
-    ro.observe(container);
-    setSize();
+      const geometry = new Triangle(glCtx);
+      const program = new Program(glCtx, {
+        vertex,
+        fragment,
+        uniforms: {
+          iTime: { value: 0 },
+          iResolution: { value: new Float32Array([1, 1]) },
+          uTimeSpeed: { value: timeSpeed },
+          uColorBalance: { value: colorBalance },
+          uWarpStrength: { value: warpStrength },
+          uWarpFrequency: { value: warpFrequency },
+          uWarpSpeed: { value: warpSpeed },
+          uWarpAmplitude: { value: warpAmplitude },
+          uBlendAngle: { value: blendAngle },
+          uBlendSoftness: { value: blendSoftness },
+          uRotationAmount: { value: rotationAmount },
+          uNoiseScale: { value: noiseScale },
+          uGrainAmount: { value: grainAmount },
+          uGrainScale: { value: grainScale },
+          uGrainAnimated: { value: grainAnimated ? 1.0 : 0.0 },
+          uContrast: { value: contrast },
+          uGamma: { value: gamma },
+          uSaturation: { value: saturation },
+          uCenterOffset: { value: new Float32Array([centerX, centerY]) },
+          uZoom: { value: zoom },
+          uColor1: { value: new Float32Array(hexToRgb(color1)) },
+          uColor2: { value: new Float32Array(hexToRgb(color2)) },
+          uColor3: { value: new Float32Array(hexToRgb(color3)) }
+        }
+      });
 
-    let raf = 0;
-    const t0 = performance.now();
-    const loop = t => {
-      program.uniforms.iTime.value = (t - t0) * 0.001;
-      renderer.render({ scene: mesh });
+      const mesh = new Mesh(glCtx, { geometry, program });
+
+      const setSize = () => {
+        if (!container) return;
+        const rect = container.getBoundingClientRect();
+        const w = Math.max(1, Math.floor(rect.width));
+        const h = Math.max(1, Math.floor(rect.height));
+        renderer.setSize(w, h);
+        const res = program.uniforms.iResolution.value;
+        res[0] = glCtx.drawingBufferWidth;
+        res[1] = glCtx.drawingBufferHeight;
+      };
+
+      ro = new ResizeObserver(setSize);
+      ro.observe(container);
+      setSize();
+
+      const t0 = performance.now();
+      const loop = t => {
+        if (cancelled) return;
+        program.uniforms.iTime.value = (t - t0) * 0.001;
+        renderer.render({ scene: mesh });
+        raf = requestAnimationFrame(loop);
+      };
       raf = requestAnimationFrame(loop);
     };
-    raf = requestAnimationFrame(loop);
+
+    init();
 
     return () => {
+      cancelled = true;
       cancelAnimationFrame(raf);
-      ro.disconnect();
+      ro?.disconnect();
       try {
-        container.removeChild(canvas);
-      } catch {
-        // Ignore
-      }
+        const canvas = renderer?.gl?.canvas;
+        if (canvas && canvas.parentNode) canvas.parentNode.removeChild(canvas);
+      } catch { /* ignore */ }
     };
   }, [
     timeSpeed, colorBalance, warpStrength, warpFrequency, warpSpeed, warpAmplitude,
@@ -225,7 +243,9 @@ const GrainientBackground = ({
         height: '100%',
         overflow: 'hidden',
         borderBottomLeftRadius: 35,
-        borderBottomRightRadius: 35
+        borderBottomRightRadius: 35,
+        // CSS gradient fallback — tampil kalau WebGL tidak tersedia
+        background: `linear-gradient(135deg, ${color3} 0%, ${color2} 50%, ${color1} 100%)`,
       }} 
     />
   );

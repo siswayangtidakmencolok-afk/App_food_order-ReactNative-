@@ -1,27 +1,16 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { useEffect, useRef, useState } from 'react';
-import { Platform, Text, View } from 'react-native';
-import './global.css';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import * as Notifications from 'expo-notifications';
-import { darkTheme, lightTheme } from './src/config/theme';
 import { AppProvider, useApp } from './src/context/AppContext';
-import { usePushNotifications } from './src/hooks/usePushNotifications';
 
-// ── Notifikasi Layar Utama ──
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
-
-// ── Screens ──
-import AIChatBubble from './src/components/AIChatBubble';
-import GlobalToast from './src/components/GlobalToast';
+// Screens
 import AuthScreen from './src/screens/AuthScreen';
 import CartScreen from './src/screens/CartScreen';
 import DeliveryTrackerScreen from './src/screens/DeliveryTrackerScreen';
@@ -36,216 +25,161 @@ import PaymentScreen from './src/screens/PaymentScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import PromoHubScreen from './src/screens/PromoHubScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
-import SplashScreen from './src/screens/SplashScreen';
-import GameCenter from './src/components/GameCenter';
 
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-
-const Tab   = createBottomTabNavigator();
 const Stack = createStackNavigator();
+const Tab = createBottomTabNavigator();
 
-// ── Animasi Transisi Kreatif ──
-const creativeTransition = {
-  cardStyleInterpolator: ({ current, layouts }) => {
-    return {
-      cardStyle: {
-        transform: [
-          {
-            translateX: current.progress.interpolate({
-              inputRange: [0, 1],
-              outputRange: [layouts.screen.width * 0.5, 0],
-            }),
-          },
-          ...Platform.select({
-            web: [],
-            default: [{
-              scale: current.progress.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.9, 1],
-              }),
-            }],
-          }),
-        ],
-        opacity: current.progress.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0, 1],
-        }),
-        overflow: 'hidden',
-      },
-      overlayStyle: {
-        opacity: current.progress.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0, 0.5],
-        }),
-      },
-    };
-  },
-};
+const ONBOARDING_KEY = '@has_seen_onboarding';
 
-const fadeTransition = {
-  cardStyleInterpolator: ({ current }) => ({
-    cardStyle: {
-      opacity: current.progress.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, 1],
-      }),
-      overflow: 'hidden',
-    },
-  }),
-};
-
-// ── Menu Stack ──
-function MenuStack() {
-  const { isDarkMode } = useApp();
-  const theme = isDarkMode ? darkTheme : lightTheme;
-  return (
-    <Stack.Navigator screenOptions={{
-      headerStyle:      { backgroundColor: theme.colors.primary },
-      headerTintColor:  '#fff',
-      headerTitleStyle: { fontWeight: 'bold' },
-      animationEnabled: Platform.OS !== 'web',
-      presentation: 'card',
-      ...creativeTransition,
-    }}>
-      <Stack.Screen name="MenuMain"   component={MenuScreen}       options={{ title: 'Menu' }} />
-      <Stack.Screen name="MenuDetail" component={MenuDetailScreen} options={{ title: 'Detail Menu', ...fadeTransition }} />
-    </Stack.Navigator>
-  );
-}
-
-// ── Cart Stack ──
-function CartStack() {
-  const { isDarkMode } = useApp();
-  const theme = isDarkMode ? darkTheme : lightTheme;
-  return (
-    <Stack.Navigator screenOptions={{
-      headerStyle:      { backgroundColor: theme.colors.primary },
-      headerTintColor:  '#fff',
-      headerTitleStyle: { fontWeight: 'bold' },
-      animationEnabled: Platform.OS !== 'web',
-      presentation: 'card',
-      ...creativeTransition,
-    }}>
-      <Stack.Screen name="CartMain"        component={CartScreen}            options={{ title: 'Keranjang' }} />
-      <Stack.Screen name="Payment"         component={PaymentScreen}         options={{ title: 'Pembayaran' }} />
-      <Stack.Screen name="Invoice"         component={InvoiceScreen}         options={{ title: 'Invoice', headerLeft: null, ...fadeTransition }} />
-      <Stack.Screen name="Gateway"         component={GatewayScreen}         options={{ title: 'Secure Payment', headerShown: false, presentation: 'modal' }} />
-      <Stack.Screen name="DeliveryTracker" component={DeliveryTrackerScreen} options={{ title: '🛵 Lacak Pesanan', ...creativeTransition }} />
-    </Stack.Navigator>
-  );
-}
-
-// ── Main Tabs ──
-function MainTabs() {
-  const {
-    cart, orderHistory, favorites,
-    isDarkMode, notifications,
-    accentColor,  // ← INI yang ditambah
-  } = useApp();
-
-  const theme = isDarkMode ? darkTheme : lightTheme;
-
-  const unreadNotifications = notifications?.filter(n => !n.read).length || 0;
-  const pendingOrders       = orderHistory.filter(o => o.status !== 'Delivered').length;
-
-  const badges = {
-    Menu:     favorites.length,
-    Cart:     cart.length,
-    History:  pendingOrders,
-    Profile:  unreadNotifications,
-  };
+// ── Bottom Tab Navigator ──────────────────────────────────────────
+const MainTabs = () => {
+  const { isDarkMode, cart } = useApp();
+  const tabBarBg = isDarkMode ? '#1e1e1e' : '#ffffff';
+  const activeColor = '#825100';
+  const inactiveColor = isDarkMode ? '#888' : '#a0998f';
+  const cartCount = cart.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
     <Tab.Navigator
-      activeColor="#FF6347"
-      inactiveColor={theme.colors.textSecondary}
-      screenOptions={({ route }) => ({
-        headerStyle:      { backgroundColor: theme.colors.primary },
-        headerTintColor:  '#fff',
-        headerTitleStyle: { fontWeight: 'bold' },
-        tabBarActiveTintColor: '#FF6347',
-        tabBarInactiveTintColor: theme.colors.textSecondary,
+      screenOptions={{
+        headerShown: false,
         tabBarStyle: {
-          backgroundColor: theme.colors.card,
-          borderTopColor: theme.colors.border,
+          backgroundColor: tabBarBg,
+          borderTopColor: isDarkMode ? '#2c2c2c' : '#f0e8df',
           height: 60,
           paddingBottom: 8,
+          paddingTop: 4,
         },
-        tabBarIcon: ({ color, size }) => {
-          let iconName;
-          if (route.name === 'Home')    iconName = 'home-variant';
-          else if (route.name === 'Menu')    iconName = 'food-fork-drink';
-          else if (route.name === 'Cart')    iconName = 'shopping';
-          else if (route.name === 'History') iconName = 'history';
-          else if (route.name === 'Profile') iconName = 'account-circle';
-          else iconName = 'help-circle';
-          return <MaterialCommunityIcons name={iconName} size={size} color={color} />;
-        },
-      })}
+        tabBarActiveTintColor: activeColor,
+        tabBarInactiveTintColor: inactiveColor,
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+      }}
     >
-      <Tab.Screen name="Home"     component={HomeScreen}        options={{ title: 'Beranda' }} />
-      <Tab.Screen name="Menu"     component={MenuStack}         options={{ headerShown: false }} />
-      <Tab.Screen name="Cart"     component={CartStack}         options={{ headerShown: false }} />
-      <Tab.Screen name="History"  component={OrderHistoryScreen} options={{ title: 'Riwayat' }} />
-      <Tab.Screen name="Profile"  component={ProfileScreen}     options={{ title: 'Profil' }} />
-      <Tab.Screen name="Settings" component={SettingsScreen}    options={{ title: 'Pengaturan' }} />
-      <Tab.Screen 
-        name="PromoHub" 
-        component={PromoHubScreen}    
-        options={{ 
-          title: 'Promo Hub',
-          tabBarButton: () => null, // Sembunyikan dari Bottom Tab
-          headerStyle: { backgroundColor: '#FFD700' },
-          headerTintColor: '#000'
-        }} 
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          tabBarLabel: 'Beranda',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="home" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Menu"
+        component={MenuScreen}
+        options={{
+          tabBarLabel: 'Menu',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="silverware-fork-knife" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Cart"
+        component={CartScreen}
+        options={{
+          tabBarLabel: 'Keranjang',
+          tabBarBadge: cartCount > 0 ? cartCount : undefined,
+          tabBarBadgeStyle: { backgroundColor: '#EE4D2D', color: '#fff', fontSize: 10 },
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="cart" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="OrderHistory"
+        component={OrderHistoryScreen}
+        options={{
+          tabBarLabel: 'Pesanan',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="receipt" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          tabBarLabel: 'Profil',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="account-circle" size={size} color={color} />
+          ),
+        }}
       />
     </Tab.Navigator>
   );
-}
+};
 
-// ── App Content ──
-function AppContent() {
-  const [showSplash, setShowSplash]         = useState(true);
-  const [showOnboarding, setShowOnboarding] = useState(true);
-  const { session, authLoading, isDarkMode, notifications } = useApp();
-  const theme = isDarkMode ? darkTheme : lightTheme;
-  const toastRef = useRef(null);
+// ── Root Navigator ────────────────────────────────────────────────
+const RootNavigator = () => {
+  const { session, authLoading } = useApp();
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
-  // Mendaftarkan dan Menangani Token Push Notifikasi
-  const { expoPushToken } = usePushNotifications();
-
-  // ── Toast Listener ──
+  // Cek AsyncStorage: apakah user sudah pernah lihat onboarding
   useEffect(() => {
-    if (notifications.length > 0) {
-      const last = notifications[0];
-      toastRef.current?.show(last.message, last.type);
-    }
-  }, [notifications]);
+    AsyncStorage.getItem(ONBOARDING_KEY).then((val) => {
+      setShowOnboarding(val === null); // null = belum pernah
+      setOnboardingChecked(true);
+    }).catch(() => {
+      setShowOnboarding(false);
+      setOnboardingChecked(true);
+    });
+  }, []);
 
-  if (showSplash)     return <SplashScreen onFinish={() => setShowSplash(false)} />;
-  if (showOnboarding) return <OnboardingScreen onFinish={() => setShowOnboarding(false)} />;
-  if (authLoading)    return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FF6347' }}>
-      <Text style={{ fontSize: 48 }}>🍔</Text>
-    </View>
-  );
-  if (!session) return <AuthScreen />;
+  const handleOnboardingFinish = async () => {
+    await AsyncStorage.setItem(ONBOARDING_KEY, 'done');
+    setShowOnboarding(false);
+  };
 
+  // Tunggu keduanya selesai (onboarding check + auth check)
+  if (!onboardingChecked || authLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' }}>
+        <ActivityIndicator size="large" color="#FF6347" />
+      </View>
+    );
+  }
+
+  // Tampilkan onboarding jika belum pernah
+  if (showOnboarding) {
+    return (
+      <OnboardingScreen onFinish={handleOnboardingFinish} />
+    );
+  }
+
+  // Setelah onboarding selesai: auth flow normal
   return (
-    <NavigationContainer theme={theme}>
-      <MainTabs />
-      <GlobalToast ref={toastRef} />
-      <AIChatBubble />
-      <GameCenter />
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {!session ? (
+          <Stack.Screen name="Auth" component={AuthScreen} />
+        ) : (
+          <>
+            <Stack.Screen name="MainTabs" component={MainTabs} />
+            <Stack.Screen name="MenuDetail" component={MenuDetailScreen} />
+            <Stack.Screen name="Payment" component={PaymentScreen} />
+            <Stack.Screen name="Gateway" component={GatewayScreen} />
+            <Stack.Screen name="DeliveryTracker" component={DeliveryTrackerScreen} />
+            <Stack.Screen name="Invoice" component={InvoiceScreen} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="PromoHub" component={PromoHubScreen} />
+          </>
+        )}
+      </Stack.Navigator>
     </NavigationContainer>
   );
-}
+};
 
-// ── Root ──
+// ── Entry Point ───────────────────────────────────────────────────
 export default function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AppProvider>
+        <StatusBar style="auto" />
+        <RootNavigator />
+      </AppProvider>
+    </GestureHandlerRootView>
   );
 }

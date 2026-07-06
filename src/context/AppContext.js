@@ -1,5 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { supabase } from '../config/supabase';
 import { sendOrderReceiptEmail } from '../services/emailService';
 import { sendWhatsAppReceipt } from '../services/whatsappService';
@@ -40,7 +40,12 @@ export const AppProvider = ({ children }) => {
 
   // ── AUTH LISTENER ─────────────────────────────────────
   useEffect(() => {
-    setAuthLoading(false);
+    // Cek session yang sudah ada dulu (persistent session)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setAuthLoading(false);
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });

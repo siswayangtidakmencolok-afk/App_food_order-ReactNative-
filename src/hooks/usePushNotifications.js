@@ -1,11 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
 import * as Notifications from 'expo-notifications';
+import { useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import {
-  configurePushHandler,
-  registerForPushNotificationsAsync,
+    configurePushHandler,
+    registerForPushNotificationsAsync,
 } from '../services/pushNotificationService';
 
-configurePushHandler();
+// expo-notifications tidak support web sepenuhnya — hanya setup di native
+if (Platform.OS !== 'web') {
+  configurePushHandler();
+}
 
 /** @param {((token: string) => void|Promise<void>)|null} onToken */
 export const usePushNotifications = (onToken) => {
@@ -15,6 +19,9 @@ export const usePushNotifications = (onToken) => {
   const responseListener = useRef();
 
   useEffect(() => {
+    // Push notifications tidak didukung di web
+    if (Platform.OS === 'web') return;
+
     registerForPushNotificationsAsync().then(({ token, status }) => {
       setPermissionStatus(status);
       if (token) {
@@ -29,12 +36,8 @@ export const usePushNotifications = (onToken) => {
     });
 
     return () => {
-      if (notificationListener.current) {
-        Notifications.removeNotificationSubscription(notificationListener.current);
-      }
-      if (responseListener.current) {
-        Notifications.removeNotificationSubscription(responseListener.current);
-      }
+      notificationListener.current?.remove();
+      responseListener.current?.remove();
     };
   }, [onToken]);
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -67,6 +67,15 @@ const AuthScreen = () => {
   const [showPassword, setShowPassword]   = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
   const [sentToEmail, setSentToEmail]     = useState('');
+  const [isMounted, setIsMounted]         = useState(false);
+
+  // Fade-in animation on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsMounted(true);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
 
   // ── Login ──
   const handleLogin = async () => {
@@ -189,7 +198,7 @@ const AuthScreen = () => {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: '#fcf9f8' }}
+      style={{ flex: 1, backgroundColor: '#fcf9f8', opacity: isMounted ? 1 : 0 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
@@ -307,7 +316,7 @@ const AuthScreen = () => {
                 style={styles.gradientBtn}
               >
                 {loading ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator size={20} color="#fff" />
                 ) : (
                   <Text style={styles.buttonText}>
                     {mode === 'login' ? 'Masuk' : 'Daftar'}
@@ -329,14 +338,14 @@ const AuthScreen = () => {
 
           {/* Social Login Options */}
           <View style={styles.socialRow}>
-            <TouchableOpacity style={styles.socialBtn} onPress={() => handleOAuthLogin('Google')} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.socialBtn} onPress={() => handleOAuthLogin('Google')} activeOpacity={0.6} underlayColor="#eee">
               <Image 
                 source={{ uri: 'https://cdn-icons-png.flaticon.com/512/3002/3002219.png' }} 
                 style={styles.socialIcon} 
               />
               <Text style={styles.socialBtnText}>Google</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.socialBtn} onPress={() => handleOAuthLogin('Apple')} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.socialBtn} onPress={() => handleOAuthLogin('Apple')} activeOpacity={0.6} underlayColor="#eee">
               <MaterialCommunityIcons name="apple" size={24} color="#000" />
               <Text style={styles.socialBtnText}>Apple</Text>
             </TouchableOpacity>
