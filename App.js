@@ -8,6 +8,8 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import AIChatBubble from './src/components/AIChatBubble';
+import GameCenter from './src/components/GameCenter';
 import { AppProvider, useApp } from './src/context/AppContext';
 
 // Screens
@@ -89,16 +91,26 @@ const RootNavigator = () => {
   const inactiveColor = isDarkMode ? '#888' : '#a0998f';
   const cartCount = cart.reduce((sum, i) => sum + i.quantity, 0);
 
-  const TAB_ROUTES = ['Home', 'Menu', 'Cart', 'OrderHistory', 'Profile'];
   const tabs = [
-    { name: 'Home',         label: 'Beranda',    icon: 'home' },
-    { name: 'Menu',         label: 'Menu',       icon: 'silverware-fork-knife' },
-    { name: 'Cart',         label: 'Keranjang',  icon: 'cart', badge: cartCount },
-    { name: 'OrderHistory', label: 'Pesanan',    icon: 'receipt' },
-    { name: 'Profile',      label: 'Profil',     icon: 'account-circle' },
+    { name: 'Home',         label: 'Beranda',    icon: 'home',                  screen: 'Home' },
+    { name: 'Menu',         label: 'Menu',       icon: 'silverware-fork-knife',  screen: 'Menu' },
+    { name: 'Cart',         label: 'Keranjang',  icon: 'cart', badge: cartCount, screen: 'Cart' },
+    { name: 'OrderHistory', label: 'Pesanan',    icon: 'receipt',               screen: 'OrderHistory' },
+    { name: 'Profile',      label: 'Profil',     icon: 'account-circle',        screen: 'Profile' },
   ];
 
-  // Tab bar selalu tampil saat logged in di semua halaman
+  // Navigate ke tab — semua tab ada di dalam MainTabs (nested navigator)
+  const navigateToTab = (screenName) => {
+    // Kalau sudah di MainTabs level, langsung navigate ke screen di dalamnya
+    const currentRoute = navRef.getCurrentRoute()?.name;
+    const tabScreens = ['Home', 'Menu', 'Cart', 'OrderHistory', 'Profile'];
+    if (tabScreens.includes(currentRoute)) {
+      navRef.navigate(screenName);
+    } else {
+      // Kalau di screen lain (DeliveryTracker, Invoice, dll), balik ke MainTabs dulu
+      navRef.navigate('MainTabs', { screen: screenName });
+    }
+  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -142,7 +154,7 @@ const RootNavigator = () => {
               <TouchableOpacity
                 key={tab.name}
                 style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
-                onPress={() => navRef.navigate(tab.name)}
+                onPress={() => navigateToTab(tab.name)}
               >
                 <View style={{ position: 'relative' }}>
                   <MaterialCommunityIcons
