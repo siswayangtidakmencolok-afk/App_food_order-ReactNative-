@@ -1,11 +1,11 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AppProvider, useApp } from './src/context/AppContext';
@@ -31,96 +31,35 @@ const Tab = createBottomTabNavigator();
 
 const ONBOARDING_KEY = '@has_seen_onboarding';
 
-// ── Bottom Tab Navigator ──────────────────────────────────────────
+// ── Bottom Tab Navigator (konten screen saja, tab bar dihandle di RootNavigator) ─
 const MainTabs = () => {
-  const { isDarkMode, cart } = useApp();
-  const tabBarBg = isDarkMode ? '#1e1e1e' : '#ffffff';
-  const activeColor = '#825100';
-  const inactiveColor = isDarkMode ? '#888' : '#a0998f';
-  const cartCount = cart.reduce((sum, i) => sum + i.quantity, 0);
-
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: tabBarBg,
-          borderTopColor: isDarkMode ? '#2c2c2c' : '#f0e8df',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 4,
-        },
-        tabBarActiveTintColor: activeColor,
-        tabBarInactiveTintColor: inactiveColor,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarStyle: { display: 'none' }, // disembunyikan, pakai persistent tab bar di RootNavigator
       }}
     >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{
-          tabBarLabel: 'Beranda',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="home" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Menu"
-        component={MenuScreen}
-        options={{
-          tabBarLabel: 'Menu',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="silverware-fork-knife" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Cart"
-        component={CartScreen}
-        options={{
-          tabBarLabel: 'Keranjang',
-          tabBarBadge: cartCount > 0 ? cartCount : undefined,
-          tabBarBadgeStyle: { backgroundColor: '#EE4D2D', color: '#fff', fontSize: 10 },
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="cart" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="OrderHistory"
-        component={OrderHistoryScreen}
-        options={{
-          tabBarLabel: 'Pesanan',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="receipt" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{
-          tabBarLabel: 'Profil',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account-circle" size={size} color={color} />
-          ),
-        }}
-      />
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Menu" component={MenuScreen} />
+      <Tab.Screen name="Cart" component={CartScreen} />
+      <Tab.Screen name="OrderHistory" component={OrderHistoryScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
 };
 
 // ── Root Navigator ────────────────────────────────────────────────
 const RootNavigator = () => {
-  const { session, authLoading } = useApp();
+  const { session, authLoading, isDarkMode, cart } = useApp();
   const [onboardingChecked, setOnboardingChecked] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const navRef = useNavigationContainerRef();
+  const [activeRoute, setActiveRoute] = useState('Home');
 
-  // Cek AsyncStorage: apakah user sudah pernah lihat onboarding
   useEffect(() => {
     AsyncStorage.getItem(ONBOARDING_KEY).then((val) => {
-      setShowOnboarding(val === null); // null = belum pernah
+      setShowOnboarding(val === null);
       setOnboardingChecked(true);
     }).catch(() => {
       setShowOnboarding(false);
@@ -133,7 +72,6 @@ const RootNavigator = () => {
     setShowOnboarding(false);
   };
 
-  // Tunggu keduanya selesai (onboarding check + auth check)
   if (!onboardingChecked || authLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' }}>
@@ -142,33 +80,104 @@ const RootNavigator = () => {
     );
   }
 
-  // Tampilkan onboarding jika belum pernah
   if (showOnboarding) {
-    return (
-      <OnboardingScreen onFinish={handleOnboardingFinish} />
-    );
+    return <OnboardingScreen onFinish={handleOnboardingFinish} />;
   }
 
-  // Setelah onboarding selesai: auth flow normal
+  const tabBarBg = isDarkMode ? '#1e1e1e' : '#ffffff';
+  const activeColor = '#825100';
+  const inactiveColor = isDarkMode ? '#888' : '#a0998f';
+  const cartCount = cart.reduce((sum, i) => sum + i.quantity, 0);
+
+  const TAB_ROUTES = ['Home', 'Menu', 'Cart', 'OrderHistory', 'Profile'];
+  const tabs = [
+    { name: 'Home',         label: 'Beranda',    icon: 'home' },
+    { name: 'Menu',         label: 'Menu',       icon: 'silverware-fork-knife' },
+    { name: 'Cart',         label: 'Keranjang',  icon: 'cart', badge: cartCount },
+    { name: 'OrderHistory', label: 'Pesanan',    icon: 'receipt' },
+    { name: 'Profile',      label: 'Profil',     icon: 'account-circle' },
+  ];
+
+  // Tab bar selalu tampil saat logged in di semua halaman
+
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!session ? (
-          <Stack.Screen name="Auth" component={AuthScreen} />
-        ) : (
-          <>
-            <Stack.Screen name="MainTabs" component={MainTabs} />
-            <Stack.Screen name="MenuDetail" component={MenuDetailScreen} />
-            <Stack.Screen name="Payment" component={PaymentScreen} />
-            <Stack.Screen name="Gateway" component={GatewayScreen} />
-            <Stack.Screen name="DeliveryTracker" component={DeliveryTrackerScreen} />
-            <Stack.Screen name="Invoice" component={InvoiceScreen} />
-            <Stack.Screen name="Settings" component={SettingsScreen} />
-            <Stack.Screen name="PromoHub" component={PromoHubScreen} />
-          </>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <View style={{ flex: 1 }}>
+      <NavigationContainer
+        ref={navRef}
+        onReady={() => setActiveRoute(navRef.getCurrentRoute()?.name || 'Home')}
+        onStateChange={() => setActiveRoute(navRef.getCurrentRoute()?.name || 'Home')}
+      >
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {!session ? (
+            <Stack.Screen name="Auth" component={AuthScreen} />
+          ) : (
+            <>
+              <Stack.Screen name="MainTabs" component={MainTabs} />
+              <Stack.Screen name="MenuDetail" component={MenuDetailScreen} />
+              <Stack.Screen name="Payment" component={PaymentScreen} />
+              <Stack.Screen name="Gateway" component={GatewayScreen} />
+              <Stack.Screen name="DeliveryTracker" component={DeliveryTrackerScreen} />
+              <Stack.Screen name="Invoice" component={InvoiceScreen} />
+              <Stack.Screen name="Settings" component={SettingsScreen} />
+              <Stack.Screen name="PromoHub" component={PromoHubScreen} />
+            </>
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+
+      {/* Persistent bottom tab bar — muncul di semua halaman saat login */}
+      {!!session && (
+        <View style={{
+          flexDirection: 'row',
+          backgroundColor: tabBarBg,
+          borderTopColor: isDarkMode ? '#2c2c2c' : '#f0e8df',
+          borderTopWidth: 1,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 4,
+        }}>
+          {tabs.map(tab => {
+            const isActive = activeRoute === tab.name;
+            return (
+              <TouchableOpacity
+                key={tab.name}
+                style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+                onPress={() => navRef.navigate(tab.name)}
+              >
+                <View style={{ position: 'relative' }}>
+                  <MaterialCommunityIcons
+                    name={tab.icon}
+                    size={24}
+                    color={isActive ? activeColor : inactiveColor}
+                  />
+                  {tab.badge > 0 && (
+                    <View style={{
+                      position: 'absolute', top: -4, right: -6,
+                      backgroundColor: '#EE4D2D', borderRadius: 8,
+                      minWidth: 16, height: 16,
+                      justifyContent: 'center', alignItems: 'center', paddingHorizontal: 2,
+                    }}>
+                      <Text style={{ color: '#fff', fontSize: 9, fontWeight: '700' }}>{tab.badge}</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={{ fontSize: 10, fontWeight: '600', color: isActive ? activeColor : inactiveColor, marginTop: 2 }}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+
+      {/* Floating overlays — hanya tampil saat sudah login */}
+      {!!session && (
+        <>
+          <GameCenter />
+          <AIChatBubble />
+        </>
+      )}
+    </View>
   );
 };
 
