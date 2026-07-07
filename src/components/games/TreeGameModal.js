@@ -1,16 +1,7 @@
 // src/components/games/TreeGameModal.js
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Haptics from 'expo-haptics';
-import * as Linking from 'expo-linking';
-import { useEffect, useRef, useState } from 'react';
 import {
-  Animated, Clipboard, Dimensions, Modal, Platform,
-  ScrollView, StyleSheet, Text, TouchableOpacity, View,
+  Dimensions
 } from 'react-native';
-import Svg, { Circle, Ellipse, G, Line, Path, Rect } from 'react-native-svg';
-import { useApp } from '../../context/AppContext';
-import ConfettiParticle from './ConfettiParticle';
 
 const { width, height } = Dimensions.get('window');
 const MAX_LEVEL = 5;
