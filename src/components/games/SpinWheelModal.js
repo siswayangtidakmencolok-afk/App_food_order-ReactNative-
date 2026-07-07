@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Clipboard, Dimensions, Easing, Modal, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Clipboard, Dimensions, Easing, Modal, Platform, Text, TouchableOpacity, View } from 'react-native';
 import Svg, { Circle, Defs, G, Line, Path, RadialGradient, Stop, Text as SvgText } from 'react-native-svg';
 import { useApp } from '../../context/AppContext';
 import ConfettiParticle from './ConfettiParticle';
