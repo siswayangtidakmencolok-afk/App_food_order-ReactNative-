@@ -1,7 +1,12 @@
-// src/components/games/TreeGameModal.js
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  Dimensions
+  Dimensions, StyleSheet, View, Text, TouchableOpacity, Animated, Modal, ScrollView, Platform, Linking, Clipboard
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Svg, { Rect, Path, Ellipse, Circle, Line, G } from 'react-native-svg';
+import { useApp } from '../../context/AppContext';
 
 const { width, height } = Dimensions.get('window');
 const MAX_LEVEL = 5;
