@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  Dimensions,
-  Image
-} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import React, { useEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+} from 'react-native';
 import { supabase } from '../config/supabase';
 
 const { width, height } = Dimensions.get('window');
@@ -169,15 +169,21 @@ const AuthScreen = () => {
     if (provider === 'Google') {
       try {
         setLoading(true);
+        // Tentukan redirectTo berdasarkan platform
+        const redirectTo = Platform.OS === 'web'
+          ? window.location.origin   // http://localhost:8081 atau https://nama.vercel.app
+          : 'aplikasipemesananmakanan://auth/callback';
+
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
+          options: { redirectTo },
         });
         if (error) throw error;
       } catch (error) {
         Alert.alert('Login Gagal', error.message);
-      } finally {
         setLoading(false);
       }
+      // Jangan setLoading(false) di sini — browser akan redirect ke Google
     } else {
       Alert.alert('Info', `Fitur Login dengan ${provider} belum dikonfigurasi.`);
     }
