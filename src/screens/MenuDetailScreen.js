@@ -409,28 +409,32 @@ const MenuDetailScreen = ({ route }) => {
         scrollEventThrottle={16}
       >
         {/* Gambar parallax */}
-        <Animated.Image
-          source={{ uri: item.image }}
-          style={[styles.image, {
-            transform: [{
-              translateY: animatedScrollY.interpolate({
-                inputRange: [-250, 0, 250],
-                outputRange: [-125, 0, 125],
-                extrapolate: 'clamp',
-              })
-            }]
-          }]}
-        />
+        <View style={{ position: 'relative' }}>
+          <Animated.Image
+            source={{ uri: item.image }}
+            style={[styles.image, {
+              transform: [{
+                translateY: animatedScrollY.interpolate({
+                  inputRange: [-250, 0, 250],
+                  outputRange: [-125, 0, 125],
+                  extrapolate: 'clamp',
+                })
+              }]
+            }]}
+          />
+          {/* Floating back button di atas gambar */}
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.floatingBack}
+            activeOpacity={0.85}
+          >
+            <MaterialCommunityIcons name="arrow-left" size={22} color="#fff" />
+          </TouchableOpacity>
+        </View>
 
         {/* Info makanan */}
         <View style={[styles.section, { backgroundColor: card }]}>
           <View style={styles.headerRow}>
-            <TouchableOpacity 
-              onPress={() => navigation.goBack()}
-              style={styles.backBtnInline}
-            >
-              <MaterialCommunityIcons name="arrow-left" size={26} color={textCol} />
-            </TouchableOpacity>
             <View style={{ flex: 1 }}>
               <Text style={[styles.name, { color: textCol }]}>{item.name}</Text>
               <View style={styles.categoryBadge}>
@@ -569,8 +573,20 @@ const MenuDetailScreen = ({ route }) => {
 
 const styles = StyleSheet.create({
   container:        { flex: 1 },
+  floatingBack: {
+    position: 'absolute',
+    top: 48,
+    left: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+    elevation: 5,
+  },
   headerRow:        { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 12 },
-  backBtnInline:    { width: 40, height: 40, justifyContent: 'center', alignItems: 'center', marginLeft: -8 },
   image:            { width: '100%', height: 280, resizeMode: 'cover' },
   section:          { padding: 16 },
   name:             { fontSize: 22, fontWeight: 'bold', marginBottom: 8 },
